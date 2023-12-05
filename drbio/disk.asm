@@ -2955,6 +2955,33 @@ log_p1:					; any of the above:  BPB invalid
 	jmp	log_p9
 
 log_p2:					; valid BPB for partition, AX/DX = size
+	cmp word ptr BPB_TOTSEC[si], 0	; BPB says small size ?
+	jne log_p2a			; no -->
+	test dx, dx			; partition table says larger ?
+	jnz log_replace			; yes, replace it with BPB size -->
+	cmp word ptr BPB_TOTSEC[si], ax	; BPB says smaller than partition table ?
+	jb log_replace			; yes, replace it with BPB size -->
+	jmp log_p2z
+log_p2a:
+	cmp word ptr BPB_SIZE+2[si], dx	; BPB says smaller than partition table ?
+	jne log_p2b
+	cmp word ptr BPB_SIZE[si], ax
+log_p2b:
+	jae log_p2z			; no -->
+
+log_replace:
+	mov cx, word ptr BPB_TOTSEC[si]	; = 0 or small size
+	mov dx, word ptr BPB_SIZE+2[si]
+	mov ax, word ptr BPB_SIZE[si]
+	jcxz log_p2x			; if to use large size -->
+	xor dx, dx
+	mov ax, cx			; use small size as large size too
+log_p2x:
+	mov word ptr BPB_TOTSEC[bx], cx	; set small size
+	mov word ptr BPB_SIZE[bx], ax
+	mov word ptr BPB_SIZE+2[bx], dx	; set large size
+
+log_p2z:
 	push	ax
 	mov	al,BPB_ALLOCSIZ[si]	; copy a few parameters from the 
 	mov	BPB_ALLOCSIZ[bx],al	; Boot Sector BPB to our new BPB
