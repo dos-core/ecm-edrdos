@@ -3071,6 +3071,11 @@ hd_bpb:
 	 jae	hd_bpb20		; yes, use 16 bit FAT
 	cmp	parttype,DOS20_ID	; <16 Mb, but parttype indicates that
 	 jnz	hd_bpb20		; this is not FAT-12 -> must be FAT-16
+		; This branch can be taken even if 4 SpC (2 KiB clusters)
+		;  would lead to misdetecting the FAT as FAT12. However,
+		;  the only ill effect is that we may allocate too many
+		;  FAT sectors for the assumed FAT16 in this case.
+
 	mov	cx,4*2			; else we've got old 12-bit FAT
 	mov	BPB_ALLOCSIZ[bx],cl	; we use 4 K clusters
 	add	ax,cx			; adjust DX:AX for rounding
