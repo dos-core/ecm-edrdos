@@ -2918,7 +2918,7 @@ log_p0b:
 
 	mov	ax,word ptr partstart
 	mov	dx,word ptr partstart+2
-	mov	es:word ptr BPB_HIDDEN[bx],ax	; set the partition address
+	mov	word ptr BPB_HIDDEN[bx],ax	; set the partition address
 	mov	word ptr BPB_HIDDEN+2[bx],dx	;   (32 bit sector offset)
 	mov	ax,part_size
 	mov	dx,part_size+2
