@@ -16,6 +16,9 @@
 ;            partition table. This may impose a problem where these values
 ;            disagree.
 ;
+;		ecm note: If the BPB size is smaller than the partition
+;		 table entry size then the BPB size is now preferred.
+;
 ;          - Kernel allows access to non-formatted disks, because a valid
 ;            default BPB is constructed. Even file operations may seem to
 ;            succeed if FAT etc. by accident store sensible values.
