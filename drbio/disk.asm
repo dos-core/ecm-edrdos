@@ -3226,6 +3226,7 @@ hd_bpb40:				; cluster size determined
 	pop	bp
 	mov	word ptr BPB_BFATSEC[bx],ax	; remember FAT size
 	mov	word ptr BPB_BFATSEC+2[bx],dx
+	and word ptr BPB_FATSEC[bx], 0	; clear small FAT size field
 	mov	es:UDSC_FSTYPE+3[di],'3'; change "FAT12" to "FAT32"
 	ret
 
