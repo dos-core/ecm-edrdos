@@ -705,8 +705,28 @@ init0	proc	near
 
 	push	ds:1eh[bp]
 	push	ds:1ch[bp]
+	push	si			; drdoslen
+	push	ax			; drdosseg
 	push	cx			; save entry registers
 	push	di			; (important in ROM systems)
+
+if COMPRESSED
+	mov ds, ax
+	mov cx, si
+	mov ax, 1070h
+	mov es, ax
+	mov di, si
+	std
+	cmpsb
+	rep movsb
+	cld
+	pop di
+	pop cx
+	pop si
+	push ax
+	push cx
+	push di
+endif
 
 	xor	si,si
 	mov	ds,si

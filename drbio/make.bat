@@ -84,10 +84,12 @@ REM ***************************************************
 warplink @wlbios.lnk
 IF ERRORLEVEL 1 GOTO FAILED
 echo.
-x2b2 .\bin\bios.exe .\bin\drbio.sys
+:: x2b2 .\bin\bios.exe .\bin\drbio.sys
+x2b2 .\bin\bios.exe .\bin\drbio.bin
 IF ERRORLEVEL 1 GOTO FAILED
 del .\bin\bios.exe
-%LOCTOOLS%\compbios .\bin\drbio.sys
+:: %LOCTOOLS%\compbios .\bin\drbio.sys
+%LOCTOOLS%\compbios .\bin\drbio.bin
 IF ERRORLEVEL 1 GOTO FAILED
 goto exit
 

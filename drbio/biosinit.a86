@@ -157,6 +157,8 @@ biosinit:
 	cli
 	mov	ax,cs			; Initialise our stack and Data Segment
 	mov	ds,ax
+	pop	ds:drdosseg		; drkernpl ax
+	pop	ds:drdoslen		; drkernpl si
 	pop	ds:part_off
 	pop	ds:part_off+2
 	mov	ss,ax
@@ -249,6 +251,15 @@ biosinit20:
 biosinit30:
 	mov	dos_cseg,ax		; a relocated DOS image will live here
 
+	push ds
+	mov cx, drdoslen
+	mov ds, drdosseg
+	xor si, si
+	mov es, ax
+	xor di, di
+	rep movsb
+	pop ds
+
 	mov	ax,offset biosinit_end+32
 	mov	cl,4			; Leave the Last Paragraph Free for
     shr ax,cl           ;  himem DMD 
@@ -303,7 +314,7 @@ dont_align:
 	 jnz	dos_reloc		;   the DOS file from disk?
 	mov	ax,dos_cseg
 	mov	current_dos,ax		; the file is held on the INIT_DRV with
-	call	read_dos		;   the name specified in DOS_NAME
+	; call	read_dos		;   the name specified in DOS_NAME
 
 eject
 ;
@@ -2012,6 +2023,8 @@ include	initmsgs.def				; Include TFT Header File
 	extrn	cfg_seekhi:word
 	extrn	boot_options:word
 	extrn	boot_switches:byte
+drdosseg	dw 0
+drdoslen	dw 0
 
 ;
 ;	PUBLIC Variables which are initialised by the BIOS before the
