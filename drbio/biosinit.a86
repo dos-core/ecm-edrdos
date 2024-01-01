@@ -119,7 +119,6 @@ INITCODE	CSEG	PARA 'INITCODE'
 	extrn	config:near			; CONFIG.SYS Processor
 	extrn	crlf:near			; Output CR/LF to screen
 	extrn	resident_device_init:near	; Device Driver Init
-	extrn	read_dos:near			; load DOS file
 	extrn	setup_ldt:near
 	extrn	setup_stacks:near
 	extrn	dos_version_check:near
