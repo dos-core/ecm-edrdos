@@ -147,7 +147,6 @@ INITDATA	dseg	'INITDATA'
 		extrn	boot_device:dword	; device driver we boot from
 		extrn	boot_drv:byte		; boot drive
 		extrn	init_drv:byte		; init drive
-		extrn	dos_name:byte		; name of BDOS file
 
 strat_ptr	rd	0
 strat_off	rw	1
