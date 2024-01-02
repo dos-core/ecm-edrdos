@@ -40,7 +40,11 @@ start:
 display_error:
 	mov dx, msg.error
 	mov cx, msg.error.length
-	jmp display
+	mov bx, 1
+	mov ah, 40h
+	int 21h
+	mov ax, 4C01h
+	int 21h
 
 
 capitalise:
@@ -56,7 +60,6 @@ capitalise:
 display_version:
 	mov dx, msg.version
 	mov cx, msg.version.length
-display:
 	mov bx, 1
 	mov ah, 40h
 	int 21h
