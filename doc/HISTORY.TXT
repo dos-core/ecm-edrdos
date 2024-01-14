@@ -1,10 +1,20 @@
 
+lDOS 2024 January:
+- drop support for UPX-compressed drdos.sys file in drbio module (use the
+  compressed edrpack.sys single-file kernel instead)
+- link with WarpLink, .exe to binary with x2b2, round file size with new
+  open source utility round.exe
 
-7.01.09:
+lDOS 2023 December:
+- single-file kernel load: edrdos.com (lDOS iniload, uncompressed) or
+  edrpack.sys (lDOS drload, LZMA-302eos lzip compressed), or edrpack.com
+  or edrdos.sys
+
+SvarDOS 7.01.09:
 - changed reserved sectors for FAT-32 default BPB to 32 and fsinfo sector
   to 0xffff (MS-DOS 7.1 compatibility)
 - changed maximum cluster size to 128 for FAT-32 (compatibility)
-- fixed bug in DRSYS div32 function, leading to kernel hangs on partitions
+- fixed bug in DRDOS div32 function, leading to kernel hangs on partitions
   with more than 65535 FAT sectors.
 - create FAT-32 default BPB for FAT-32 partitions instead of FAT-16 default
   BPB
@@ -12,9 +22,18 @@
 - link DRDOS.SYS with OpenWatcom wlink instead of proprietary LINKCMD
 - link DRBIO.SYS with OpenWatcom wlink instead of WarpLink
 - create Watcom makefiles for DRBIO.SYS and DRDOS.SYS
-- suppress using int13h func 48h for diskettes
+
+lDOS 2023 August:
 - COMMAND.COM: accept COPY /Y switch
+- handle * in LFN search as *.* for SFN search
+- support 32 concurrent LFN searches
+- add FreeDOS extension function 33FFh (version string)
+- suppress using int13h func 48h for diskettes
 - error 7100h on 7143h, 71A7h subfunctions
+- seek on a device acts like an empty file
+- functions 7143h and 71A6h call dosemu2 redirector extension interfaces
+  rather than crashing on redirector handles
+- build with JWasm and OpenWatcom
 
 7.01.08 WIP:
 (30.5.2005):
