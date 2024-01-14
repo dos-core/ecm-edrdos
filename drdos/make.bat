@@ -1,5 +1,7 @@
 @ECHO off
 
+SET JWASMEXE=C:\BIN\JWASM.EXE
+
 REM 
 REM YOU SHOULD NOT HAVE TO CHANGE ANYTHING BELOW THIS LINE.
 REM 
@@ -8,6 +10,9 @@ REM Define local Caldera tools
 SET LOCTOOLS=..\LTOOLS
 
 IF NOT EXIST BIN\*.* MD BIN
+
+ECHO Checking for %JWASMEXE%
+if not exist %JWASMEXE% goto badtool
 
 copy ..\version.inc . /y
 
@@ -85,6 +90,9 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\lfn.asm .\bin\lfn.o86
+IF ERRORLEVEL 1 GOTO FAILED
+
+%JWASMEXE% -c -Zm -Zg -Fo.\BIN\dosgrps dosgrps.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
 for %f in (buffers dirs fdos fcbs) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj
