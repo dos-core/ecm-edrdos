@@ -89,5 +89,4 @@ Other things known not to work perfectly:
 - Enhanced DR-DOS 7.01.08 WIP (28.3.2009) includes partial support for several
   LFN functions (7143h,714E/4Fh,71A1h) which are used by COMMAND.COM or other
   tools, however, they do not actually support LFN functionality. If you need
-  full LFN support, you have to load DOSLFN or a similar TSR. Also, the
-  functions 714E/4Fh do not support two or more concurrent searches.
+  full LFN support, you have to load DOSLFN or a similar TSR.
