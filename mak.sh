@@ -10,6 +10,8 @@ rm -f edrdos.sys
 rm -f edrpack.com
 rm -f edrpack.sys
 
+(cd ltools; ./mak.sh)
+
 if [ "$1" == "onlypl" ]
 then
   shift
