@@ -23,10 +23,12 @@ fi
 nasm version.asm -I ../lmacros/ -o version.com
 
 nasm ../ldosboot/drkernpl.asm -I ../lmacros/ \
-  -I drbio/bin/ -I drdos/bin/ -o edrdos.bin
+  -I drbio/bin/ -I drdos/bin/ -o edrdos.bin \
+  "$@"
 lzip -9vvfkc edrdos.bin > edrdos.lz
 nasm ../inicomp/inicomp.asm -I ../inicomp/ -I ../lmacros/ \
-  -D_PAYLOAD_FILE='"edrdos.lz"' -o edrdos.pak -D_LZD
+  -D_PAYLOAD_FILE='"edrdos.lz"' -o edrdos.pak -D_LZD \
+  "$@"
 nasm ../ldosboot/iniload.asm -I ../ldosboot/ -I ../lmacros/ -I ../scanptab/ \
   -D_PAYLOAD_FILE='"edrdos.pak"' -D_INILOAD_SIGNATURE='"DR"' -o edrpack.com \
   -D_SECOND_PAYLOAD_EXE -D_SECOND_PAYLOAD_FILE='"version.com"' \
