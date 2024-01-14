@@ -120,6 +120,36 @@ so make sure to configure at least that many SFT entries in \cw{FDCONFIG.SYS}
 
 }
 
+\n Set up IA16 gcc
+
+\lcont{
+
+\n Use \W{https://gitlab.com/tkchia/build-ia16}{https://gitlab.com/tkchia/build-ia16}
+
+\n Make \cw{ia16-elf-gcc} available in the Linux path
+
+}
+
+\n Set up the following repos as sister directories of the edrdos repo:
+(accesible as \cw{../REPO/} from edrdos repo)
+
+\lcont{
+
+\n lmacros
+
+\n ldosboot
+
+\n inicomp
+
+\n scanptab
+
+}
+
+\n Make \cw{lzip} available in the Linux path, from
+\W{https://www.nongnu.org/lzip/}{https://www.nongnu.org/lzip/}
+
+\n Make NASM available in Linux path
+
 \n Run mak script from edrdos repo (repo root as host cwd), as \cw{./mak.sh}
 
 \n Alternatively, set up DOS drive I: to point to the repo's \cw{drdos/} subdirectory,
@@ -128,31 +158,9 @@ then run one of the \cw{make.bat} scripts
 from one of the subdirectories
 (\cw{drbio/}, \cw{drdos/}, or \cw{command/} subdirectory as DOS cwd).
 
-\n Find files \cw{drbio.sys}, \cw{drdos.sys}, and \cw{command.com}
-in the subdirectories \cw{drbio/bin/}, \cw{drdos/bin/}, and \cw{command/bin/}
-
-\n To use Enhanced DR-DOS kernel packing:
-
-\lcont{
-
-  \n Unpack \cw{upx.exe} from \cw{pack100.zip}
-
-  \n Unpack all files from \cw{pack101.zip}
-
-  \n The archives can be found at
-\W{https://pushbx.org/ecm/download/edrdos/}{https://pushbx.org/ecm/download/edrdos/}
-
-  \n Place \cw{drbio.sys} and \cw{drdos.sys} in same directory
-
-  \n Make sure that the files are fresh and not yet compressed by this packer
-
-  \n Make sure that the command \cw{debug} resolves to a debugger
-with at least a basic expression evaluator
-(lDebug will do, DR-DOS Debug too)
-
-  \n Run \cw{PACKBIO.BAT} and \cw{PACKDOS.BAT} in DOS
-
-}
+\n Find files \cw{edrdos.sys}, \cw{edrpack.sys},
+\cw{edrdos.com}, or \cw{edrpack.com} in repo root,
+and \cw{command.com} in the subdirectory \cw{command/bin/}
 
 \n To build this document, you need
 the Halibut document preparation system
@@ -165,3 +173,8 @@ the Halibut document preparation system
 \W{https://github.com/ecm-pushbx/halibut/commit/1ccc3ac}{https://github.com/ecm-pushbx/halibut/commit/1ccc3ac}
 
 }
+
+
+The pack100 / pack101 EDR-DOS kernel packing using UPX
+is no longer supported in the lDOS EDR-DOS fork starting 2023 December.
+Use the build files \cw{edrpack.sys} or \cw{edrpack.com} instead.
