@@ -24,7 +24,7 @@ REM *************************************
 
 %JWASMEXE% -c -Zm -Zg -Fo.\BIN\initmsgs initmsgs.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -Fo.\BIN\biosmsgs biosmsgs.asm
+%JWASMEXE% -c -Zm -Zg -DLDOS -Fo.\BIN\biosmsgs biosmsgs.asm
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Zm -Zg -Fl.\BIN\init.lst -Fo.\BIN\init init.asm
 IF ERRORLEVEL 1 GOTO FAILED
