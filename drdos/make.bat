@@ -109,9 +109,9 @@ x2b2 .\bin\drdos.exe .\bin\drdos.bin
 IF ERRORLEVEL 1 GOTO FAILED
 del .\bin\drdos.exe
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\round .\bin\drdos.bin .\bin\drdos.sys 128
+%LOCTOOLS%\round .\bin\drdos.bin .\bin\drdos.pag 128
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\compbdos .\BIN\drdos.sys .\BIN\drdos.sys
+%LOCTOOLS%\compbdos .\BIN\drdos.pag .\BIN\drdos.sys
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -bin -Fo=bin\country.sys country.asm
