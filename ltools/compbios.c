@@ -74,7 +74,7 @@ int main( int argc, char *argv[] )
    }
 
    /* get start offset of data to be compressed */
-   comp_start = *(uint16_t*)(in_data + ZEROCOMP_ADDR_WORD);
+   comp_start = *(__far uint16_t*)(in_data + ZEROCOMP_ADDR_WORD);
    in_data[ZEROCOMP_ADDR_WORD] = in_data[ZEROCOMP_ADDR_WORD+1] = 0;
 
    if ( !comp_start ) {

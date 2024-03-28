@@ -88,12 +88,12 @@ int main( int argc, char *argv[] )
    }
 
    /* number of padding bytes to be skipped */
-   padding = *(uint16_t*)in_data;
+   padding = *(__far uint16_t*)in_data;
    in_ptr += padding;
    in_size -= padding;
 
    /* get offset of data area to be compressed */
-   comp_start = *(uint16_t*)(in_ptr + CODE_SIZE_OFFSET);
+   comp_start = *(__far uint16_t*)(in_ptr + CODE_SIZE_OFFSET);
    /*printf( "start compressing at %04x\n", comp_start );*/
 
    /* mark file as compressed */
