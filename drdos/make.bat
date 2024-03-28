@@ -111,7 +111,7 @@ del .\bin\drdos.exe
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\round .\bin\drdos.bin .\bin\drdos.sys 128
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\compbdos .\BIN\drdos.sys
+%LOCTOOLS%\compbdos .\BIN\drdos.sys .\BIN\drdos.sys
 IF ERRORLEVEL 1 GOTO FAILED
 goto exit
 
