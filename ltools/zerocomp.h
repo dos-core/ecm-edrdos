@@ -1,8 +1,8 @@
 #ifndef ZEROCOMP_H
 #define ZEROCOMP_H
 
-void zerocomp( char *data, size_t data_len, char *out, size_t *out_len );
-char * read_file( const char *fn, size_t *size );
+void zerocomp( __far char *data, size_t data_len, char *out, size_t *out_len );
+__far char * read_file( const char *fn, size_t *size );
 int write_file( const char *fn, const char *data, size_t size );
 
 #define ZERO_THRESHOLD 5
@@ -10,12 +10,12 @@ int write_file( const char *fn, const char *data, size_t size );
 /* encodes a single block of either non-zero data or zeroes. Up to 
    ZERO_THRESHOLD consecutive zeroes are allowed in non-zero data blocks.
    Block size is restricted to 0x7fff bytes. */
-static void zerocomp_block( char **in, char *eof, char **out )
+static void zerocomp_block( __far char **in, __far char *eof, char **out )
 {
-   char *data = *in;
+   __far char *data = *in;
    size_t len;
    uint16_t count = 0, zero_count = 0;
-   char *last_non_zero = NULL;
+   __far char *last_non_zero = NULL;
    char *outp = *out;
 
    if ( data >= eof ) return;
@@ -47,7 +47,7 @@ static void zerocomp_block( char **in, char *eof, char **out )
       /*printf( "NON-ZERO: %04tX\n", len );*/
       *(uint16_t*)outp = len;
       outp += 2;
-      memcpy( outp, *in, len);
+      _fmemcpy( outp, *in, len);
       outp += len;
    }
    else {
@@ -61,10 +61,10 @@ static void zerocomp_block( char **in, char *eof, char **out )
 }
 
 
-void zerocomp( char *data, size_t data_len, char *out, size_t *out_len )
+void zerocomp( __far char *data, size_t data_len, char *out, size_t *out_len )
 {
-   char *eof = data + data_len;
-   char *end = eof;
+   __far char *eof = data + data_len;
+   __far char *end = eof;
    char *outp = out;
 
    /* Optimization: scan for trailing zeroes. Three or four trailing zeroes
@@ -91,10 +91,11 @@ void zerocomp( char *data, size_t data_len, char *out, size_t *out_len )
 }
 
 
-char * read_file( const char *fn, size_t *size )
+__far char * read_file( const char *fn, size_t *size )
 {
    FILE *f;
-   char *buf;
+   char *nearbuf;
+   __far char *farbuf;
 
    f = fopen( fn, "rb" );
    if ( !f ) {
@@ -103,21 +104,31 @@ char * read_file( const char *fn, size_t *size )
 
    fseek( f, 0, SEEK_END );
    *size = ftell( f );
-   buf = malloc( *size );
-   if ( !buf ) {
+   nearbuf = malloc( *size );
+   if ( !nearbuf ) {
+      fclose( f );
+      return NULL;
+   }
+   farbuf = _fmalloc( *size );
+   if ( !farbuf ) {
+      free( nearbuf );
       fclose( f );
       return NULL;
    }
    fseek( f, 0, SEEK_SET );
 
-   if ( fread( buf, 1, *size, f ) != *size ) {
-      free( buf );
+   if ( fread( nearbuf, 1, *size, f ) != *size ) {
+      free( nearbuf );
+      _ffree( farbuf );
       fclose( f );
       return NULL;
    }
 
+   _fmemcpy( farbuf, nearbuf, *size );
+   free( nearbuf );
+
    fclose( f );
-   return buf;
+   return farbuf;
 }
 
 

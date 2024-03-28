@@ -47,6 +47,8 @@ The DRBIO.SYS decompression is implemented in init0 in DRBIO\INIT.ASM
 #include <stdint.h>
 #include <string.h>
 
+#include <libi86/malloc.h>
+
 #include "zerocomp.h"
 
 #define ZEROCOMP_ADDR_WORD 3  /* location in input file holding the start
@@ -55,7 +57,8 @@ The DRBIO.SYS decompression is implemented in init0 in DRBIO\INIT.ASM
 
 int main( int argc, char *argv[] )
 {
-   char *in_data, *out_data, *in_ptr, *out_ptr;
+   __far char *in_data, *in_ptr;
+   char *out_data, *out_ptr;
    size_t in_size, out_size;
    uint16_t comp_start;
 
@@ -76,7 +79,7 @@ int main( int argc, char *argv[] )
 
    if ( !comp_start ) {
       puts( "BIOS already compressed" );
-      free( in_data );
+      _ffree( in_data );
       return 0;
    }
    /*printf( "start compressing at %04x\n", comp_start );*/
@@ -89,7 +92,7 @@ int main( int argc, char *argv[] )
    }
 
    /* copy uncompressed part of file */
-   memcpy( out_data, in_data, comp_start );
+   _fmemcpy( out_data, in_data, comp_start );
 
    /* zero-compress file... */
    in_ptr = in_data + comp_start;
@@ -101,11 +104,11 @@ int main( int argc, char *argv[] )
    if ( !write_file( argv[2], out_data, comp_start + out_size ) ) {
       puts( "error: could not write output file" );
       free( out_data );
-      free( in_data );
+      _ffree( in_data );
       return 1;
    }
 
    free( out_data );
-   free( in_data );
+   _ffree( in_data );
    return 0;
 }

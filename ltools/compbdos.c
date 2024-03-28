@@ -57,6 +57,8 @@ The DRDOS.SYS decompression is implemented in dos_reloc in DRBIO\BIOSINIT.ASM.
 #include <stdint.h>
 #include <string.h>
 
+#include <libi86/malloc.h>
+
 #include "zerocomp.h"
 
 #define CODE_SIZE_OFFSET 0x1e  /* location in input file holding the start
@@ -68,7 +70,8 @@ The DRDOS.SYS decompression is implemented in dos_reloc in DRBIO\BIOSINIT.ASM.
 
 int main( int argc, char *argv[] )
 {
-   char *in_data, *out_data, *in_ptr, *out_ptr;
+   __far char *in_data, *in_ptr;
+   char *out_data, *out_ptr;
    size_t in_size, out_size;
    uint16_t padding;
    uint16_t comp_start;
@@ -103,7 +106,7 @@ int main( int argc, char *argv[] )
    }
 
    /* copy uncompressed part of file */
-   memcpy( out_ptr, in_ptr, comp_start );
+   _fmemcpy( out_ptr, in_ptr, comp_start );
 
    /* zero-compress file... */
    in_ptr += comp_start;
@@ -115,12 +118,12 @@ int main( int argc, char *argv[] )
    if ( !write_file( argv[2], out_data, comp_start + out_size ) ) {
       puts( "error: could not write output file" );
       free( out_data );
-      free( in_data );
+      _ffree( in_data );
       return 1;
    }
 
    free( out_data );
-   free( in_data );
+   _ffree( in_data );
    return 0;
 }
 
