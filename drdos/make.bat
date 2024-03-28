@@ -113,6 +113,9 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\compbdos .\BIN\drdos.sys .\BIN\drdos.sys
 IF ERRORLEVEL 1 GOTO FAILED
+
+%JWASMEXE% -bin -Fo=bin\country.sys country.asm
+IF ERRORLEVEL 1 GOTO FAILED
 goto exit
 
 :failed
