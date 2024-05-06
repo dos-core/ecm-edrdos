@@ -21,11 +21,12 @@
 [ -z "$INICHECK_DIR" ] && INICHECK_DIR=../crc16-t/
 [ -z "$BOOTIMG_DIR" ] && BOOTIMG_DIR=../bootimg/
 [ -z "$INICOMP_DIR" ] && INICOMP_DIR=../inicomp/
-[ -z "$INICOMP_METHOD" ] && INICOMP_METHOD="brieflz lz4 snappy exodecr x heatshrink lzd lzo lzsa2 apl bzp"
+# [ -z "$INICOMP_METHOD" ] && INICOMP_METHOD="brieflz lz4 snappy exodecr x heatshrink lzd lzo lzsa2 apl bzp"
 	# none or brieflz or lz4 or snappy or exodecr or x or heatshrink or lzd or lzo or lzsa2 or apl or bzp
+[ -z "$INICOMP_METHOD" ] && INICOMP_METHOD="lz4 exodecr heatshrink lzd lzsa2 apl"
 [ -z "$INICOMP_WINNER" ] && INICOMP_WINNER=smallest
 	# smallest or none or one of the method names
-[ -z "$INICOMP_PROGRESS" ] && INICOMP_PROGRESS=0
+[ -z "$INICOMP_PROGRESS" ] && INICOMP_PROGRESS=1
 [ -z "$INICOMP_BLZPACK" ] && INICOMP_BLZPACK=blzpack
 [ -z "$INICOMP_LZ4" ] && INICOMP_LZ4=lz4
 [ -z "$INICOMP_SNZIP" ] && INICOMP_SNZIP=snzip
@@ -49,7 +50,7 @@
 [ -z "$NASM" ] && NASM=nasm
 [ -z "$CHECKSUM" ] && CHECKSUM="${INICHECK_DIR%/}"/iniload/checksum
 
-[ -z "$use_build_decomp_test" ] && use_build_decomp_test=0
+[ -z "$use_build_decomp_test" ] && use_build_decomp_test=1
 [ -z "$use_build_inicheck" ] && use_build_inicheck=0
 [ -z "$use_build_inicheck_new" ] && use_build_inicheck_new=0
 [ -z "$use_build_bootable" ] && use_build_bootable=1
