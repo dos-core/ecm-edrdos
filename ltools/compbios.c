@@ -47,7 +47,16 @@ The DRBIO.SYS decompression is implemented in init0 in DRBIO\INIT.ASM
 #include <stdint.h>
 #include <string.h>
 
-#include <libi86/malloc.h>
+#ifdef __FAR
+ #include <libi86/malloc.h>
+ #define farkeyword __far
+ #define farmemcpy _fmemcpy
+ #define farfree _ffree
+#else
+ #define farkeyword
+ #define farmemcpy memcpy
+ #define farfree free
+#endif
 
 #include "zerocomp.h"
 
@@ -57,7 +66,7 @@ The DRBIO.SYS decompression is implemented in init0 in DRBIO\INIT.ASM
 
 int main( int argc, char *argv[] )
 {
-   __far char *in_data, *in_ptr;
+   farkeyword char *in_data, *in_ptr;
    char *out_data, *out_ptr;
    size_t in_size, out_size;
    uint16_t comp_start;
@@ -74,12 +83,12 @@ int main( int argc, char *argv[] )
    }
 
    /* get start offset of data to be compressed */
-   comp_start = *(__far uint16_t*)(in_data + ZEROCOMP_ADDR_WORD);
+   comp_start = *(farkeyword uint16_t*)(in_data + ZEROCOMP_ADDR_WORD);
    in_data[ZEROCOMP_ADDR_WORD] = in_data[ZEROCOMP_ADDR_WORD+1] = 0;
 
    if ( !comp_start ) {
       puts( "BIOS already compressed" );
-      _ffree( in_data );
+      farfree( in_data );
       return 0;
    }
    /*printf( "start compressing at %04x\n", comp_start );*/
@@ -92,7 +101,7 @@ int main( int argc, char *argv[] )
    }
 
    /* copy uncompressed part of file */
-   _fmemcpy( out_data, in_data, comp_start );
+   farmemcpy( out_data, in_data, comp_start );
 
    /* zero-compress file... */
    in_ptr = in_data + comp_start;
@@ -104,11 +113,11 @@ int main( int argc, char *argv[] )
    if ( !write_file( argv[2], out_data, comp_start + out_size ) ) {
       puts( "error: could not write output file" );
       free( out_data );
-      _ffree( in_data );
+      farfree( in_data );
       return 1;
    }
 
    free( out_data );
-   _ffree( in_data );
+   farfree( in_data );
    return 0;
 }
