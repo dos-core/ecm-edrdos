@@ -239,6 +239,7 @@ RCODE	segment	'RCODE'
 even
 Int13	proc	near
 	clc
+Int13_Keep_CF:
 	push	bp
 	int	DISK_INT
 	pop	bp
@@ -2557,9 +2558,12 @@ hardi1:
 	mov ds, bx
 ; Setting ds = 40h is a Book8088 bugfix, refer to
 ;  http://www.bttr-software.de/forum/forum_entry.php?id=21061
-	mov	ah,ROS_LBACHK		; int 13 extensions available?
-	mov	bx,55aah
-	int_____DISK_INT
+	mov ax, 4100h			; int 13 extensions available?
+	mov bx, 55AAh
+	xor cx, cx			; harden
+	mov dh, 0			; harden
+	stc				; harden
+	call Int13_Keep_CF		; pass CY to int 13h
 	pop ds
 	 jc	hardi4
 	cmp	bx,0aa55h
