@@ -2552,9 +2552,15 @@ hardi1:
 	mov	word ptr lastpart,0
 	mov	word ptr lastpart+2,0
 	pushx	<cx, dx>		; save drive count, physical drive
+	push ds
+	mov bx, 40h
+	mov ds, bx
+; Setting ds = 40h is a Book8088 bugfix, refer to
+;  http://www.bttr-software.de/forum/forum_entry.php?id=21061
 	mov	ah,ROS_LBACHK		; int 13 extensions available?
 	mov	bx,55aah
 	int_____DISK_INT
+	pop ds
 	 jc	hardi4
 	cmp	bx,0aa55h
 	 jnz	hardi4
@@ -2593,9 +2599,12 @@ hardi2:
 	call	login_hdisk		; find all partitions on hard disk
 	popx	<dx, cx>		; restore physical drive, drive count
 	inc	dx			; next physical hard disk
-	loop	hardi1			; next physical hard disk
+	loop	hardi1_j		; next physical hard disk
 hardi9:					; all hard disks done
 	ret
+
+hardi1_j:
+	jmp hardi1			; near jump
 
 
 login_hdisk:	; find all partitions on a hard disk
