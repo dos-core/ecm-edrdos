@@ -613,7 +613,7 @@ add_unit:	; add a new unit to the list
 	push	ds
 	mov	es:word ptr UDSC_NEXT[di],0FFFFh
 					; make sure it's terminated
-	and	es:UDSC_FLAGS[di],UDF_HARD+UDF_CHGLINE
+	and	es:UDSC_FLAGS[di],UDF_LBA+UDF_HARD+UDF_CHGLINE
 	lea	si,udsc_root		; DS:SI -> [first UDSC_]
 add_unit10:
 	cmp	ds:word ptr UDSC_NEXT[si],0FFFFh
