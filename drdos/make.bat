@@ -95,12 +95,12 @@ IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Zm -Zg -Fo.\BIN\dosgrps dosgrps.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
-for %f in (buffers dirs fdos fcbs) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj
-for %f in (bdevio cdevio fioctl redir) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj
-for %f in (header pcmif cio disk ioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj
-for %f in (misc support dosmem error) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj
-for %f in (process network int2f history) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj
-for %f in (cmdline dos7 lfn) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj
+for %f in (buffers dirs fdos fcbs) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (bdevio cdevio fioctl redir) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (header pcmif cio disk ioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (misc support dosmem error) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (process network int2f history) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (cmdline dos7 lfn) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 
 warplink @wldrdos.lnk
 IF ERRORLEVEL 1 GOTO FAILED

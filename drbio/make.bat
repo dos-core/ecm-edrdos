@@ -46,11 +46,11 @@ REM Build the library so that we can link into
 REM ******************************************
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\confstub.a86 .\BIN\confstub.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\confstub.o86 .\BIN\confstub.obj
+%LOCTOOLS%\fixupp .\BIN\confstub.o86 .\BIN\confstub.obj RELOC > bin\confstub.rel
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\bdosstub.a86 .\BIN\bdosstub.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\bdosstub.o86 .\BIN\bdosstub.obj
+%LOCTOOLS%\fixupp .\BIN\bdosstub.o86 .\BIN\bdosstub.obj RELOC > bin\bdosstub.rel
 IF ERRORLEVEL 1 GOTO FAILED
 
 REM ******************************************
@@ -58,23 +58,23 @@ REM Build the .A86 files next, get the obj's
 REM ******************************************
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\biosinit.a86 .\BIN\biosinit.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\biosinit.o86 .\BIN\biosinit.obj
+%LOCTOOLS%\fixupp .\BIN\biosinit.o86 .\BIN\biosinit.obj RELOC > bin\biosinit.rel
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\config.a86 .\BIN\config.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\config.o86 .\BIN\config.obj
+%LOCTOOLS%\fixupp .\BIN\config.o86 .\BIN\config.obj RELOC > bin\config.rel
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\bdosldr.a86 .\BIN\bdosldr.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\bdosldr.o86 .\BIN\bdosldr.obj
+%LOCTOOLS%\fixupp .\BIN\bdosldr.o86 .\BIN\bdosldr.obj RELOC > bin\bdosldr.rel
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\genercfg.a86 .\BIN\genercfg.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\genercfg.o86 .\BIN\genercfg.obj
+%LOCTOOLS%\fixupp .\BIN\genercfg.o86 .\BIN\genercfg.obj RELOC > bin\genercfg.rel
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\nlsfunc.a86 .\BIN\nlsfunc.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\nlsfunc.o86 .\BIN\nlsfunc.obj
+%LOCTOOLS%\fixupp .\BIN\nlsfunc.o86 .\BIN\nlsfunc.obj RELOC > bin\nlsfunc.rel
 IF ERRORLEVEL 1 GOTO FAILED
 
 REM ***************************************************
