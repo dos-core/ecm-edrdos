@@ -51,6 +51,7 @@ typedef unsigned short u16;
 
 
 unsigned verbose = 0;
+unsigned reloc = 0;
 u8 segment_count;
 u8 group_count;
 u8 segment_group[MAX_SEGMENTS+1];   /* group number of segment n (0=none) */
@@ -190,19 +191,19 @@ static int process_segdef( u8 *data, size_t len )
       return 0;
    }
 
+   ++ p;
+   length = get_16( &p );
+   name_idx = get_index( &p );
+   segments[segment_count] = name_idx;
+
    if ( !verbose ) {
       return 1;
    }
 
-   ++ p;
-   length = get_16( &p );
-   name_idx = get_index( &p );
    printf("seg=%04Xh a=%Xh c=%Xh b=%Xh p=%Xh length=%u name_idx=%u ",
       (unsigned)segment_count, a, c, b, pbit,
       (unsigned)length, (unsigned)name_idx);
    printf("name=\"%s\"\n", lnames[name_idx]);
-
-   segments[segment_count] = name_idx;
 
    return 1;
 }
@@ -241,14 +242,9 @@ static int process_ledata_lidata( u8 *data, size_t len  )
    u8 *p = data + 3;       /* skip record type and length fields */
    u16 seg_idx, data_offset;
 
-   if ( !verbose ) {
-      return 1;
-   }
-
    seg_idx = get_index( &p ); /* segment index */
 
    data_offset = get_16( &p );
-   printf("seg=%04Xh offset=%04Xh\n", (unsigned)seg_idx, (unsigned)data_offset);
 
    current_segment = seg_idx;
    current_base = data_offset;
@@ -260,6 +256,12 @@ static int process_ledata_lidata( u8 *data, size_t len  )
       puts( "Error: Invalid segment for LEDATA/LIDATA!" );
       return 0;
    }
+
+   if ( !verbose ) {
+      return 1;
+   }
+
+   printf("seg=%04Xh offset=%04Xh\n", (unsigned)seg_idx, (unsigned)data_offset);
 
    return 1;
 }
@@ -333,13 +335,15 @@ static void dump_fixup( fixup_t *fixup )
 #if 1
    unsigned length = 0;
 
-   if ( !verbose ) {
+   if ( !verbose && !reloc ) {
       return;
    }
 
-   printf( "M%d L%d O=%04x F%d T%d : F=%04x T=%04x D=%04x\n",
-      fixup->mode, fixup->location, fixup->offset, fixup->frame, fixup->target,
-      fixup->frame_datum, fixup->target_datum, fixup->displacement);
+   if ( verbose ) {
+      printf( "M%d L%d O=%04x F%d T%d : F=%04x T=%04x D=%04x\n",
+         fixup->mode, fixup->location, fixup->offset, fixup->frame, fixup->target,
+         fixup->frame_datum, fixup->target_datum, fixup->displacement);
+   }
 
    switch( fixup->location ) {
    case 0:
@@ -476,18 +480,21 @@ int main( int argc, char *argv[] )
    int result = EXIT_SUCCESS;
 
    if ( argc != 3 && argc != 4 ) {
-      puts( "Usage: fixupp input.obj output.obj [VERBOSE]");
+      puts( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]");
       result = EXIT_FAILURE;
       goto ret0;
    }
 
    if ( argc == 4 ) {
-      if ( strcmp( argv[3], "verbose" ) && strcmp( argv[3], "VERBOSE" ) ) {
-         puts( "Usage: fixupp input.obj output.obj [VERBOSE]");
+      if ( ! strcmp( argv[3], "verbose" ) || ! strcmp( argv[3], "VERBOSE" ) ) {
+         verbose = 1;
+      } else if ( ! strcmp( argv[3], "reloc" ) || ! strcmp( argv[3], "RELOC" ) ) {
+         reloc = 1;
+      } else {
+         puts( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]");
          result = EXIT_FAILURE;
          goto ret0;
       }
-      verbose = 1;
    }
 
    /* open input and output files */
