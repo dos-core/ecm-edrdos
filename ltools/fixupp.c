@@ -32,13 +32,17 @@ typedef unsigned char  u8;
 typedef unsigned short u16;
 
 #define MAX_SEGMENTS 255            /* maximum number of segments */
+#define MAX_LNAMES   1024
 #define REC_BUF_SZ   1028
 
 /* OMF record type definitions */
+#define LNAMES_REC   0x96
 #define SEGDEF16_REC 0x98
 #define GRPDEF16_REC 0x9a
 #define FIXUP16_REC  0x9c
 #define MODEND16_REC 0x8a
+#define LEDATA16_REC 0xA0
+#define LIDATA16_REC 0xA2
 
 /* OMF target and frame types */
 #define TARGET_SEGDEF_IDX 0
@@ -49,6 +53,9 @@ typedef unsigned short u16;
 u8 segment_count;
 u8 group_count;
 u8 segment_group[MAX_SEGMENTS+1];   /* group number of segment n (0=none) */
+unsigned lnames_count;
+u8 emptylname[] = "";
+u8* lnames[MAX_LNAMES + 1];
 
 typedef struct {
    unsigned mode:1;
@@ -123,12 +130,70 @@ static u8 calculate_checksum( const u8 *data, size_t len )
 }
 
 
-/* The only purpose for us to process the SEGDEF records is to count the
-   number of defined segments */
-static int process_segdef( const u8 *data, size_t len )
+static int process_lnames( u8 *data, size_t len  )
 {
+   const u8 *data_end = data + len - 1;
+   u8 *p = data + 3;       /* skip record type and length fields */
+   u8 length;
+   u8* lname;
+
+   while ( p < data_end ) {
+      length = *p++;
+      if ( lnames_count >= MAX_LNAMES ) {
+         puts( "Error: Too many lnames!" );
+         return 0;
+      }
+      ++ lnames_count;
+      if ( !length ) {
+         lnames[lnames_count] = emptylname;
+         continue;
+      }
+      lname = malloc(length + 1);
+      if ( !lname ) {
+         puts( "Error: Out of memory for lnames!" );
+         return 0;
+      }
+      memcpy( lname, p, length );
+      lname[length] = 0;
+      lnames[lnames_count] = lname;
+      p += length;
+   }
+   if ( p != data_end ) {
+      puts( "Error: Overflow in lnames!" );
+      return 0;
+   }
+
+   return 1;
+}
+
+
+static int process_segdef( u8 *data, size_t len )
+{
+   unsigned a, c, b, pbit;
+   u16 length, name_idx;
+   u8 *p = data + 3;       /* skip record type and length fields */
+
    (void)data; (void)len; /* unused */
    segment_count++;
+
+   a = (*p >> 5) & 7;
+   c = (*p >> 2) & 7;
+   b = (*p >> 1) & 1;
+   pbit = (*p >> 0) & 1;
+
+   if ( a == 0 ) {
+      puts( "Error: Absolute segment not supported!" );
+      return 0;
+   }
+
+   ++ p;
+   length = get_16( &p );
+   name_idx = get_index( &p );
+   printf("seg=%04Xh a=%Xh c=%Xh b=%Xh p=%Xh length=%u name_idx=%u ",
+      (unsigned)segment_count, a, c, b, pbit,
+      (unsigned)length, (unsigned)name_idx);
+   printf("name=\"%s\"\n", lnames[name_idx]);
+
    return 1;
 }
 
@@ -156,6 +221,21 @@ static int process_grpdef( u8 *data, size_t len  )
       seg_idx = get_index( &p );
       segment_group[seg_idx] = group_count;
    }
+   return 1;
+}
+
+
+static int process_ledata_lidata( u8 *data, size_t len  )
+{
+   /*const u8 *data_end = data + len - 1;*/
+   u8 *p = data + 3;       /* skip record type and length fields */
+   u16 seg_idx, data_offset;
+
+   seg_idx = get_index( &p ); /* segment index */
+
+   data_offset = get_16( &p );
+   printf("seg=%04Xh offset=%04Xh\n", (unsigned)seg_idx, (unsigned)data_offset);
+
    return 1;
 }
 
@@ -225,8 +305,8 @@ static void encode_fixup( fixup_t *fixup, u8 **data )
 
 static void dump_fixup( fixup_t *fixup )
 {
-#if 0
-      printf( "M%d L%d O=%04x F%d T%d : F=%04x T=%04x D=%04x",
+#if 1
+      printf( "M%d L%d O=%04x F%d T%d : F=%04x T=%04x D=%04x\n",
       fixup->mode, fixup->location, fixup->offset, fixup->frame, fixup->target,
       fixup->frame_datum, fixup->target_datum, fixup->displacement);
 #else
@@ -299,9 +379,16 @@ int process_records( FILE *inf, FILE *outf )
       }
 
       record_type = record_data[0];
-      /*printf("rec %02x len: %zu\n", (int)record_type, record_sz - 3); */
+      printf("rec %02x len: %zu\n", (int)record_type, record_sz - 3);
 
       switch ( record_type ) {
+         case LNAMES_REC:
+            result = process_lnames( record_data, record_sz );
+            break;
+         case LEDATA16_REC:
+         case LIDATA16_REC:
+            result = process_ledata_lidata( record_data, record_sz );
+            break;
          case FIXUP16_REC:
             result = process_fixup( record_data, &record_sz );
             break;
