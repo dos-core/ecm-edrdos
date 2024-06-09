@@ -145,7 +145,7 @@ static int process_lnames( u8 *data, size_t len  )
    while ( p < data_end ) {
       length = *p++;
       if ( lnames_count >= MAX_LNAMES ) {
-         puts( "Error: Too many lnames!" );
+         fputs( "Error: Too many lnames!", stderr );
          return 0;
       }
       ++ lnames_count;
@@ -155,7 +155,7 @@ static int process_lnames( u8 *data, size_t len  )
       }
       lname = malloc(length + 1);
       if ( !lname ) {
-         puts( "Error: Out of memory for lnames!" );
+         fputs( "Error: Out of memory for lnames!", stderr );
          return 0;
       }
       memcpy( lname, p, length );
@@ -164,7 +164,7 @@ static int process_lnames( u8 *data, size_t len  )
       p += length;
    }
    if ( p != data_end ) {
-      puts( "Error: Overflow in lnames!" );
+      fputs( "Error: Overflow in lnames!", stderr );
       return 0;
    }
 
@@ -182,7 +182,7 @@ static int process_segdef( u8 *data, size_t len )
    segment_count++;
 
    if ( segment_count > MAX_SEGMENTS ) {
-      puts( "Error: Too many segments!" );
+      fputs( "Error: Too many segments!", stderr );
       return 0;
    }
 
@@ -192,7 +192,7 @@ static int process_segdef( u8 *data, size_t len )
    pbit = (*p >> 0) & 1;
 
    if ( a == 0 ) {
-      puts( "Error: Absolute segment not supported!" );
+      fputs( "Error: Absolute segment not supported!", stderr );
       return 0;
    }
 
@@ -231,7 +231,7 @@ static int process_grpdef( u8 *data, size_t len  )
       if ( *p++ != 0xff ) {
          /* 0xff indicates a segment index follows. We only support segment
             indexes, not external indexes. */
-         puts( "GRPDEF error!" );
+         fputs( "Error: GRPDEF error!", stderr );
          return 0;
       }
       seg_idx = get_index( &p );
@@ -258,7 +258,7 @@ static int process_ledata_lidata( u8 *data, size_t len  )
       lnames[segments[seg_idx]] == NULL ||
       *lnames[segments[seg_idx]] == 0)
    {
-      puts( "Error: Invalid segment for LEDATA/LIDATA!" );
+      fputs( "Error: Invalid segment for LEDATA/LIDATA!", stderr );
       return 0;
    }
 
@@ -280,7 +280,7 @@ static int decode_fixup( u8 **data, const u8 *data_end, fixup_t *fixup )
 
    /* THREAD definitions are not supported */
    if ( ( *p & 0x80 ) == 0 ) {
-      puts( "THREAD subrecord not supported" );
+      fputs( "Error: THREAD subrecord not supported", stderr );
       return 0;
    }
 
@@ -298,7 +298,7 @@ static int decode_fixup( u8 **data, const u8 *data_end, fixup_t *fixup )
 
    /* FRAME and TARGET THREAD references not supported */
    if ( fixup->f_thread || fixup->t_thread ) {
-      puts( "THREAD target / frame not supported" );
+      fputs( "Error: THREAD target / frame not supported", stderr );
       return 0;
    }
    fixup->frame_datum = ( fixup->frame < 4 ) ? get_index( &p ) : 0;
@@ -438,7 +438,7 @@ int process_records( FILE *inf, FILE *outf )
          return 0;
       }
       if ( calculate_checksum( record_data, record_sz ) != 0 ) {
-         puts("checksum error!");
+         fputs("Error: Checksum error!", stderr);
          return 0;
       }
 
@@ -485,7 +485,7 @@ int main( int argc, char *argv[] )
    int result = EXIT_SUCCESS;
 
    if ( argc != 3 && argc != 4 ) {
-      puts( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]");
+      fputs( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]", stderr );
       result = EXIT_FAILURE;
       goto ret0;
    }
@@ -496,7 +496,7 @@ int main( int argc, char *argv[] )
       } else if ( ! strcmp( argv[3], "reloc" ) || ! strcmp( argv[3], "RELOC" ) ) {
          reloc = 1;
       } else {
-         puts( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]");
+         fputs( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]", stderr );
          result = EXIT_FAILURE;
          goto ret0;
       }
@@ -516,7 +516,7 @@ int main( int argc, char *argv[] )
    }
 
    if ( !process_records( inf, outf ) ) {
-      puts( "error!" );
+      fputs( "Error: Failed in process_records!", stderr );
       result = EXIT_FAILURE;
    }
 
