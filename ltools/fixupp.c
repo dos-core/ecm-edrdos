@@ -52,7 +52,7 @@ typedef unsigned short u16;
 
 unsigned verbose = 0;
 unsigned reloc = 0;
-u8 segment_count;
+unsigned segment_count;
 u8 group_count;
 u8 segment_group[MAX_SEGMENTS+1];   /* group number of segment n (0=none) */
 unsigned lnames_count;
@@ -180,6 +180,11 @@ static int process_segdef( u8 *data, size_t len )
 
    (void)data; (void)len; /* unused */
    segment_count++;
+
+   if ( segment_count > MAX_SEGMENTS ) {
+      puts( "Error: Too many segments!" );
+      return 0;
+   }
 
    a = (*p >> 5) & 7;
    c = (*p >> 2) & 7;
