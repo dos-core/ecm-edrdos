@@ -20,46 +20,46 @@ REM ******************************************
 REM Build the .A86 files next, get the obj's
 REM ******************************************
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\buffers.a86 .\bin\buffers.o86 $szpz  /DDELWATCH /DDOS5
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\buffers.a86 .\bin\buffers.o86 $sz  /DDELWATCH /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\dirs.a86 .\bin\dirs.o86 $szpz /DDELWATCH
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\dirs.a86 .\bin\dirs.o86 $sz /DDELWATCH
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\fdos.a86 .\bin\fdos.o86 $szpz /DDELWATCH /DKANJI /DDOS5 /DPASSWORD /DJOIN /DUNDELETE /Dshortversion
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\fdos.a86 .\bin\fdos.o86 $sz /DDELWATCH /DKANJI /DDOS5 /DPASSWORD /DJOIN /DUNDELETE /Dshortversion
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\fcbs.a86 .\bin\fcbs.o86
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\bdevio.a86 .\bin\bdevio.o86 $szpz /DDELWATCH /DDOS5 /DJOIN
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\bdevio.a86 .\bin\bdevio.o86 $sz /DDELWATCH /DDOS5 /DJOIN
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\cdevio.a86 .\bin\cdevio.o86 $szpz /DDOS5
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\cdevio.a86 .\bin\cdevio.o86 $sz /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\fioctl.a86 .\bin\fioctl.o86 $szpz /DPASSWORD /DJOIN /DDOS5
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\fioctl.a86 .\bin\fioctl.o86 $sz /DPASSWORD /DJOIN /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\redir.a86 .\bin\redir.o86 $szpz /DKANJI /DDOS5 /DJOIN
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\redir.a86 .\bin\redir.o86 $sz /DKANJI /DDOS5 /DJOIN
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\header.a86 .\bin\header.o86 $szpz /DDOS5
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\header.a86 .\bin\header.o86 $sz /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\pcmif.a86 .\bin\pcmif.o86 $szpz /DDOS5
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\pcmif.a86 .\bin\pcmif.o86 $sz /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\cio.a86 .\bin\cio.o86
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\disk.a86 .\bin\disk.o86 $szpz /DDELWATCH
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\disk.a86 .\bin\disk.o86 $sz /DDELWATCH
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\ioctl.a86 .\bin\ioctl.o86 $szpz /DPASSWORD /DDOS5
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\ioctl.a86 .\bin\ioctl.o86 $sz /DPASSWORD /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\misc.a86 .\bin\misc.o86 $szpz /DDOS5
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\misc.a86 .\bin\misc.o86 $sz /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\support.a86 .\bin\support.o86
@@ -71,13 +71,13 @@ IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\error.a86 .\bin\error.o86
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\process.a86 .\bin\process.o86 $szpz /DDOS5
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\process.a86 .\bin\process.o86 $sz /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\network.a86 .\bin\network.o86
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\int2f.a86 .\bin\int2f.o86 $szpz /DDOS5 /DDELWATCH
+%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\int2f.a86 .\bin\int2f.o86 $sz /DDOS5 /DDELWATCH
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\history.a86 .\bin\history.o86
