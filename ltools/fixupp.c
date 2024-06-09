@@ -50,6 +50,7 @@ typedef unsigned short u16;
 #define FRAME_TARGET_IDX  5
 
 
+unsigned verbose = 0;
 u8 segment_count;
 u8 group_count;
 u8 segment_group[MAX_SEGMENTS+1];   /* group number of segment n (0=none) */
@@ -186,6 +187,10 @@ static int process_segdef( u8 *data, size_t len )
       return 0;
    }
 
+   if ( !verbose ) {
+      return 1;
+   }
+
    ++ p;
    length = get_16( &p );
    name_idx = get_index( &p );
@@ -230,6 +235,10 @@ static int process_ledata_lidata( u8 *data, size_t len  )
    /*const u8 *data_end = data + len - 1;*/
    u8 *p = data + 3;       /* skip record type and length fields */
    u16 seg_idx, data_offset;
+
+   if ( !verbose ) {
+      return 1;
+   }
 
    seg_idx = get_index( &p ); /* segment index */
 
@@ -306,7 +315,11 @@ static void encode_fixup( fixup_t *fixup, u8 **data )
 static void dump_fixup( fixup_t *fixup )
 {
 #if 1
-      printf( "M%d L%d O=%04x F%d T%d : F=%04x T=%04x D=%04x\n",
+   if ( !verbose ) {
+      return;
+   }
+
+   printf( "M%d L%d O=%04x F%d T%d : F=%04x T=%04x D=%04x\n",
       fixup->mode, fixup->location, fixup->offset, fixup->frame, fixup->target,
       fixup->frame_datum, fixup->target_datum, fixup->displacement);
 #else
@@ -379,7 +392,9 @@ int process_records( FILE *inf, FILE *outf )
       }
 
       record_type = record_data[0];
-      printf("rec %02x len: %zu\n", (int)record_type, record_sz - 3);
+      if ( verbose ) {
+         printf("rec %02x len: %zu\n", (int)record_type, record_sz - 3);
+      }
 
       switch ( record_type ) {
          case LNAMES_REC:
@@ -418,10 +433,19 @@ int main( int argc, char *argv[] )
    FILE *inf, *outf;
    int result = EXIT_SUCCESS;
 
-   if ( argc != 3 ) {
-      puts( "Usage: fixupp input.obj output.obj");
+   if ( argc != 3 && argc != 4 ) {
+      puts( "Usage: fixupp input.obj output.obj [VERBOSE]");
       result = EXIT_FAILURE;
       goto ret0;
+   }
+
+   if ( argc == 4 ) {
+      if ( strcmp( argv[3], "verbose" ) && strcmp( argv[3], "VERBOSE" ) ) {
+         puts( "Usage: fixupp input.obj output.obj [VERBOSE]");
+         result = EXIT_FAILURE;
+         goto ret0;
+      }
+      verbose = 1;
    }
 
    /* open input and output files */
