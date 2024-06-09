@@ -57,6 +57,9 @@ u8 segment_group[MAX_SEGMENTS+1];   /* group number of segment n (0=none) */
 unsigned lnames_count;
 u8 emptylname[] = "";
 u8* lnames[MAX_LNAMES + 1];
+unsigned segments[MAX_SEGMENTS + 1];
+unsigned current_segment = 0;
+unsigned current_base = 0;
 
 typedef struct {
    unsigned mode:1;
@@ -199,6 +202,8 @@ static int process_segdef( u8 *data, size_t len )
       (unsigned)length, (unsigned)name_idx);
    printf("name=\"%s\"\n", lnames[name_idx]);
 
+   segments[segment_count] = name_idx;
+
    return 1;
 }
 
@@ -244,6 +249,17 @@ static int process_ledata_lidata( u8 *data, size_t len  )
 
    data_offset = get_16( &p );
    printf("seg=%04Xh offset=%04Xh\n", (unsigned)seg_idx, (unsigned)data_offset);
+
+   current_segment = seg_idx;
+   current_base = data_offset;
+   if ( seg_idx == 0 ||
+      segments[seg_idx] == 0 ||
+      lnames[segments[seg_idx]] == NULL ||
+      *lnames[segments[seg_idx]] == 0)
+   {
+      puts( "Error: Invalid segment for LEDATA/LIDATA!" );
+      return 0;
+   }
 
    return 1;
 }
@@ -315,6 +331,8 @@ static void encode_fixup( fixup_t *fixup, u8 **data )
 static void dump_fixup( fixup_t *fixup )
 {
 #if 1
+   unsigned length = 0;
+
    if ( !verbose ) {
       return;
    }
@@ -322,6 +340,30 @@ static void dump_fixup( fixup_t *fixup )
    printf( "M%d L%d O=%04x F%d T%d : F=%04x T=%04x D=%04x\n",
       fixup->mode, fixup->location, fixup->offset, fixup->frame, fixup->target,
       fixup->frame_datum, fixup->target_datum, fixup->displacement);
+
+   switch( fixup->location ) {
+   case 0:
+   case 4:
+      length = 1;
+      break;
+   case 1:
+   case 2:
+   case 5:
+      length = 2;
+      break;
+   case 3:
+   case 9:
+   case 13:
+      length = 4;
+      break;
+   case 11:
+      length = 6;
+      break;
+   default:
+      break;
+   }
+   printf( "segment=\"%s\" offset=%04Xh length=%u\n",
+      lnames[segments[current_segment]], current_base + fixup->offset, length );
 #else
    (void)fixup;
 #endif
