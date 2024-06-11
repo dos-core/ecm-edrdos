@@ -191,12 +191,12 @@ static int process_segdef( u8 *data, size_t len )
    b = (*p >> 1) & 1;
    pbit = (*p >> 0) & 1;
 
+   ++ p;
+
    if ( a == 0 ) {
-      fputs( "Error: Absolute segment not supported!\n", stderr );
-      return 0;
+      p += 3;
    }
 
-   ++ p;
    length = get_16( &p );
    name_idx = get_index( &p );
    segments[segment_count] = name_idx;
