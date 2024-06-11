@@ -145,7 +145,7 @@ static int process_lnames( u8 *data, size_t len  )
    while ( p < data_end ) {
       length = *p++;
       if ( lnames_count >= MAX_LNAMES ) {
-         fputs( "Error: Too many lnames!", stderr );
+         fputs( "Error: Too many lnames!\n", stderr );
          return 0;
       }
       ++ lnames_count;
@@ -155,7 +155,7 @@ static int process_lnames( u8 *data, size_t len  )
       }
       lname = malloc(length + 1);
       if ( !lname ) {
-         fputs( "Error: Out of memory for lnames!", stderr );
+         fputs( "Error: Out of memory for lnames!\n", stderr );
          return 0;
       }
       memcpy( lname, p, length );
@@ -164,7 +164,7 @@ static int process_lnames( u8 *data, size_t len  )
       p += length;
    }
    if ( p != data_end ) {
-      fputs( "Error: Overflow in lnames!", stderr );
+      fputs( "Error: Overflow in lnames!\n", stderr );
       return 0;
    }
 
@@ -182,7 +182,7 @@ static int process_segdef( u8 *data, size_t len )
    segment_count++;
 
    if ( segment_count > MAX_SEGMENTS ) {
-      fputs( "Error: Too many segments!", stderr );
+      fputs( "Error: Too many segments!\n", stderr );
       return 0;
    }
 
@@ -192,7 +192,7 @@ static int process_segdef( u8 *data, size_t len )
    pbit = (*p >> 0) & 1;
 
    if ( a == 0 ) {
-      fputs( "Error: Absolute segment not supported!", stderr );
+      fputs( "Error: Absolute segment not supported!\n", stderr );
       return 0;
    }
 
@@ -231,7 +231,7 @@ static int process_grpdef( u8 *data, size_t len  )
       if ( *p++ != 0xff ) {
          /* 0xff indicates a segment index follows. We only support segment
             indexes, not external indexes. */
-         fputs( "Error: GRPDEF error!", stderr );
+         fputs( "Error: GRPDEF error!\n", stderr );
          return 0;
       }
       seg_idx = get_index( &p );
@@ -258,7 +258,7 @@ static int process_ledata_lidata( u8 *data, size_t len  )
       lnames[segments[seg_idx]] == NULL ||
       *lnames[segments[seg_idx]] == 0)
    {
-      fputs( "Error: Invalid segment for LEDATA/LIDATA!", stderr );
+      fputs( "Error: Invalid segment for LEDATA/LIDATA!\n", stderr );
       return 0;
    }
 
@@ -280,7 +280,7 @@ static int decode_fixup( u8 **data, const u8 *data_end, fixup_t *fixup )
 
    /* THREAD definitions are not supported */
    if ( ( *p & 0x80 ) == 0 ) {
-      fputs( "Error: THREAD subrecord not supported", stderr );
+      fputs( "Error: THREAD subrecord not supported\n", stderr );
       return 0;
    }
 
@@ -298,7 +298,7 @@ static int decode_fixup( u8 **data, const u8 *data_end, fixup_t *fixup )
 
    /* FRAME and TARGET THREAD references not supported */
    if ( fixup->f_thread || fixup->t_thread ) {
-      fputs( "Error: THREAD target / frame not supported", stderr );
+      fputs( "Error: THREAD target / frame not supported\n", stderr );
       return 0;
    }
    fixup->frame_datum = ( fixup->frame < 4 ) ? get_index( &p ) : 0;
@@ -438,7 +438,7 @@ int process_records( FILE *inf, FILE *outf )
          return 0;
       }
       if ( calculate_checksum( record_data, record_sz ) != 0 ) {
-         fputs("Error: Checksum error!", stderr);
+         fputs("Error: Checksum error!\n", stderr);
          return 0;
       }
 
@@ -485,7 +485,7 @@ int main( int argc, char *argv[] )
    int result = EXIT_SUCCESS;
 
    if ( argc != 3 && argc != 4 ) {
-      fputs( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]", stderr );
+      fputs( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]\n", stderr );
       result = EXIT_FAILURE;
       goto ret0;
    }
@@ -496,7 +496,7 @@ int main( int argc, char *argv[] )
       } else if ( ! strcmp( argv[3], "reloc" ) || ! strcmp( argv[3], "RELOC" ) ) {
          reloc = 1;
       } else {
-         fputs( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]", stderr );
+         fputs( "Usage: fixupp input.obj output.obj [VERBOSE|RELOC]\n", stderr );
          result = EXIT_FAILURE;
          goto ret0;
       }
@@ -516,7 +516,7 @@ int main( int argc, char *argv[] )
    }
 
    if ( !process_records( inf, outf ) ) {
-      fputs( "Error: Failed in process_records!", stderr );
+      fputs( "Error: Failed in process_records!\n", stderr );
       result = EXIT_FAILURE;
    }
 
