@@ -1357,6 +1357,9 @@ lfn_find_handle_heap_free:
 	Public lfnpathflag
 lfnpathflag:
 	db 0
+	Public lfn_search_redir
+lfn_search_redir:
+	db 0			; lfn.asm expects this directly after lfnpathflag
 
 
 PCM_CODEND	CSEG	PARA

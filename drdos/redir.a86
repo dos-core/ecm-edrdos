@@ -97,6 +97,8 @@ PCMODE_DATA	dseg
 	extrn	int2f_stack:word
 	extrn	file_mode:word
 
+	extrn lfn_search_redir:byte
+
 BDOS_CODE	cseg
 
 	Public	islocal
@@ -267,6 +269,8 @@ redir_accept:
 ;============
 ; We have decided to accept an FDOS function.
 ; Note by this time the functions have been validated as legal
+	mov lfn_search_redir, 0FFh
+
 	mov	file_attrib,16h		; default search attribs to all
 	pop	si			; discard the near return address
 	mov	si,2[bp]		; SI -> parameter block
