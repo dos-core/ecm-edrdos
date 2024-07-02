@@ -92,7 +92,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\lfn.asm .\bin\lfn.o86
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Zm -Zg -Fo.\BIN\dosgrps dosgrps.asm
+%JWASMEXE% -c -Zm -Zg -Fl.\BIN\dosgrps.lst -Fo.\BIN\dosgrps dosgrps.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
 for %f in (buffers dirs fdos fcbs) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
