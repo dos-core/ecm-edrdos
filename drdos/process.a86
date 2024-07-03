@@ -1508,7 +1508,7 @@ eject
 	extrn	load_max:word			; ditto, but not messed with
 	extrn	exe_loadhigh:byte		; load high flag
 
-PCM_HEADER	CSEG	PARA
+BDOS_DATA	dseg	word
 
 	extrn lfn_find_handles:word
 	extrn lfn_find_handles_end:word

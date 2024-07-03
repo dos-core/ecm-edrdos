@@ -863,7 +863,6 @@ if DOS5
 else
 	extrn	win386_local_machine:dword
 endif
-	extrn lfnpathflag:byte
 
 if IDLE_DETECT
 	extrn	active_cnt:word
@@ -877,6 +876,10 @@ endif
 	extrn	critical_sp:word
 	extrn	internal_flag:byte
 	extrn	int28_flag:byte
+
+BDOS_DATA	dseg	word
+
+	extrn lfnpathflag:byte
 
 PCM_CODE	CSEG	BYTE
 ;

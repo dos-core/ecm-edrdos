@@ -1338,6 +1338,22 @@ info1_len	equ	word ptr (offset $ - offset country_data)
 				; country information.
 
 
+PCM_CODEND	CSEG	PARA
+
+	Public	code_end
+code_end	rb	0
+
+
+BDOS_DATA	DSEG	word
+
+	Public	hashroot, hashmax
+
+; The hashroot must be global, but we also need to make it accessible
+; during CONFIG so we copy it from the private data area
+
+hashroot	dw	0,0
+
+
 	Public lfn_find_handles
 	Public lfn_find_handles_end
 lfn_find_handles:
@@ -1360,22 +1376,6 @@ lfnpathflag:
 	Public lfn_search_redir
 lfn_search_redir:
 	db 0			; lfn.asm expects this directly after lfnpathflag
-
-
-PCM_CODEND	CSEG	PARA
-
-	Public	code_end
-code_end	rb	0
-
-
-BDOS_DATA	DSEG
-
-	Public	hashroot, hashmax
-
-; The hashroot must be global, but we also need to make it accessible
-; during CONFIG so we copy it from the private data area
-
-hashroot	dw	0,0
 
 
 PCM_HISTORY	CSEG

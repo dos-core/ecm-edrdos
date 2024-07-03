@@ -58,7 +58,7 @@ title 'REDIR - DOS file system network redirector interace support'
 ;    ENDLOG
 
 PCMCODE	GROUP	BDOS_CODE
-PCMDATA	GROUP	PCMODE_DATA
+PCMDATA	GROUP	PCMODE_DATA, BDOS_DATA
 
 	eject ! include i:psp.def
 	eject ! include i:fdos.equ
@@ -96,6 +96,8 @@ PCMODE_DATA	dseg
 	extrn	int2f_cmd:word
 	extrn	int2f_stack:word
 	extrn	file_mode:word
+
+BDOS_DATA	dseg	word
 
 	extrn lfn_search_redir:byte
 

@@ -807,13 +807,6 @@ BDOS_DATA	dseg	word
 	extrn	dcnt:word
 	extrn	fdos_pb:word
 
-PCMODE_DATA	dseg	word
-
-	extrn	int21regs_ptr:dword
-	extrn	dma_segment:word
-	extrn	dma_offset:word
-	extrn	current_psp:word
-
 	extrn lfn_find_handles:word
 	extrn lfn_find_handles_end:word
 	extrn lfn_find_handle_heap:word
@@ -821,3 +814,11 @@ PCMODE_DATA	dseg	word
 	extrn lfn_find_handle_heap_free:word
 	extrn lfnpathflag:byte
 	extrn lfn_search_redir:byte
+
+
+PCMODE_DATA	dseg	word
+
+	extrn	int21regs_ptr:dword
+	extrn	dma_segment:word
+	extrn	dma_offset:word
+	extrn	current_psp:word
