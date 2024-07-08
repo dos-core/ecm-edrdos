@@ -1,5 +1,7 @@
-/mx /as:1 /w0 .\bin\biosgrps+.\bin\init+.\bin\clock+.\bin\console+.\bin\disk+
-.\bin\serpar+.\bin\biosmsgs+.\bin\biosinit+.\bin\config+.\bin\genercfg+
-.\bin\nlsfunc+.\bin\bdosldr+.\bin\stacks+.\bin\initmsgs
+/mx /as:1 /w0 .\bin\biosgrps.obj+.\bin\init.obj+
+.\bin\clock.obj+.\bin\console.obj+.\bin\disk.obj+
+.\bin\serpar.obj+.\bin\biosmsgs.obj+.\bin\biosinit.obj+
+.\bin\config.obj+.\bin\genercfg.obj+.\bin\nlsfunc.obj+
+.\bin\bdosldr.obj+.\bin\stacks.obj+.\bin\initmsgs.obj
 .\bin\bios
 .\bin\bios;
