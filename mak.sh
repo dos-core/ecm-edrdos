@@ -11,6 +11,7 @@ rm -f edrpack.com
 rm -f edrpack.sys
 
 (cd ltools; ./mak.sh)
+gcc -O3 ltools/fixupp.c -o ltools/fixupp
 
 if [ "$1" == "onlypl" ]
 then
