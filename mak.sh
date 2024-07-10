@@ -42,7 +42,7 @@ then
     grep -Eio '\-Fo[^ ]+' |
     sed -re 's/-Fo//g;s/\\/\//g;s/\/BIN\//\/bin\//g'
     ) &&
-  convedr.pl drbio/bin/bios.map $(
+  convlist.pl drbio/bin/bios.map $(
     grep JWASM drbio/make.bat |
     grep -Eio '\-Fo[^ ]+' |
     sed -re 's/-Fo//g;s/\\/\//g;s/\/BIN\//\/bin\//g;s/^\.\//drbio\//g;s/$/\.rel/g'
@@ -52,7 +52,7 @@ then
     sed -re 's/\.\\bin\\/drbio\/bin\//g;s/\.obj/\.lst/g'
   ) > drbio.tls
   echo === Creating DOS trace listing
-  convedr.pl drdos/bin/drdos.map $(
+  convlist.pl drdos/bin/drdos.map $(
     cat drdos/wldrdos.lnk |
     grep -Eoi '.\\bin\\[0-9a-zA-Z]+\.obj' |
     sed -re 's/\.\\bin\\/drdos\/bin\//g;s/\.obj/\.lst/g'
