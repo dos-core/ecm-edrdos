@@ -42,6 +42,8 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\nlsfunc.lst -Fo.\BIN\nlsfunc nlsfunc.asm
 IF ERRORLEVEL 1 GOTO FAILED
+%JWASMEXE% -c -Fl.\BIN\bdosldr.lst -Fo.\BIN\bdosldr bdosldr.asm
+IF ERRORLEVEL 1 GOTO FAILED
 
 REM ******************************************
 REM Build the library so that we can link into
@@ -65,10 +67,6 @@ IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\config.a86 .\BIN\config.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\fixupp .\BIN\config.o86 .\BIN\config.obj RELOC > bin\config.rel
-IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\bdosldr.a86 .\BIN\bdosldr.o86 $sz /DDRDOS35=0 /DADDDRV=0
-IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\bdosldr.o86 .\BIN\bdosldr.obj RELOC > bin\bdosldr.rel
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\genercfg.a86 .\BIN\genercfg.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED

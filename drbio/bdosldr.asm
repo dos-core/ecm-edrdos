@@ -1,4 +1,4 @@
-;    File              : $BDOSLDR.A86$
+;    File              : $BDOSLDR.ASM$
 ;
 ;    Description       :
 ;
@@ -32,8 +32,9 @@
 ;
 ;    ENDLOG
 
-	include i:reqhdr.equ
-	include i:driver.equ
+	include compat.def
+	include request.equ
+	include driverw.equ
 	include	config.equ
 
 ;	MISC constants
@@ -49,12 +50,12 @@ DBLOCK1		equ	word ptr 26
 DSIZE		equ	word ptr 28
 
 
-eject
+
 CGROUP		group	INITCODE, INITDATA
 
-INITCODE	cseg	'INITCODE'
+INITCODE	segment public word 'INITCODE'
+ASSUME CS:CGROUP,DS:CGROUP
 
-eject
 if DOS5
 VER_MUSTBE	equ	1072h
 else
@@ -80,13 +81,13 @@ dev_fail:	; any error has occurred loading the BDOS
 	mov	dx,offset dos_msg
 	les	di,resdev_chain		; get first device driver address
 fail_scan:
-	test	es:DH_ATTRIB[di],DA_CHARDEV
+	test	es:[di+DEVHDR.ATTRIB],DA_CHARDEV
 	 jz	fail_next		; skip if not a character device
-	test	es:DH_ATTRIB[di],DA_ISCOT
+	test	es:[di+DEVHDR.ATTRIB],DA_ISCOT
 	 jnz	fail_found		; skip if console device found
 fail_next:
 	les	di,es:[di]		; get next device
-	jmps	fail_scan
+	jmp	fail_scan
 fail_found:
 	mov	ax,es:6[di]		; get strategy offset
 	mov	strat_off,ax
@@ -96,21 +97,21 @@ fail_found:
 	mov	intrpt_seg,es		; get interrupt segment
 
 	mov	bx,offset req_hdr
-	mov	ds:RH_CMD,CMD_OUTPUT	; write to console
-	mov	ds:RH_LEN,RH4_LEN	; set request header length
-	mov	ds:RH4_BUFOFF,dx	; set address of string
-	mov	ds:RH4_BUFSEG,ds
-	mov	ds:RH4_COUNT,-1
+	mov	[bx+RH_CMD],CMD_OUTPUT	; write to console
+	mov	[bx+RH_LEN],RH4_LEN	; set request header length
+	mov	[bx+RH4_BUFOFF],dx	; set address of string
+	mov	[bx+RH4_BUFSEG],ds
+	mov	[bx+RH4_COUNT],-1
 	mov	si,dx			; now find the end of the string
 fail_count_chars:
-	inc	ds:RH4_COUNT		; print another char
+	inc	[bx+RH4_COUNT]		; print another char
 	lodsb				; examine the next one
 	cmp	al,'$'			; terminating char ?
 	 jnz	fail_count_chars
 	call	device_request		; call the console driver
 
 	sti
-	jmps	$			; wait for reboot
+	jmp	$			; wait for reboot
 
 
 device_request:		; general device driver interface
@@ -118,13 +119,16 @@ device_request:		; general device driver interface
 ;	entry:	BX -> request header
 ;	exit:	CY = 1 if error
 
-	push	ds ! push es
-	push	ds ! pop es
+	push	ds
+	push	es
+	push	ds
+	pop	es
 	mov	ds,strat_seg
-	callf	cs:strat_ptr
-	callf	cs:intrpt_ptr
-	pop	es ! pop ds
-	test	ds:RH_STATUS,RHS_ERROR
+	call	[cs:strat_ptr]
+	call	[cs:intrpt_ptr]
+	pop	es
+	pop	ds
+	test	[bx+RH_STATUS],RHS_ERROR
 	 jnz	devreq_err
 	clc
 	ret
@@ -134,13 +138,15 @@ devreq_err:
 
 
 	ret
-	
 
-eject
+INITCODE	ends
+
+
+
 ;
 ;	INITIALIZED DATA SEGMENT
 ;	========================
-INITDATA	dseg	'INITDATA'
+INITDATA	segment public word 'INITDATA'
 
 		extrn	resdev_chain:dword	; resident device driver root
 		extrn	current_dos:word	; current BDOS segment
@@ -148,13 +154,13 @@ INITDATA	dseg	'INITDATA'
 		extrn	boot_drv:byte		; boot drive
 		extrn	init_drv:byte		; init drive
 
-strat_ptr	rd	0
-strat_off	rw	1
-strat_seg	rw	1
+strat_ptr	label	dword
+strat_off	dw	?
+strat_seg	dw	?
 
-intrpt_ptr	rd	0
-intrpt_off	rw	1
-intrpt_seg	rw	1
+intrpt_ptr	label	dword
+intrpt_off	dw	?
+intrpt_seg	dw	?
 
 	Public	part_off
 part_off	dw	0,0			; offset of boot partition
@@ -171,12 +177,12 @@ include	initmsgs.def				; Include TFT Header File
 ;	static request header for DOS device driver I/O
 
 req_hdr		db	22
-req_unit	rb	1
-req_cmd		rb	1
-req_status	rw	1
-		rd	2
-req_media	rb	1
-		rb	16
+req_unit	db	?
+req_cmd		db	?
+req_status	dw	?
+		dd	2 dup (?)
+req_media	db	?
+		db	16 dup (?)
 
 req1_return	equ	byte ptr req_media+1
 req1_volid	equ	word ptr req_media+2
@@ -194,5 +200,6 @@ req3_volid	equ	word ptr req_media+9
 req3_sector32	equ	word ptr req_media+13
 
 	extrn	sector_buffer:byte
+INITDATA	ends
 
 	end
