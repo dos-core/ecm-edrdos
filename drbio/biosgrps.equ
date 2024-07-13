@@ -43,7 +43,7 @@ RCODE_ALIGN	ends
 RCODE		segment public word 'RCODE'
 RCODE		ends
 
-RESUMECODE	segment public para 'RESUMECODE'
+RESUMECODE	segment public para 'RESUME'
 RESUMECODE	ends
 
 RESBIOS		segment public para 'RESBIOS'

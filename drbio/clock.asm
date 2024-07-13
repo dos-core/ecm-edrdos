@@ -275,7 +275,7 @@ driver	endp
 
 RCODE	ends				; end of device driver code
 
-RESUMECODE segment 'RESUMECODE'
+RESUMECODE segment 'RESUME'
 
 ; If the system ROM BIOS supports RESUME mode then it will call Int 6C
 ; when returning from sleep mode. We take this over and reset the clock
