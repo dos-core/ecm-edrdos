@@ -57,13 +57,14 @@
 ;    hide preload drives from func_device
 ;    ENDLOG
 
-	include	i:msdos.equ		; DOS Function Equates
-	include	i:psp.def		; PSP Definition
-	include i:f52data.def		; Internal DOS data area
-	include	i:doshndl.def		; Dummy DOS structures
-	include	config.equ
-	include	i:fdos.equ
-	include	i:modfunc.def
+	include compat.def
+	include	msdos.equ		; DOS Function Equates
+	include	pspw.def		; PSP Definition
+	include f52dataw.def		; Internal DOS data area
+	include	doshndl.def		; Dummy DOS structures
+	include	configw.equ
+	include	fdos.equ
+	include	modfunc.def
 
 TRUE	   	equ	0FFFFh	      ; value of TRUE
 FALSE	   	equ	0	      ; value of FALSE
@@ -83,20 +84,23 @@ COMMAND_BASE	equ	000E0h		; must cover FFFF:D0 for CALL5 fixup
 COMMAND_SIZE	equ	01FA0h
 
 CGROUP	GROUP	CODE, INITCODE, INITDATA, INITPSP, INITENV, DATAEND
-CODE	CSEG
-eject
+ASSUME CS:CGROUP,DS:CGROUP
+
+CODE	segment public word 'CODE'
+CODE ends
+
 ;
 ;	The DOS Code Segment is formatted as follows.
 ;
-DOS_OFFSET	equ	word ptr  .0008h	; Offset of code in segment
-HISTORY_CODE	equ	word ptr  .000Ch	; Start of history code
-INIT_CODE	equ	word ptr  .000Eh	; Start of initialisation code
-DOS_FLAG	equ	word ptr  .001Ch	; Compressed Data Flag
-DOS_CODE	equ	word ptr  .001Eh	; DOS Code Length (Bytes)
-DOS_DATA	equ	word ptr  .0020h	; DOS Data Length (Bytes)
-NO_YES_CHARS	equ	word ptr  .0028h	; DOS Data No/Yes characters
+DOS_OFFSET	equ	word ptr  0008h	; Offset of code in segment
+HISTORY_CODE	equ	word ptr  000Ch	; Start of history code
+INIT_CODE	equ	word ptr  000Eh	; Start of initialisation code
+DOS_FLAG	equ	word ptr  001Ch	; Compressed Data Flag
+DOS_CODE	equ	word ptr  001Eh	; DOS Code Length (Bytes)
+DOS_DATA	equ	word ptr  0020h	; DOS Data Length (Bytes)
+NO_YES_CHARS	equ	word ptr  0028h	; DOS Data No/Yes characters
 
-INT31_SEGMENT	equ	word ptr .00C6h		; DOS Data Segment pointer
+INT31_SEGMENT	equ	word ptr 00C6h		; DOS Data Segment pointer
 						; for ROM systems
 JMPF_OPCODE	equ	0EAh			; 8086 JMPF instruction
 
@@ -110,8 +114,8 @@ SWITCH_N	equ	02h
 	extrn	newxbda:word
 	extrn	xbdalen:word
 	extrn	oldmemtop:word
-	
-INITCODE	CSEG	PARA 'INITCODE'
+
+INITCODE	segment public para 'INITCODE'
 	extrn	cleanup:near			; BIOS Clean Up routine
 	extrn	config_init:near		; CONFIG Code Init
 	extrn	config_finish:near		; Update DOS with Device Info
@@ -207,16 +211,16 @@ biosinit10:
 	dec	dx			; point back at start of memory
 	dec	dx			;  then one below for DMD start
 	mov	es,dx			; ES points to DMD
-	mov	DMD_ID,IDZ		; make it last in the chain
-	mov	DMD_PSP,8		; owned by system
-	lea	di,DMD_NAME		; point to name field
+	mov	es:DMD_ID,IDZ		; make it last in the chain
+	mov	es:DMD_PSP,8		; owned by system
+	lea	di,es:DMD_NAME		; point to name field
 	mov	si,offset rpl_name
-	mov	cx,(length rpl_name)/2
+	mov	cx,(lengthof rpl_name)/2
 	rep	movsw			; initialise name field too
 	inc	dx			; skip the DMD for real top
 	xchg	dx,mem_size		; replace memory size with new value
 	sub	dx,mem_size		; whats the difference ?
-	mov	DMD_LEN,dx		; save it's this length
+	mov	es:DMD_LEN,dx		; save it's this length
 biosinit20:
 
 ; End of RPL support
@@ -226,7 +230,7 @@ biosinit20:
 
 	mov	init_dseg,ax		; initialisation data lives here
 	mov	cl,4
-	mov	dx,offset DYNAMIC_DATA_END+15
+	mov	dx,DYNAMIC_DATA_END+15
 	shr	dx,cl			; we need this much dynamic data
 	add	ax,dx
 
@@ -278,7 +282,8 @@ biosinit30:
 ;
 ;	Generic BIOS INIT Patch area
 ;
-	include	i:patch.cod
+;	include	i:patch.cod
+	db 256 dup (90h)
 ;
 ;	BIOSINIT CODE and DATA have now been relocated to high memory
 ;
@@ -296,7 +301,8 @@ relocated_init:
 	call	dd_fixup		; fixup relocatable device drivers
 	les	di,device_root		; initialize all the resident
 	call	resident_device_init	;   device drivers
-	push cs ! pop es
+	push 	cs
+	pop 	es
 
 	mov	dx,1			; phase one of RPL initialisation
 	call	rploader		;  inform RPLoader if present
@@ -314,7 +320,6 @@ dont_align:
 	mov	current_dos,ax		; the file is held on the INIT_DRV with
 	; call	read_dos		;   the name specified in DOS_NAME
 
-eject
 ;
 ;	The following code will relocate the DOS code.
 ;
@@ -355,11 +360,11 @@ dos_reloc:
 	mov	si,ds:DOS_CODE		; offset of DOS Data
 	xor	di,di			; destination offset
 
-	test	DOS_FLAG,1		; has the DOS Data been compressed
+	test	ds:DOS_FLAG, 1		; has the DOS Data been compressed
 	 jnz	dos_r20			; yes so call the decompress routine
 	mov	cx,ds:DOS_DATA		;  otherwise just copy the data.
 	rep	movsb
-	jmps	dos_r40
+	jmp	short dos_r40
 
 ;
 ;	This routine will decompress the DOS data area which has 
@@ -373,18 +378,20 @@ dos_r20:
 	test	cx,8000h		; negative ?
 	 jnz	dos_r30			; yes do zeros
 	rep	movsb			; else move in data bytes
-	jmps	dos_r20			; and to the next
+	jmp	short dos_r20		; and to the next
 
 dos_r30:
 	and	cx,7fffh		; remove sign
 	 jcxz	dos_r20			; none to do
 	xor	ax,ax
 	rep	stosb			; fill with zeros
-	jmps	dos_r20
+	jmp	short dos_r20
 
 dos_r40:
-	push cs ! pop ds
-	push cs ! pop es
+	push 	cs
+	pop 	ds
+	push 	cs
+	pop 	es
 
 	mov	cl,dev_count
 	mov	res_dev_count,cl
@@ -421,7 +428,7 @@ dos_r50:
 	mov	es,int_stubs_seg
 	cli
 	mov	ds,dos_dseg		; DS -> DOS data segment
-	callf	cs:dos_init
+	call	dword ptr cs:dos_init
 
 ;	mov	es,cs:dos_dseg
 ;	mov	bx,26h			; ES:BX -> list of lists
@@ -431,7 +438,8 @@ dos_r50:
 ;	and	es:word ptr F52_FCBPTR[bx],15
 ;	add	es:word ptr F52_FCBPTR+2[bx],ax
 	sti
-	push cs ! pop ds
+	push	cs
+	pop 	ds
 	mov	es,current_dos		; internationalise the yes/no chars
 	mov	di,es:NO_YES_CHARS
 	mov	es,dos_dseg		; ES:DI -> internal table
@@ -439,7 +447,8 @@ dos_r50:
 	stosw				; replace default no chars
 	mov	ax,word ptr yes_char
 	stosw				; replace default yes chars
-	push cs ! pop es
+	push 	cs
+	pop 	es
 	add	dos_coff,3		; next dos_init call just fixes up
 					;  segment relocations
 
@@ -471,7 +480,7 @@ dos_r70:
 	call	mark_system_memory	; ensure any memory we have allocated
 					; is marked as system
 	mov	bios_offset,offset cleanup
-	callf	bios			; execute BIOS cleanup code
+	call	dword ptr bios		; execute BIOS cleanup code
 
 	mov	ax,(MS_M_STRATEGY*256)+3
 	xor	bx,bx			; unlink in upper memory region
@@ -486,7 +495,8 @@ dos_r70:
 	xor	dx,dx
 	int	2fh
 
-	push cs ! pop es
+	push 	cs
+	pop 	es
 load_e10:
 	mov	ax,(MS_X_EXEC * 256)+0	; Exec the Command Processor
 	mov	bx,offset exec_env	; Get the Parameter Block Address
@@ -505,9 +515,8 @@ load_e10:
 	xor	bx,bx
 	mov	bl,shell_end
 	mov	shell[bx],bh		; replace CR with NULL
-	jmps	load_e10
+	jmp	short load_e10
 
-eject
 
 	Public	get_boot_options
 get_boot_options:
@@ -615,11 +624,12 @@ if DOS5
 	mov	ax,ext_mem_size
 	mov	es:F52_EXT_MEM[bx],ax	; save extended memory size in DOS
 endif
-	mov	ax,(offset TEMP_LDT)/16	; use our temporary LDT's
+	mov	ax,TEMP_LDT/16		; use our temporary LDT's
 	add	ax,init_dseg		;  during system init
 	mov	es:F52_PATHOFF[bx],0	; point at the LDT's
 	mov	es:F52_PATHSEG[bx],ax
-	push cs ! pop es
+	push 	cs
+	pop 	es
 
 	mov	ah,MS_M_ALLOC		; Allocate all available memory
 	mov	bx,0FFFFh		; BX is returned with the maximum
@@ -739,8 +749,8 @@ config_end20:
 	mov	ah,MS_P_GETPSP
 	int	DOS_INT			; get current PSP
 	mov	es,bx
-	mov	cx,PSP_XFNMAX		; Close all the standard handles
-	les	di,PSP_XFTPTR		; and then reopen them in case a
+	mov	cx,es:PSP_XFNMAX	; Close all the standard handles
+	les	di,es:PSP_XFTPTR	; and then reopen them in case a
 	mov	bx,0			; dynamicly loadable device has
 cfg_e10:				; replaced the BIOS driver
 	mov	dl,es:[di+bx]		; save old internal handle
@@ -752,7 +762,7 @@ cfg_e10:				; replaced the BIOS driver
 	inc	bx			; mark as closed and try next handle
 	loop	cfg_e10
 	pop	es
-;;	jmps	open_std	
+;;	jmp	short open_std	
 
 open_std:
 	call	open_stdaux		; open AUX device as STDAUX
@@ -805,9 +815,9 @@ open_sa10:
 	ret
 
 
-eject
 relocate_system:
-	push ds ! push es
+	push 	ds
+	push 	es
 	cmp	dos_target_seg,0FFFFh	; is the OS going high ?
 	 jne	relocate_system10
 	call	SetupHMA		; make sure HMA chain is established
@@ -815,6 +825,7 @@ relocate_system:
 	xchg	cx,systemHMA		; free up any space reserved for the OS
 	call	FreeHMA
 	call	ReserveCommandHMA	; reserve space for COMMAND.COM
+
 relocate_system10:
 	call	reloc_bios		; move down relocatable drivers
 	call	reloc_dos		; move DOS above drivers if RAM based
@@ -826,18 +837,20 @@ relocate_system10:
 	cli
 	mov	es,int_stubs_seg
 	mov	ds,dos_dseg		; DS -> DOS data segment
-	callf	cs:dos_init		; (in case of CS relative fixups)
+	call	dword ptr cs:dos_init	; (in case of CS relative fixups)
 	sti
-	pop es ! pop ds
+	pop es
+	pop ds
 	ret
 
-eject
 reloc_dos:				; move DOS down to just above drivers
 ;----------
 	push	ds
 	push	es
 	test	init_flags,INIT_ROMCODE	; Run the DOS code in ROM
-	 jz $+5 ! jmp reloc_dos90	; at CURRENT_DOS - No Code Reloc
+	 jz reloc_dos05
+	jmpnear reloc_dos90		; JWasm identicalise
+reloc_dos05:
 	mov	es,current_dos
 	mov	dx,es:DOS_OFFSET
 	mov	cx,es:DOS_CODE		; get DOS code size in bytes
@@ -919,7 +932,7 @@ reloc_dosdata:
 	 jc	reloc_data10		; did not work, try other mem instead
 	mov	ax,es
 	pop	es
-	jmps	reloc_data50
+	jmp	reloc_data50
 reloc_data10:
 	pop	es
 reloc_data20:
@@ -1092,10 +1105,10 @@ reloc_xbda31:
 	jmp	reloc_xbda130		; that cannot be helped
 reloc_xbda32:
 	mov	es,ax			; get the address of the next MCB
-	jmps	reloc_xbda30		; try again
+	jmp	reloc_xbda30		; try again
 reloc_xbda35:
 	add	es:DMD_LEN,cx		; length of XBDA
-	jmp	reloc_xbda45
+	jmpnear	reloc_xbda45		; JWasm identicalise
 reloc_xbda40:
 	push	ax			; save length of old MCB
 	push	es:DMD_PSP		; and the old PSP pointer
@@ -1230,7 +1243,7 @@ DOSQuerySize:
 ;	DX = DOS Size in para's
 ;
 	mov	dx,cs:dosCodeParaSize	; DX = para's required for DOS code
-	jmps	RelocExit
+	jmp	short RelocExit
 
 ; Relocate DOS
 DOSRelocate:
@@ -1241,7 +1254,7 @@ DOSRelocate:
 ;	AX = 0
 ;
 	mov	cs:dos_target_seg,dx	; save where
-	jmps	RelocExit
+	jmp	short RelocExit
 
 
 ; Enquire BIOS size
@@ -1257,7 +1270,7 @@ BIOSQuerySize:
 	add	dx,15
 	mov	cl,4
 	shr	dx,cl			; DX para's required
-	jmps	RelocExit
+	jmp	short RelocExit
 
 ; Relocate BIOS
 BIOSRelocate:
@@ -1268,7 +1281,7 @@ BIOSRelocate:
 ;	AX = 0
 ;
 	mov	cs:bios_target_seg,dx	; save where
-;	jmps	RelocExit
+;	jmp	short RelocExit
 
 RelocExit:
 	xor	ax,ax			; indicate success
@@ -1300,7 +1313,8 @@ HMAAlloc:
 	push	dx
 	push	si
 	push	bp
-	push cs ! pop ds		; establish data seg
+	push 	cs
+	pop 	ds			; establish data seg
 	mov	cx,bx			; CX = bytes wanted
 	mov	dx,0FFFFh		; anywhere is OK
 	call	AllocHMA		; ES:DI -> allocated data
@@ -1327,7 +1341,8 @@ HMAQueryFree:
 	push	dx
 	push	si
 	push	bp
-	push cs ! pop ds		; establish data seg
+	push 	cs
+	pop 	ds			; establish data seg
 	call	SetupHMA		; allocate the HMA for OS use
 	les	bx,cs:drdos_ptr
 	mov	di,es:DRDOS_HIMEM_ROOT[bx]
@@ -1338,7 +1353,7 @@ HMAQueryFree:
 	mov	bx,es:2[di]		; BX = size of region
 	mov	ax,di			; para align the base
 	add	ax,15			; because the allocation will
-	and	ax,not 15
+	and	ax,0FFF0h
 	sub	ax,di			; AX bytes left in the para
 	add	di,ax			; bias the starting location
 	sub	bx,ax			; that many less available
@@ -1382,12 +1397,14 @@ AllocHMA:
 	mov	si,es:[di]		;  and get himem link
 	mov	bx,di
 	add	bx,15
-	and	bx,not 15		; BX is now para aligned
+	and	bx,0FFF0h		; BX is now para aligned
+	nop				; JWasm identicalise
 	sub	bx,di			; BX is bytes left in para
 	sub	ax,bx			; so we only have this much
 	 jc	AllocHMA20		;  less than a para ?
 	add	di,15			; para align the base, dropping
-	and	di,not 15		;  non-aligned bit on floor
+	and	di,0FFF0h		;  non-aligned bit on floor
+	nop				; JWasm identicalise
 	cmp	ax,cx			; is himem entry big enough ?
 	 jb	AllocHMA20		; no, allocate from 1st MByte
 	 je	AllocHMA10		; just made it!
@@ -1446,16 +1463,16 @@ SetupHMA:
 	mov	word ptr xms_driver,bx
 	mov	word ptr xms_driver+2,es
 	mov	ah,0			; version number check
-	callf	xms_driver
+	call	dword ptr xms_driver
 	cmp	dx,1			; does HiMem exist ?
 	 jne	SetupHMA20
 	mov	ah,1			; allocate whole HiMem
 	mov	dx,0ffffh
-	callf	xms_driver
+	call	dword ptr xms_driver
 	cmp	ax,1			; did we succeed ?
 	 jne	SetupHMA20
 	mov	ah,3			; enable a20 gate
-	callf	xms_driver
+	call	dword ptr xms_driver
 	cmp	ax,1			; did we succeed ?
 	 jne	SetupHMA20
 	les	bx,cs:drdos_ptr
@@ -1463,8 +1480,8 @@ SetupHMA:
 	mov	ax,0FFFFh		; one entry of FFF0 bytes covers
 	mov	es,ax			;  the complete HMA
 	inc	ax
-	mov	es:word ptr .COMMAND_BASE,ax
-	mov	es:word ptr .COMMAND_BASE+2,-COMMAND_BASE
+	mov	es:word ptr COMMAND_BASE,ax
+	mov	es:word ptr COMMAND_BASE+2,-COMMAND_BASE
 	mov	di,10h			; copy a dummy VDISK header
 	mov	si,offset dummyVDISK
 	mov	cx,10h
@@ -1473,7 +1490,9 @@ SetupHMA:
 	mov	ds,ax			;  link for PC-NFS
 	mov	si,4*30h		; DS:SI -> Int 30 vector
 	lea	di,10h[si]		; ES:DI -> himem alias
-	movsw ! movsw ! movsb		; copy the JMPF
+	movsw
+	movsw
+	movsb				; copy the JMPF
 	pop	ds
 SetupHMA10:
 	les	bx,cs:drdos_ptr		; private data area in ES:BX
@@ -1545,7 +1564,7 @@ alloc_instseg20:
 	 jc	alloc_instseg25
 	mov	ax,es
 	pop	es
-	jmps	alloc_instseg55
+	jmp	short alloc_instseg55
 alloc_instseg25:
 	pop	es
 alloc_instseg30:
@@ -1630,7 +1649,7 @@ alloc_seg:
 
 alloc_s10:
 	hlt				; ##jc##
-	jmps	alloc_s10
+	jmp	short alloc_s10
 
 	Public	alloc_upper
 alloc_upper:
@@ -1665,14 +1684,17 @@ alloc_upper10:
 	mov	ax,(MS_M_STRATEGY*256)+1; set allocation strategy
 	mov	bl,41h			;  to best fit, high only
 	int	DOS_INT
-	pop bx ! push bx		; recover para required in BX
+	pop 	bx
+	push 	bx			; recover para required in BX
 	mov	ah, MS_M_ALLOC		;  and try to allocate them
 	int	DOS_INT
-	pushf ! push ax			; save CF and possible address
+	pushf
+	push 	ax			; save CF and possible address
 	mov	ax,(MS_M_STRATEGY*256)+1; set allocation strategy
 	mov	bl,0			;  to first fit
 	int	DOS_INT
-	pop ax ! popf			; restore CF and possible address
+	pop ax
+	popf				; restore CF and possible address
 	 jc	alloc_upper20		; can't allocate, use conventional
 	cmp	ax,mem_size		; is it from upper memory ?
 	 ja	alloc_upper15		; yes, we can use it
@@ -1681,7 +1703,7 @@ alloc_upper10:
 	mov	ah,MS_M_FREE
 	int	DOS_INT			; free up this memory
 	pop	es
-	jmps	alloc_upper20		; try again with XMS
+	jmp	short alloc_upper20	; try again with XMS
 
 alloc_upper15:
 	mov	himem_base,ax		; save base value
@@ -1693,8 +1715,14 @@ alloc_upper15:
 alloc_upper20:
 	pop	ax
 	pop	bx			; restore regs
-	push ds ! push es
-	push bx ! push cx ! push dx ! push si ! push di ! push bp
+	push 	ds
+	push 	es
+	push 	bx
+	push 	cx
+	push 	dx
+	push 	si
+	push 	di
+	push 	bp
 	push	ax			; save allocation size
 	mov	ax,4300h		; check for XMS installation
 	int	2fh
@@ -1704,22 +1732,35 @@ alloc_upper20:
 	int	2fh
 	mov	word ptr xms_driver,bx
 	mov	word ptr xms_driver+2,es
-	pop dx ! push dx		; DX = allocation size
+	pop dx
+	push dx		; DX = allocation size
 	mov	ah,10h			; allocate upper memory block
-	callf	xms_driver
+	call	dword ptr xms_driver
 	cmp	ax,1			; did we succeed ?
 	 jne	alloc_upper30
 	pop	ax			; recover allocation size
 	mov	ax,bx			; return para address of himem
-	pop bp ! pop di ! pop si ! pop dx ! pop cx ! pop bx
-	pop es ! pop ds
+	pop 	bp
+	pop 	di
+	pop 	si
+	pop 	dx
+	pop 	cx
+	pop 	bx
+	pop 	es
+	pop 	ds
 	clc				; success
 	ret
 	
 alloc_upper30:
 	pop	ax			; recover allocation size
-	pop bp ! pop di ! pop si ! pop dx ! pop cx ! pop bx
-	pop es ! pop ds
+	pop 	bp
+	pop 	di
+	pop 	si
+	pop 	dx
+	pop 	cx
+	pop 	bx
+	pop 	es
+	pop 	ds
 	stc				; failure....
 	ret
 
@@ -1757,9 +1798,9 @@ mark_sm40:
 	 je	mark_sm50		;  then stop
 	mov	ax,es
 	inc	ax			; skip DMD header and add
-	add	ax,DMD_LEN		;  length to find next DMD
+	add	ax,es:DMD_LEN		;  length to find next DMD
 	mov	es,ax
-	jmps	mark_sm10		; now go and look at that
+	jmp	short mark_sm10		; now go and look at that
 mark_sm50:
 	pop	es
 	ret
@@ -1773,14 +1814,15 @@ reloc_bios:
 	ret
 reloc_bios10:
 	add	cx,15			; round rcode size up to a para
-	and	cx,not 15
+	and	cx,0FFF0h
+	nop				; JWasm identicalise
 	mov	ax,bios_target_seg	; where do we go
 	test	ax,ax
 	 jz	reloc_bios20		; zero - do it ourselves
 	inc	ax			; FFFF - unlikely as it's not
 	 jz	reloc_bios25		;  currently supported
 	dec	ax			; else we've been given a seg
-	jmps	reloc_bios40
+	jmp	short reloc_bios40
 reloc_bios20:	
 	cmp	dos_target_seg,0FFFFh	; if DOS goes up, so does BIOS
 	 jne	reloc_bios30
@@ -1789,8 +1831,10 @@ reloc_bios25:
 	 jnc	reloc_bios50
 reloc_bios30:
 	mov	ax,cx			; allocate conventionally
-	shr ax,1 ! shr ax,1		;  in para's of course
-	shr ax,1 ! shr ax,1
+	shr 	ax,1
+	shr 	ax,1			;  in para's of course
+	shr 	ax,1
+	shr 	ax,1
 	cmp	hidos,0			; do we want to relocate DOS ?
 	 je	reloc_bios35		;  no, allocate conventionally
 	call	alloc_upper		; try to allocate some upper memory
@@ -1800,8 +1844,10 @@ reloc_bios35:				;  padding out if required
 reloc_bios40:
 	mov	es,ax
 	xor	di,di			; ES:DI -> destination
-	shr dx,1 ! shr dx,1		; convert offset to para's
-	shr dx,1 ! shr dx,1
+	shr 	dx,1
+	shr 	dx,1			; convert offset to para's
+	shr 	dx,1
+	shr 	dx,1
 	sub	ax,dx			; bias segment appropriately
 	xchg	ax,dx			;  and have in DX
 reloc_bios50:
@@ -1847,7 +1893,7 @@ dd_fixup10:
 	xchg	ax,di			; point to the fixup
 	stosw				; do the fixup
 	xchg	ax,di			; save segment again
-	jmps	dd_fixup10
+	jmp	short dd_fixup10
 dd_fixup20:
 	pop	es
 	ret
@@ -1948,7 +1994,7 @@ rploader:
 	mov	dx,1			;  initialisation
 	pushf
 	cli
-	callf	rpl_entry		; fake an INT
+	call	dword ptr rpl_entry	; fake an INT
 rploader10:
 	pop	dx
 	pop	cx
@@ -1971,7 +2017,7 @@ Verify386:
 	cmp	ax,sp			; newer ones push original SP
 	 jne	Verify386fail
 	mov	ax,3000h		; now try to set IOPL = 3
-    push    ax
+    	push    ax
 	popf
 	pushf
 	pop	bx
@@ -1983,7 +2029,9 @@ Verify386fail:
 	stc				; it's not a 386
 	ret
 
-INITDATA	dseg	'INITDATA'
+INITCODE ends
+
+INITDATA	segment public 'INITDATA'
 
 
 include	initmsgs.def				; Include TFT Header File
@@ -2008,21 +2056,21 @@ drdoslen	dw 0
 ;	PUBLIC Variables which are initialised by the BIOS before the
 ;	BIOSINIT code has been executed. 
 ;
-data_start	rb	0		; used to para-align PSP & ENV
+data_start	label byte		; used to para-align PSP & ENV
 
 	Public	func52_ptr
-func52_ptr	rd	0		; address of internal BDOS variables
+func52_ptr	label dword		; address of internal BDOS variables
 func52_off	dw	0		; offset	"	"	"
 func52_seg	dw	0		; segment	"	"	"
 
 	Public	drdos_ptr
-drdos_ptr	rd	0		; address of internal BDOS variables
+drdos_ptr	label dword		; address of internal BDOS variables
 drdos_off	dw	0		; offset	"	"	"
 drdos_seg	dw	0		; segment	"	"	"
 
 
 	Public	res_ddsc_ptr
-res_ddsc_ptr	rd	0
+res_ddsc_ptr	label dword
 res_ddsc_off	dw	0
 	Public	res_ddsc_seg
 res_ddsc_seg	dw	0
@@ -2056,7 +2104,7 @@ commandHMA	dw	0		; offset of area in HMA reserved
 
 
 	Public	device_root
-device_root	rd	1		; Root of Resident Device driver Chain
+device_root	dd	0		; Root of Resident Device driver Chain
 
 	Public	mem_size, ext_mem_size, comspec_drv
 	Public	init_flags, init_drv
@@ -2083,18 +2131,17 @@ code_page	dw	DEF_CODEPAGE	; Code Page
 
 rpl_name	db	'RPLOADER'
 
-rpl_entry	rd	0		; remember RPL entry point for
+rpl_entry	label dword		; remember RPL entry point for
 rpl_off		dw	0		;  startup broadcasts
 rpl_seg		dw	0
 
-eject
 ;
 ;	Internal variables used by the BIOSINIT code
 ;
 	Public	bios_seg
-bios		rd	0		; Far pointer to the BIOS Cleanup
-bios_offset	rw	1		; routines.
-bios_seg	rw	1
+bios		label dword		; Far pointer to the BIOS Cleanup
+bios_offset	dw	0		; routines.
+bios_seg	dw	0
 
 	Public	init_dseg
 init_dseg	dw	0		; Init data segment
@@ -2103,19 +2150,19 @@ init_dseg	dw	0		; Init data segment
 dos_dseg	dw	0		; DOS Data Segment Address
 
 	Public	mem_current_base, mem_current, mem_max
-mem_first_base	rw	1		; Base of First Allocated Memory
-mem_current_base rw	1		; Base of Current Allocated Memory
-mem_current	rw	1		; Next Free Paragraph
-mem_max		rw	1		; Last available Paragraph
+mem_first_base	dw	0		; Base of First Allocated Memory
+mem_current_base dw	0		; Base of Current Allocated Memory
+mem_current	dw	0		; Next Free Paragraph
+mem_max		dw	0		; Last available Paragraph
 
 
-dos_init	rd	0		; DOS Initialization Code
+dos_init	label dword		; DOS Initialization Code
 dos_coff	dw	0		; DOS Init Code Offset
-dos_cseg	rw	1		; DOS Init Code Segment
+dos_cseg	dw	0		; DOS Init Code Segment
 
-free_seg	rw	1		; First available paragraph.
+free_seg	dw	0		; First available paragraph.
 
-xms_driver	rd	1		; address of himem driver
+xms_driver	dd	0		; address of himem driver
 
 	Public	hidos
 hidos		db	0		; set true if HIDOS requested
@@ -2138,8 +2185,8 @@ printer		db	'PRN',0		; Default Printer Device
 auxilary	db	'AUX',0		; Default Auxilary Device
 
 idle_dev	db	'$IDLE$',0	; Idle Device Name
-idle_off	rw	1		; Idle Data Area Offset
-idle_seg	rw	1		; Idle Data Area Segment
+idle_off	dw	0		; Idle Data Area Offset
+idle_seg	dw	0		; Idle Data Area Segment
 
 dummy_fcb	db	0,'           '
 
@@ -2150,16 +2197,13 @@ exec_clseg	dw	0		; Command Line Segment
 exec_fcb1seg	dw	0		; FCB 1 Offset and Segment
 		dw	dummy_fcb
 exec_fcb2seg	dw	0		; FCB 2 Offset and Segment
-		rd	1		; SS:SP
-		rd	1		; CS:IP
+		dd	0		; SS:SP
+		dd	0		; CS:IP
 
 	Public	shell_cline
-;shell_cline	db	length shell_drv; Initial Command Line
-;shell_drv	db	'A: /P'
-shell_cline	db	length shell_drv; Initial Command Line
-shell_drv	rb	0
-		db	0Dh
-		rb	126 - length shell_drv
+shell_cline	db	0		; Initial Command Line
+shell_drv	db	0Dh
+		db	126 dup (0)
 
 dummyVDISK	db	0, 0, 0		; jump instruction
 		db	'VDISK3.3'	; OEM name
@@ -2176,22 +2220,24 @@ dummyVDISK	db	0, 0, 0		; jump instruction
 		dw	0		; number of hidden sectors
 		dw	1024+64		; KB of extended memory used
 
-search_state	rb	43		; Search First/Next State
+search_state	db	43 dup (0)	; Search First/Next State
 
-		rw	384		; big stack for ASPI4DOS.SYS driver
-stack		rw	0
+		dw	384 dup (0)	; big stack for ASPI4DOS.SYS driver
+stack		label word
 
 res_dev_count	db	0
 dosdata_len	dw	0
 int_stubs_seg	dw	0
 
-INITPSP		DSEG	PARA 'INITDATA'
+INITDATA ends
+
+INITPSP		segment public para 'INITDATA'
 		db	'Z'			; dummy DMD header
 		dw	0008h			; owner is system
 		dw	0010h			; length of PSP
-		rb	3			; pad to 8 bytes
+		db	3 dup (0)		; pad to 8 bytes
 		db	'DOS',0,0,0,0,0		; name field (must be 8 bytes)
-psp		rb	16h			; Zero Fill PSP Header
+psp		db	16h dup (0)		; Zero Fill PSP Header
 parent_psp	dw	0			; parent, patched to itself
 		db	0FFh, 0FFh, 0FFh	; STDIN, STDOUT, STDERR
 		db	0FFh, 0FFh		; STDAUX, STDPRN
@@ -2205,23 +2251,26 @@ parent_psp	dw	0			; parent, patched to itself
 		dw	20			  ; Maximum of 20 Handles
 		dw	offset PSP_XFT		  ; Handle Table Offset
 xftbl_seg	dw	0			  ; Handle Table Segment
-		rb	offset PSP_VERSION - offset PSP_RES1
+		db	(offset PSP_VERSION - offset PSP_RES1) dup (0)
 	Public	dosVersion
 dosVersion	dw	7			  ; DOS version is 7.0
-		rb	PSPILEN - offset PSP_VERSION - 2
+		db	(PSPILEN - offset PSP_VERSION - 2) dup (0)
 						  ; PAD to Partial PSP Size
+INITPSP ends
 
-INITENV		DSEG	PARA 'INITDATA'
+INITENV		segment public para 'INITDATA'
 
 shell_ask	db	79			; max len
 shell_end	db	0			; end of the line
 	Public	shell
 shell		db	'A:\COMMAND.COM', 0	
-		rb	80-length shell
+		db	(80-lengthof shell) dup (0)
+INITENV ends
 
-DATAEND	DSEG	PARA 'INITDATA'
+DATAEND	segment public para 'INITDATA'
 
 	Public	biosinit_end
-biosinit_end	rb	0
+biosinit_end	label byte
+DATAEND ends
 
 	end
