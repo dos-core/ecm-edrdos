@@ -51,18 +51,6 @@ IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\genercfg.lst -Fo.\BIN\genercfg genercfg.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
-REM ******************************************
-REM Build the library so that we can link into
-REM ******************************************
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\confstub.a86 .\BIN\confstub.o86 $sz /DDRDOS35=0 /DADDDRV=0
-IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\confstub.o86 .\BIN\confstub.obj RELOC > bin\confstub.rel
-IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\bdosstub.a86 .\BIN\bdosstub.o86 $sz /DDRDOS35=0 /DADDDRV=0
-IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\bdosstub.o86 .\BIN\bdosstub.obj RELOC > bin\bdosstub.rel
-IF ERRORLEVEL 1 GOTO FAILED
-
 REM ***************************************************
 REM Link the OBJ's and LIBR file to create the BIOS.EXE
 REM and then use EXE2BIN to create the DRBIO.SYS file.
