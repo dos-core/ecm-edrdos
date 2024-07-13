@@ -72,13 +72,13 @@
 
 
 	include compat.def
-	include configw.equ
+	include config.equ
 	include	msdos.equ
 	include char.def
 	include	request.equ
-	include	driverw.equ
+	include	driver.equ
 	include	fdos.equ
-	include	f52dataw.def		; Function 52 DOS Data Area
+	include	f52data.def		; Function 52 DOS Data Area
 	include	doshndl.def		; DOS Handle Structure Definition
 	include country.def
 

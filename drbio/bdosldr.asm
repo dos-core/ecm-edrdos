@@ -34,7 +34,7 @@
 
 	include compat.def
 	include request.equ
-	include driverw.equ
+	include driver.equ
 	include	config.equ
 
 ;	MISC constants
