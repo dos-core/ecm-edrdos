@@ -44,21 +44,16 @@ endif
 NUM_BUFFS	equ	4
 SIZEOF_BUFFS	equ	1024+32		; allow for large sectors during init
 
-CONFIG_BUF	equ	ds:byte ptr .0
+CONFIG_BUF	equ	byte ptr 0
 CONFIG_BUF_SIZE	equ	 8*1024		; CONFIG.SYS read in this size chunks
 INIT_BUFFERS	equ	CONFIG_BUF+CONFIG_BUF_SIZE
-if DOS5
+
 INIT_BUFFERS_SIZE equ	NUM_BUFFS*SIZEOF_BUFFS
 					; reserve space for init disk buffers
 TEMP_LDT	equ	INIT_BUFFERS+INIT_BUFFERS_SIZE
 					; space for temp LDT's at CONFIG time
 TEMP_LDT_SIZE	equ	 ((26*58h)/16)*16+20h
-else
-INIT_BUFFERS_SIZE equ	NUM_BUFFS*(512+16)	; reserve space for init disk buffers
-TEMP_LDT	equ	INIT_BUFFERS+INIT_BUFFERS_SIZE
-					; space for temp LDT's at CONFIG time
-TEMP_LDT_SIZE	equ	 ((26*51h)/16)*16+20h
-endif
+
 DYNAMIC_DATA_END equ	TEMP_LDT+TEMP_LDT_SIZE
 
 BLKDEV_LENGTH	equ	9		; # of bytes per block device init entry
@@ -106,38 +101,38 @@ DEF_CODEPAGE	equ	0		; No codepage
 
 DELWATCH	equ	0FFFFh
 
-RLF_ENHANCED	equ	0000$0001b	; Enhanced features are on
-RLF_INS		equ	0000$0010b	; Insert Flag
-RLF_SEARCH	equ	0000$0100b 	; Search mode on
-RLF_MATCH	equ	0000$1000b	; We are matching a command
+RLF_ENHANCED	equ	00000001b	; Enhanced features are on
+RLF_INS		equ	00000010b	; Insert Flag
+RLF_SEARCH	equ	00000100b 	; Search mode on
+RLF_MATCH	equ	00001000b	; We are matching a command
 
-BUFFERS_IN_HMA	equ	0000$0001b
-BUFFERS_IN_UMB	equ	0000$0010b
+BUFFERS_IN_HMA	equ	00000001b
+BUFFERS_IN_UMB	equ	00000010b
 
-FILES_IN_HMA	equ	0000$0001b
-FILES_IN_UMB	equ	0000$0010b
+FILES_IN_HMA	equ	00000001b
+FILES_IN_UMB	equ	00000010b
 
-STACKS_IN_HMA	equ	0000$0001b
-STACKS_IN_UMB	equ	0000$0010b
+STACKS_IN_HMA	equ	00000001b
+STACKS_IN_UMB	equ	00000010b
 
-LASTDRV_IN_HMA	equ	0000$0001b
-LASTDRV_IN_UMB	equ	0000$0010b
+LASTDRV_IN_HMA	equ	00000001b
+LASTDRV_IN_UMB	equ	00000010b
 
-DDSCS_IN_HMA	equ	0000$0001b
-DDSCS_IN_UMB	equ	0000$0010b
+DDSCS_IN_HMA	equ	00000001b
+DDSCS_IN_UMB	equ	00000010b
 
-DOSDATA_IN_UMB	equ	0000$0010b
+DOSDATA_IN_UMB	equ	00000010b
 
-ALLOC_IN_HMA	equ	0000$0001b
-ALLOC_IN_UMB	equ	0000$0010b
+ALLOC_IN_HMA	equ	00000001b
+ALLOC_IN_UMB	equ	00000010b
 
-MOVE_XBDA_LOW	equ	0000$0001b
-MOVE_XBDA_HIGH	equ	0000$0010b
+MOVE_XBDA_LOW	equ	00000001b
+MOVE_XBDA_HIGH	equ	00000010b
 
-DMD_ID          equ     es:byte ptr .0	; id code ('M' or 'Z')
-DMD_PSP         equ     es:word ptr .1	; owner of memory block
-DMD_LEN         equ     es:word ptr .3	; length of memory block
-DMD_NAME	equ	es:byte ptr .8	; ASCIIZ name field
+DMD_ID          equ     byte ptr 0	; id code ('M' or 'Z')
+DMD_PSP         equ     word ptr 1	; owner of memory block
+DMD_LEN         equ     word ptr 3	; length of memory block
+DMD_NAME	equ	byte ptr 8	; ASCIIZ name field
 DMD_NAME_LEN	equ	8		;  8 Bytes long
 IDM             equ     'M'		; not last id code
 IDZ             equ     'Z'		; last id code
