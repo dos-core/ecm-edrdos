@@ -22,23 +22,25 @@ REM *************************************
 REM Build .ASM files first, get the obj's
 REM *************************************
 
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\initmsgs.lst -Fo.\BIN\initmsgs initmsgs.asm
+%JWASMEXE% -c -Fl.\BIN\initmsgs.lst -Fo.\BIN\initmsgs initmsgs.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -DLDOS -Fl.\BIN\biosmsgs.lst -Fo.\BIN\biosmsgs biosmsgs.asm
+%JWASMEXE% -c -DLDOS -Fl.\BIN\biosmsgs.lst -Fo.\BIN\biosmsgs biosmsgs.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\init.lst -Fo.\BIN\init init.asm
+%JWASMEXE% -c -Fl.\BIN\init.lst -Fo.\BIN\init init.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\clock.lst -Fo.\BIN\clock clock.asm
+%JWASMEXE% -c -Fl.\BIN\clock.lst -Fo.\BIN\clock clock.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\console.lst -Fo.\BIN\console console.asm
+%JWASMEXE% -c -Fl.\BIN\console.lst -Fo.\BIN\console console.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\disk.lst -Fo.\BIN\disk disk.asm
+%JWASMEXE% -c -Fl.\BIN\disk.lst -Fo.\BIN\disk disk.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\serpar.lst -Fo.\BIN\serpar serpar.asm
+%JWASMEXE% -c -Fl.\BIN\serpar.lst -Fo.\BIN\serpar serpar.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\biosgrps.lst -Fo.\BIN\biosgrps biosgrps.asm
+%JWASMEXE% -c -Fl.\BIN\biosgrps.lst -Fo.\BIN\biosgrps biosgrps.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\stacks.lst -Fo.\BIN\stacks stacks.asm
+%JWASMEXE% -c -Fl.\BIN\stacks.lst -Fo.\BIN\stacks stacks.asm
+IF ERRORLEVEL 1 GOTO FAILED
+%JWASMEXE% -c -Fl.\BIN\nlsfunc.lst -Fo.\BIN\nlsfunc nlsfunc.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
 REM ******************************************
@@ -71,10 +73,6 @@ IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\genercfg.a86 .\BIN\genercfg.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\fixupp .\BIN\genercfg.o86 .\BIN\genercfg.obj RELOC > bin\genercfg.rel
-IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\nlsfunc.a86 .\BIN\nlsfunc.o86 $sz /DDRDOS35=0 /DADDDRV=0
-IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\nlsfunc.o86 .\BIN\nlsfunc.obj RELOC > bin\nlsfunc.rel
 IF ERRORLEVEL 1 GOTO FAILED
 
 REM ***************************************************

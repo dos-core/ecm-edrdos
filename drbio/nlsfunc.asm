@@ -52,13 +52,14 @@ DA_CHARDEV	equ	8000h		; 1=character device, 0=block device
 DA_IOCTL	equ	4000h		; device supports IOCTL string I/O
 DA_GETSET	equ	0040h		; supports 3.2 level functionality
 
+	include compat.def
 	include	config.equ
-	include	i:msdos.equ
-	include	i:mserror.equ
+	include	msdos.equ
+	include	mserror.equ
 	
 
 CGROUP	GROUP	INITCODE
-INITCODE	CSEG	PARA 'INITCODE'
+INITCODE	segment public para 'INITCODE'
 
 ; We share our NLS buffer with other temporary users
 
@@ -81,7 +82,7 @@ nls_hook:
 	mov	old_int2f_seg,es
 	mov	ah,MS_S_SETINT
 	mov	al,2fh
-	mov	dx,offset int2f_handler	; install our own INT 2F handler
+	mov	dx,offset cgroup:int2f_handler	; install our own INT 2F handler
 	int	DOS_INT
 	pop	es
 	ret
@@ -103,8 +104,7 @@ nls_unhook:
 	ret
 
 
-old_int2f	rd	0
-
+old_int2f	label dword
 old_int2f_off	dw	0
 old_int2f_seg	dw	0
 
@@ -112,7 +112,7 @@ int2f_handler:
 ;-------------
 	cmp	ah,014h		; is it for us ?
 	 je	int2f_handler10
-	jmpf	old_int2f	; no, pass it on
+	jmp	dword ptr old_int2f	; no, pass it on
 
 int2f_handler10:
 	cmp	al,0		; installation check ?
@@ -144,7 +144,7 @@ cp_cpid		dw	0		; Request CodePage
 		db	0,0		; Packet Terminators
 
 preperr		dw	0		; Prepare function Error Code
-prepname	rb	9		; Reserved for ASCIIZ Device Name
+prepname	db	9 dup (0)		; Reserved for ASCIIZ Device Name
 
 ;
 ; Area for country.sys current pointer table 
@@ -248,7 +248,7 @@ f66_p33:
 f66_p35:	
 	mov	ax,1227h
 	int	2fh			; magic hook to close handle
-	jmp	f66_p40	
+	jmpnear	f66_p40
 
 f66_perr:
 	mov	preperr,ax		; Save the error code and try the
@@ -413,5 +413,6 @@ f65x_load_info:
 	pop	es
 	ret
 
+INITCODE ENDS
 
 	end
