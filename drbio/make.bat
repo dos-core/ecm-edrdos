@@ -48,6 +48,8 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\config.lst -Fo.\BIN\config config.asm
 IF ERRORLEVEL 1 GOTO FAILED
+%JWASMEXE% -c -Fl.\BIN\genercfg.lst -Fo.\BIN\genercfg genercfg.asm
+IF ERRORLEVEL 1 GOTO FAILED
 
 REM ******************************************
 REM Build the library so that we can link into
@@ -59,14 +61,6 @@ IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\bdosstub.a86 .\BIN\bdosstub.o86 $sz /DDRDOS35=0 /DADDDRV=0
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\fixupp .\BIN\bdosstub.o86 .\BIN\bdosstub.obj RELOC > bin\bdosstub.rel
-IF ERRORLEVEL 1 GOTO FAILED
-
-REM ******************************************
-REM Build the .A86 files next, get the obj's
-REM ******************************************
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\genercfg.a86 .\BIN\genercfg.o86 $sz /DDRDOS35=0 /DADDDRV=0
-IF ERRORLEVEL 1 GOTO FAILED
-%LOCTOOLS%\fixupp .\BIN\genercfg.o86 .\BIN\genercfg.obj RELOC > bin\genercfg.rel
 IF ERRORLEVEL 1 GOTO FAILED
 
 REM ***************************************************
