@@ -103,7 +103,6 @@ nls_unhook:
 	pop	ds
 	ret
 
-
 old_int2f	label dword
 old_int2f_off	dw	0
 old_int2f_seg	dw	0
