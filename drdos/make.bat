@@ -16,6 +16,10 @@ if not exist %JWASMEXE% goto badtool
 
 copy ..\version.inc . /y
 
+%JWASMEXE% -c -Fl.\BIN\header.lst -Fo.\BIN\header header.asm
+IF ERRORLEVEL 1 GOTO FAILED
+
+
 REM ******************************************
 REM Build the .A86 files next, get the obj's
 REM ******************************************
@@ -42,9 +46,6 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\redir.a86 .\bin\redir.o86 $sz /DKANJI /DDOS5 /DJOIN
-IF ERRORLEVEL 1 GOTO FAILED
-
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\header.a86 .\bin\header.o86 $sz /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\pcmif.a86 .\bin\pcmif.o86 $sz /DDOS5
@@ -97,7 +98,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 
 for %f in (buffers dirs fdos fcbs) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (bdevio cdevio fioctl redir) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
-for %f in (header pcmif cio disk ioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (pcmif cio disk ioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (misc support dosmem error) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (process network int2f history) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (cmdline dos7 lfn) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
