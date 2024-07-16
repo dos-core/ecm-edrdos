@@ -49,22 +49,22 @@ RL_HIST_SIZE	equ	word ptr -26[bp]	; buffer is this big
 RL_HIST_SEG	equ	word ptr -28[bp]	; buffer is at this segment
 RL_LENGTH	equ	28
 
-RLF_ENHANCED	equ	0000$0001b		; Enhanced features are on
-RLF_INS		equ	0000$0010b		; Insert Flag
-RLF_SEARCH	equ	0000$0100b		; Search mode on
-RLF_MATCH	equ	0000$1000b		; We are matching a command
-RLF_RECALLED	equ	0001$0000b		; Line already recalled
-RLF_DIRTY	equ	0010$0000b		; Partial line needs saved
-RLF_KANJI	equ	0100$0000b		; RL_KANJI is valid
-RLF_INROOT	equ	1000$0000b		; In root
+RLF_ENHANCED	equ	00000001b		; Enhanced features are on
+RLF_INS		equ	00000010b		; Insert Flag
+RLF_SEARCH	equ	00000100b		; Search mode on
+RLF_MATCH	equ	00001000b		; We are matching a command
+RLF_RECALLED	equ	00010000b		; Line already recalled
+RLF_DIRTY	equ	00100000b		; Partial line needs saved
+RLF_KANJI	equ	01000000b		; RL_KANJI is valid
+RLF_INROOT	equ	10000000b		; In root
 
-CHAR_SPACE	equ	0000$0001b	; Space Character
-CHAR_TAB	equ	0000$0010b	; Tab Character
-CHAR_CTL	equ	0000$0100b	; Control Character expanded to "^X"
-CHAR_KANJI	equ	0000$1000b	; Japanese Kanji character
-CHAR_ALPHAN	equ	0001$0000b	; Alpha/Numeric
-CHAR_OTHER	equ	0010$0000b	; Non AlphaNumeric
-CHAR_STD	equ	1000$0000b	; Stored as a Byte displayed in 1 Col
+CHAR_SPACE	equ	00000001b	; Space Character
+CHAR_TAB	equ	00000010b	; Tab Character
+CHAR_CTL	equ	00000100b	; Control Character expanded to "^X"
+CHAR_KANJI	equ	00001000b	; Japanese Kanji character
+CHAR_ALPHAN	equ	00010000b	; Alpha/Numeric
+CHAR_OTHER	equ	00100000b	; Non AlphaNumeric
+CHAR_STD	equ	10000000b	; Stored as a Byte displayed in 1 Col
 
 CHAR_SIZE	equ	CHAR_STD or CHAR_KANJI or CHAR_TAB or CHAR_CTL
 CHAR_ONECOL	equ	CHAR_SPACE or CHAR_OTHER or CHAR_ALPHAN

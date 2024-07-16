@@ -1,4 +1,4 @@
-;    File              : $REQHDR.EQU$
+;    File              : $REQUEST.EQU$
 ;
 ;    Description       :
 ;
@@ -29,8 +29,34 @@
 ;    *** End of Current Edit History ***
 ;
 ;    $Log$
-;
 ;    ENDLOG
+
+
+P_DSTRUC struc
+		dw	?
+REQUEST		dd	?
+DMA		dd	?
+P_DSTRUC ends
+
+P_STRUC struc
+		dw	?	; saved BP
+REQUEST_OFF	dw	?	; request header offset
+REQUEST_SEG	dw	?	; request header segment
+DMAOFF          dw	?	; transfer offset
+DMASEG          dw	?	; transfer segment
+RETRY		db	?	; retry count for disk errors
+DIRECT          db	?	; 0 if DMA deblocking required
+ROSCMD          db	?	; 2 = read, 3 = write, 4 = verify
+SETTLE          db	?	; for fast settle on reads
+SECTOR          db	?	; sector # (0..BPB_SPT-1)
+HEAD		db	?	; head # (0..BPB_HEADS-1)
+CYL		dw	?	; cylinder # (0..1023)
+COUNT		dw	?	; requested sector count
+MCNT		dw	?	; physical sector count
+LBABLOCK	dd	?	; Logical Block Address of start sector
+P_STRUC	ends
+
+
 
 CMD_INIT		equ	 0	; Initialize the Device Driver
 CMD_MEDIA_CHECK		equ	 1	; Request Media Check
@@ -55,10 +81,10 @@ CMD_QUERY_IOCTL		equ	25	; query ioctl support
 
 ;	Generic Request Header Format
 
-RH_LEN		equ	es:byte ptr 0[bx]
-RH_UNIT		equ	es:byte ptr 1[bx]
-RH_CMD		equ	es:byte ptr 2[bx]
-RH_STATUS	equ	es:word ptr 3[bx]
+RH_LEN		equ	byte ptr 0
+RH_UNIT		equ	byte ptr 1
+RH_CMD		equ	byte ptr 2
+RH_STATUS	equ	word ptr 3
   RHS_DONE	equ	0100h
   RHS_BUSY	equ	0200h
   RHS_IC	equ	0400h			; Interim Character
@@ -68,59 +94,59 @@ RH_STATUS	equ	es:word ptr 3[bx]
 ;******
 ;* No longer safe to use - some device drivers trample on them....
 ;*
-;* RH_STRATEGY	equ	es:dword ptr 5[bx]	; Device Strategy Routine
-;* RH_STRATOFF	equ	es:word ptr  5[bx]	; Strategy Offset
-;* RH_STRATSEG	equ	es:word ptr  7[bx]	; Strategy Segment
-;* RH_INTERRUPT	equ	es:dword ptr 9[bx]	; Device Interrupt Routine
-;* RH_INTOFF	equ	es:word ptr  9[bx]	; Intterupt Offset
-;* RH_INTSEG	equ	es:word ptr 11[bx]	; Interrupt Segment
+;* RH_STRATEGY	equ	dword ptr 5	; Device Strategy Routine
+;* RH_STRATOFF	equ	word ptr  5	; Strategy Offset
+;* RH_STRATSEG	equ	word ptr  7	; Strategy Segment
+;* RH_INTERRUPT	equ	dword ptr 9	; Device Interrupt Routine
+;* RH_INTOFF	equ	word ptr  9	; Intterupt Offset
+;* RH_INTSEG	equ	word ptr 11	; Interrupt Segment
 ;*****
 
 ;	Request header for initialization
 
-RH0_NUNITS	equ	es:byte ptr 13[bx]
-RH0_RESIDENT	equ	es:word ptr 14[bx]
-RH0_BPBOFF	equ	es:word ptr 18[bx]
-RH0_BPBSEG	equ	es:word ptr 20[bx]
-RH0_DRIVE	equ	es:byte ptr 22[bx]
+RH0_NUNITS	equ	byte ptr 13
+RH0_RESIDENT	equ	word ptr 14
+RH0_BPBOFF	equ	word ptr 18
+RH0_BPBSEG	equ	word ptr 20
+RH0_DRIVE	equ	byte ptr 22
 RH0_LEN		equ	22
 
 ;	Request header for media check
 
-RH1_MEDIA	equ	es:byte ptr 13[bx]	; BDOS: current media byte
-RH1_RETURN	equ	es:byte ptr 14[bx]	; driver: return code (00, 01, FF)
-RH1_VOLID	equ	es:dword ptr 15[bx]	; driver: volume label address
+RH1_MEDIA	equ	byte ptr 13	; BDOS: current media byte
+RH1_RETURN	equ	byte ptr 14	; driver: return code (00, 01, FF)
+RH1_VOLID	equ	dword ptr 15	; driver: volume label address
 RH1_LEN		equ	15
 
 ;	Request header for "build BPB"
 
-RH2_MEDIA	equ	es:byte ptr 13[bx]	; BDOS or driver?
-RH2_BUFFER	equ	es:dword ptr 14[bx]	; BDOS: scratch buffer for driver use
-RH2_BPB		equ	es:dword ptr 18[bx]	; same as the following:
-RH2_BPBOFF	equ	es:word ptr 18[bx]	; driver: address of new BPB
-RH2_BPBSEG	equ	es:word ptr 20[bx]
+RH2_MEDIA	equ	byte ptr 13	; BDOS or driver?
+RH2_BUFFER	equ	dword ptr 14	; BDOS: scratch buffer for driver use
+RH2_BPB		equ	dword ptr 18	; same as the following:
+RH2_BPBOFF	equ	word ptr 18	; driver: address of new BPB
+RH2_BPBSEG	equ	word ptr 20
 RH2_LEN		equ	24
 
 ;	Request header for input/output
 
-RH4_MEDIA	equ	es:byte ptr 13[bx]	; BDOS: current media byte
-RH4_RIC		equ	es:byte ptr 13[bx]	; BDOS: Return Interim Char flg
-RH4_BUFFER	equ	es:dword ptr 14[bx]	; BDOS: disk transfer address
-RH4_BUFOFF	equ	es:word ptr 14[bx]	; BDOS: Buffer Offset
-RH4_BUFSEG	equ	es:word ptr 16[bx]	; BDOS: Buffer Segment
-RH4_COUNT	equ	es:word ptr 18[bx]	; BDOS: sector count
-RH4_SECTOR	equ	es:word ptr 20[bx]	; BDOS: starting sector
-RH4_VOLID	equ	es:dword ptr 22[bx]	; driver: volume if illegal disk change
-RH4_BIGSECTOR   equ es:dword ptr 26[bx] 
-RH4_BIGSECTORLO	equ	es:word ptr 26[bx]
-RH4_BIGSECTORHI	equ	es:word ptr 28[bx]
+RH4_MEDIA	equ	byte ptr 13	; BDOS: current media byte
+RH4_RIC		equ	byte ptr 13	; BDOS: Return Interim Char flg
+RH4_BUFFER	equ	dword ptr 14	; BDOS: disk transfer address
+RH4_BUFOFF	equ	word ptr 14	; BDOS: Buffer Offset
+RH4_BUFSEG	equ	word ptr 16	; BDOS: Buffer Segment
+RH4_COUNT	equ	word ptr 18	; BDOS: sector count
+RH4_SECTOR	equ	word ptr 20	; BDOS: starting sector
+RH4_VOLID	equ	dword ptr 22	; driver: volume if illegal disk change
+RH4_BIGSECTOR   equ dword ptr 26   
+RH4_BIGSECTORLO	equ	word ptr 26
+RH4_BIGSECTORHI	equ	word ptr 28
 
 RH4_LEN		equ	30
 
 ;	Request Header for Non-Destructive Input
 
-RH5_CHAR	equ	es:byte ptr 13[bx]	; Character Read from Device
-RH5_RIC		equ	es:byte ptr 13[bx]	; BDOS: Return Interim Char flg
+RH5_CHAR	equ	byte ptr 13	; Character Read from Device
+RH5_RIC		equ	byte ptr 13	; BDOS: Return Interim Char flg
 RH5_LEN		equ	14
 
 ;	Request Header for Device Open
@@ -133,12 +159,12 @@ RH14_LEN	equ	13
 
 ;	Request header for generic IOCTL
 
-RH19_CATEGORY	equ	es:word ptr 13[bx]	; BDOS: major/minor function number
-RH19_MAJOR	equ	es:byte ptr 13[bx]	; BDOS: Major Function Number
-RH19_MINOR	equ	es:byte ptr 14[bx]	; BDOS: Minor Function Number
-RH19_SI		equ	es:word ptr 15[bx]	; BDOS: User SI	
-RH19_DI		equ	es:word ptr 17[bx]	; BDOS: User DI	
-RH19_GENPB	equ	es:dword ptr 19[bx]	; BDOS: extra parameters
+RH19_CATEGORY	equ	word ptr 13	; BDOS: major/minor function number
+RH19_MAJOR	equ	byte ptr 13	; BDOS: Major Function Number
+RH19_MINOR	equ	byte ptr 14	; BDOS: Minor Function Number
+RH19_SI		equ	word ptr 15	; BDOS: User SI	
+RH19_DI		equ	word ptr 17	; BDOS: User DI	
+RH19_GENPB	equ	dword ptr 19	; BDOS: extra parameters
 RH19_LEN	equ	23
 
 RQ19_SET	equ	40h		; set device parameters
@@ -147,6 +173,12 @@ RQ19_WRITE	equ	41h		; write tracks
 RQ19_READ	equ	61h		; read tracks
 RQ19_FORMAT	equ	42h		; format tracks
 RQ19_VERIFY	equ	62h		; verify tracks
+RQ19_SETMEDIA	equ	46h		; set media ID
+RQ19_GETMEDIA	equ	66h		; get media ID
+RQ19_LOCKLOG	equ	4ah
+RQ19_LOCKPHYS	equ	4bh
+RQ19_UNLOCKLOG	equ	6ah
+RQ19_UNLOCKPHYS	equ	6bh
 
 RQ19_PRP_START	equ	4Ch		; start of codepage prepare
 RQ19_PRP_END	equ	4Dh		; end of codepage prepare
@@ -158,9 +190,9 @@ RQ19_DSP_GET	equ	7Fh		; get display information
 
 ;	Request header for get/set drive
 
-RH24_CMD	equ	es:byte ptr 14[bx]	; BDOS: Command Code
-RH24_STATUS	equ	es:word ptr 15[bx]	; BDOS: Status
-RH24_RESVD	equ	es:dword ptr 17[bx]	; BDOS: Reserved
+RH24_CMD	equ	byte ptr 14	; BDOS: Command Code
+RH24_STATUS	equ	word ptr 15	; BDOS: Status
+RH24_RESVD	equ	dword ptr 17	; BDOS: Reserved
 RH24_LEN	equ	21
 
 RH_SIZE		equ	30		; maximum size of request header
