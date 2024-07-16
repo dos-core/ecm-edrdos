@@ -31,6 +31,9 @@ IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -DDELWATCH -DKANJI -DJOIN -c -Fl.\BIN\redir.lst -Fo.\BIN\redir redir.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
+%JWASMEXE% -c -Fl.\BIN\lfn.lst -Fo.\BIN\lfn lfn.asm
+IF ERRORLEVEL 1 GOTO FAILED
+
 
 REM ******************************************
 REM Build the .A86 files next, get the obj's
@@ -90,9 +93,6 @@ IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\dos7.asm .\bin\dos7.o86
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\lfn.asm .\bin\lfn.o86
-IF ERRORLEVEL 1 GOTO FAILED
-
 %JWASMEXE% -c -Zm -Zg -Fl.\BIN\dosgrps.lst -Fo.\BIN\dosgrps dosgrps.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
@@ -101,7 +101,7 @@ for %f in (cdevio fioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin
 for %f in (cio disk ioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (misc support dosmem error) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (process network int2f history) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
-for %f in (cmdline dos7 lfn) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (cmdline dos7) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 
 warplink @wldrdos.lnk
 IF ERRORLEVEL 1 GOTO FAILED
