@@ -25,6 +25,9 @@ IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -DDELWATCH -c -Fl.\BIN\buffers.lst -Fo.\BIN\buffers buffers.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
+%JWASMEXE% -DDELWATCH -DJOIN -c -Fl.\BIN\bdevio.lst -Fo.\BIN\bdevio bdevio.asm
+IF ERRORLEVEL 1 GOTO FAILED
+
 
 REM ******************************************
 REM Build the .A86 files next, get the obj's
@@ -37,9 +40,6 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\fcbs.a86 .\bin\fcbs.o86
-IF ERRORLEVEL 1 GOTO FAILED
-
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\bdevio.a86 .\bin\bdevio.o86 $sz /DDELWATCH /DDOS5 /DJOIN
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\cdevio.a86 .\bin\cdevio.o86 $sz /DDOS5
@@ -97,7 +97,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 
 for %f in (dirs fdos fcbs) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
-for %f in (bdevio cdevio fioctl redir) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (cdevio fioctl redir) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (cio disk ioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (misc support dosmem error) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (process network int2f history) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
