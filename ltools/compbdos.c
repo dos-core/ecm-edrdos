@@ -84,10 +84,17 @@ int main( int argc, char *argv[] )
    size_t in_size, out_size;
    uint16_t padding;
    uint16_t comp_start;
+   unsigned uncompressed = 0;
 
-   if ( argc != 3 ) {
-      puts( "Usage: COMPBDOS.EXE in-file out-file" );
+   if ( argc < 3 || argc > 4 ||
+       (argc == 4
+        && strcmp( argv[3], "uncompressed" )
+        && strcmp( argv[3], "UNCOMPRESSED" ) ) ) {
+      puts( "Usage: COMPBDOS.EXE in-file out-file [UNCOMPRESSED]" );
       return 1;
+   }
+   if ( argc == 4 ) {
+      uncompressed = 1;
    }
 
    in_data = in_ptr = read_file( argv[1], &in_size );
@@ -105,26 +112,33 @@ int main( int argc, char *argv[] )
    comp_start = *(farkeyword uint16_t*)(in_ptr + CODE_SIZE_OFFSET);
    /*printf( "start compressing at %04x\n", comp_start );*/
 
-   /* mark file as compressed */
-   in_ptr[COMP_FLAG_OFFSET] = 1; 
-
    out_data = out_ptr = malloc( in_size );
    if ( !out_data ) {
       puts( "allocation error" );
       return 1;
    }
 
-   /* copy uncompressed part of file */
-   farmemcpy( out_ptr, in_ptr, comp_start );
+   if ( uncompressed ) {
+      farmemcpy( out_ptr, in_ptr, in_size );
+      out_size = in_size;
+   } else {
+      /* mark file as compressed */
+      in_ptr[COMP_FLAG_OFFSET] = 1;
 
-   /* zero-compress file... */
-   in_ptr += comp_start;
-   out_ptr += comp_start;
-   zerocomp( in_ptr, in_size - comp_start, out_ptr, &out_size );
-   /*printf( "in-size: %zu, out-size: %zu\n ", in_size - comp_start, out_size );*/
-   
+      /* copy uncompressed part of file */
+      farmemcpy( out_ptr, in_ptr, comp_start );
+
+      /* zero-compress file... */
+      in_ptr += comp_start;
+      out_ptr += comp_start;
+      zerocomp( in_ptr, in_size - comp_start, out_ptr, &out_size );
+      /*printf( "in-size: %zu, out-size: %zu\n ", in_size - comp_start, out_size );*/
+
+      out_size += comp_start;
+   }
+
    /* ...and write everything to output file */
-   if ( !write_file( argv[2], out_data, comp_start + out_size ) ) {
+   if ( !write_file( argv[2], out_data, out_size ) ) {
       puts( "error: could not write output file" );
       free( out_data );
       farfree( in_data );
