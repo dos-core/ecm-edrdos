@@ -64,15 +64,15 @@ IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\fcbs.lst -Fo.\BIN\fcbs fcbs.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
+%JWASMEXE% -DPASSWORD -DJOIN -c -Fl.\BIN\fioctl.lst -Fo.\BIN\fioctl fioctl.asm
+IF ERRORLEVEL 1 GOTO FAILED
+
 
 REM ******************************************
 REM Build the .A86 files next, get the obj's
 REM ******************************************
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\fdos.a86 .\bin\fdos.o86 $sz /DDELWATCH /DKANJI /DDOS5 /DPASSWORD /DJOIN /DUNDELETE /Dshortversion
-IF ERRORLEVEL 1 GOTO FAILED
-
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\fioctl.a86 .\bin\fioctl.o86 $sz /DPASSWORD /DJOIN /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\ioctl.a86 .\bin\ioctl.o86 $sz /DPASSWORD /DDOS5
@@ -97,7 +97,6 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 
 for %f in (fdos) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
-for %f in (fioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (ioctl) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (misc) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (process network int2f history) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
