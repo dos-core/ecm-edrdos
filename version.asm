@@ -68,6 +68,7 @@ display_version:
 
 
 %define if comment
+%define ifdef comment
 %define else comment
 %define endif comment
 
