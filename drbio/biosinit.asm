@@ -2223,6 +2223,7 @@ dummyVDISK	db	0, 0, 0		; jump instruction
 
 search_state	db	43 dup (0)	; Search First/Next State
 
+	even
 		dw	384 dup (0)	; big stack for ASPI4DOS.SYS driver
 stack		label word
 
