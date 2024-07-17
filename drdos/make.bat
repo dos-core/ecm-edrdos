@@ -76,6 +76,9 @@ IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -DDELWATCH -c -Fl.\BIN\int2f.lst -Fo.\BIN\int2f int2f.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
+%JWASMEXE% -c -Fl.\BIN\network.lst -Fo.\BIN\network network.asm
+IF ERRORLEVEL 1 GOTO FAILED
+
 
 REM ******************************************
 REM Build the .A86 files next, get the obj's
@@ -90,15 +93,12 @@ IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\process.a86 .\bin\process.o86 $sz /DDOS5
 IF ERRORLEVEL 1 GOTO FAILED
 
-%LOCTOOLS%\rasm_sh %LOCTOOLS%\rasm86.exe . .\network.a86 .\bin\network.o86
-IF ERRORLEVEL 1 GOTO FAILED
-
 %JWASMEXE% -c -Zm -Zg -Fl.\BIN\dosgrps.lst -Fo.\BIN\dosgrps dosgrps.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
 for %f in (fdos) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 for %f in (misc) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
-for %f in (process network) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
+for %f in (process) do %LOCTOOLS%\fixupp bin\%f.o86 bin\%f.obj RELOC > bin\%f.rel
 
 warplink @wldrdos.lnk
 IF ERRORLEVEL 1 GOTO FAILED
