@@ -6,6 +6,12 @@ REM
 REM YOU SHOULD NOT HAVE TO CHANGE ANYTHING BELOW THIS LINE.
 REM 
 
+if (%compressdrdos%)==(0) goto :gooddcomp
+if (%compressdrdos%)==(1) goto :gooddcomp
+echo Error: Compress DRDOS variable not set
+goto failed
+:gooddcomp
+
 REM Define local Caldera tools
 SET LOCTOOLS=..\LTOOLS
 
