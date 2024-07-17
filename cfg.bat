@@ -1,4 +1,4 @@
-@echo on
+@echo off
 if exist ovr.bat ovr.bat
 call c:\autowat.bat
 set compressdrbio=0
