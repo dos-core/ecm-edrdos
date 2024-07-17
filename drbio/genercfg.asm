@@ -71,7 +71,6 @@
 ;    ENDLOG
 
 
-	include compat.def
 	include config.equ
 	include	msdos.equ
 	include char.def
