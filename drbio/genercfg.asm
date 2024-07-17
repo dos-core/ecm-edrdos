@@ -158,7 +158,7 @@ endif
 	cmp	al,0ffh			; skip if the drive is not valid
 	 je	preload_stacker
 	mov	alt_drive,1		; drive C: should be used also
-	jmpnear	preload_stacker		; JWasm identicalise
+	jmp	preload_stacker
 
 preload_security:
 	call	preload_device		; preload the SECURITY device driver
@@ -267,7 +267,7 @@ cfg_query06:
 	test	CFG_FLAGS[di],CF_NOF	; are Function Keys allowed ?
 ;	clc				; if not process the command
 	 jz 	cfg_query06a
-	jmpnear	cfg_query90		; JWasm identicalise
+	jmp	cfg_query90
 cfg_query06a:
 	cmp	ax,F5KEY		; F5 bypasses CONFIG processing
 	stc				;  so bypass this line
@@ -2188,7 +2188,7 @@ func_switch20:
 	 jc	func_switch40		; stop at end of line
 	loop	func_switch20
 func_switch30:
-	jmpnear	func_gosub		; execute a GOSUB	; JWasm identicalise
+	jmp	func_gosub		; execute a GOSUB
 
 func_switch40:
 	mov	si,bx			; retract to start of line
@@ -2725,7 +2725,6 @@ scan_10:
 
 scan_20:
 	and	CFG_FLAGS[bx],not CF_QUERY
-	nop				; JWasm identicalise
 	test	CFG_FLAGS[bx],CF_LC	; should we upper case line ?
 	 jnz	scan_50			;  skip if not
 	xchg	ax,si
@@ -2737,7 +2736,6 @@ scan_30:
 	cmp	al,'?'			; are we querying things ?
 	 jne	scan_40
 	or	CFG_FLAGS[bx],CF_QUERY	; remember the query, now go and
-	nop				; JWasm identicalise
 	jmp	short scan_30		;  remove any other whitespace
 scan_40:
 	cmp	al,'='			; '=' character.
@@ -2892,13 +2890,13 @@ spr_loop:
 	jnz	spr_not_dbcs		;  no
 	inc	si			;  yes - skip first and second bytes of
 	inc	si			;  pair as they cannot be uppercased
-	jmpnear	spr_loop		; loop round	; JWasm identicalise
+	jmp	spr_loop		; loop round
 spr_not_dbcs:
 
 	call	toupper			; just uppercase this byte
 	mov	[si], al		; return the result to the string
 	inc	si
-	jmpnear	spr_loop		; continue	; JWasm identicalise
+	jmp	spr_loop		; continue
 
 spr_done:
 	pop	ax
@@ -2941,7 +2939,7 @@ dbcs_loop:
 	jb	dbcs_loop		;  no - try next range
 
 	cmp	al, al			; return with Z flag set
-	jmpnear	dbcs_exit		; JWasm identicalise
+	jmp	dbcs_exit
 
 dbcs_no:
 	cmp	al, 1			; return with Z flag reset
@@ -2979,7 +2977,7 @@ toupper:
 
 ; ch >= 80h  -- call international routine
 	call	dword ptr ctry_info+CI_CASEOFF
-	jmpnear	exit_toupper		; JWasm identicalise
+	jmp	exit_toupper
 
 a_z:
 ; 'a' <= ch <= 'z'  -- convert to uppercase ASCII equivilant
@@ -3075,7 +3073,7 @@ atohex30:
 	and	ax,000Fh			; isolate them
 	shl	dx,cl
 	add	dx,ax				; add in new digit
-	jmpnear	atohex10			; JWasm identicalise
+	jmp	atohex10
 
 atohex40:
 	dec	si				; forget the char we stopped on
@@ -3134,7 +3132,7 @@ atoi_loop:
 	jc	exit_atoi
 	
 	inc	si				; ds:si -> next char in string
-	jmpnear	atoi_loop			; JWasm identicalise
+	jmp	atoi_loop
 
 atoi_done:
 	cmp	si, di				; was there at least one digit?
@@ -3201,7 +3199,7 @@ atol10:
 	add	dx,cx
 	 jc	atol30
 	inc	si				; ds:si -> next char in string
-	jmpnear	atol10				; JWasm identicalise
+	jmp	atol10
 
 atol20:
 	cmp	si,di				; was there at least one digit?

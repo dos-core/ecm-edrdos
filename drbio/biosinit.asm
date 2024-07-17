@@ -849,7 +849,7 @@ reloc_dos:				; move DOS down to just above drivers
 	push	es
 	test	init_flags,INIT_ROMCODE	; Run the DOS code in ROM
 	 jz reloc_dos05
-	jmpnear reloc_dos90		; JWasm identicalise
+	jmp reloc_dos90
 reloc_dos05:
 	mov	es,current_dos
 	mov	dx,es:DOS_OFFSET
@@ -1108,7 +1108,7 @@ reloc_xbda32:
 	jmp	reloc_xbda30		; try again
 reloc_xbda35:
 	add	es:DMD_LEN,cx		; length of XBDA
-	jmpnear	reloc_xbda45		; JWasm identicalise
+	jmp	reloc_xbda45
 reloc_xbda40:
 	push	ax			; save length of old MCB
 	push	es:DMD_PSP		; and the old PSP pointer
@@ -1398,13 +1398,11 @@ AllocHMA:
 	mov	bx,di
 	add	bx,15
 	and	bx,0FFF0h		; BX is now para aligned
-	nop				; JWasm identicalise
 	sub	bx,di			; BX is bytes left in para
 	sub	ax,bx			; so we only have this much
 	 jc	AllocHMA20		;  less than a para ?
 	add	di,15			; para align the base, dropping
 	and	di,0FFF0h		;  non-aligned bit on floor
-	nop				; JWasm identicalise
 	cmp	ax,cx			; is himem entry big enough ?
 	 jb	AllocHMA20		; no, allocate from 1st MByte
 	 je	AllocHMA10		; just made it!
@@ -1815,7 +1813,6 @@ reloc_bios:
 reloc_bios10:
 	add	cx,15			; round rcode size up to a para
 	and	cx,0FFF0h
-	nop				; JWasm identicalise
 	mov	ax,bios_target_seg	; where do we go
 	test	ax,ax
 	 jz	reloc_bios20		; zero - do it ourselves

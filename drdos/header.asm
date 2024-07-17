@@ -135,7 +135,6 @@ patch_version	dw	DOSINROM+0000h		; 0022h sub-version (was SYSDAT length)
 						;       control table.
 		dw	NoYesChars		; 0028h offset in data of pointers to 
 						; default country info.
-		db 6 dup (0)	; REMOVE AFTER JWASM CONVERSION
 PCM_HEADER ends
 
 ;****************************************************************************
@@ -1562,7 +1561,6 @@ pcmode_init2:
 	mov	cl,4
 	shr	ax,cl
 	and	word ptr ds:fcb_ptr,15
-	nop				; JWasm identicalise
 	add	word ptr ds:fcb_ptr+2,ax
 ;	push	ax			; Save the memory size
 ;	push	bx			; First Free Paragraph

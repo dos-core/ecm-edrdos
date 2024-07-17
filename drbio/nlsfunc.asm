@@ -247,7 +247,7 @@ f66_p33:
 f66_p35:	
 	mov	ax,1227h
 	int	2fh			; magic hook to close handle
-	jmpnear	f66_p40
+	jmp f66_p40
 
 f66_perr:
 	mov	preperr,ax		; Save the error code and try the
