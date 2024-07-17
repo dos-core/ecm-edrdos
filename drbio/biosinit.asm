@@ -161,7 +161,7 @@ biosinit:
 	mov	ds,ax
 	pop	ds:drdosseg		; drkernpl ax
 	pop	ds:drdoslen		; drkernpl si
-	pop	ds:part_off
+	pop	ds:part_off		; pushed at init from BPB hidden sectors
 	pop	ds:part_off+2
 	mov	ss,ax
 	mov	sp,offset stack
