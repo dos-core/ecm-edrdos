@@ -107,8 +107,16 @@ del .\bin\drdos.exe
 IF ERRORLEVEL 1 GOTO FAILED
 %LOCTOOLS%\round .\bin\drdos.bin .\bin\drdos.pag 128
 IF ERRORLEVEL 1 GOTO FAILED
+
+if (%compressdrdos%)==(0) goto :uncompressed
 %LOCTOOLS%\compbdos .\BIN\drdos.pag .\BIN\drdos.sys
 IF ERRORLEVEL 1 GOTO FAILED
+goto :compressed
+
+:uncompressed
+%LOCTOOLS%\compbdos .\BIN\drdos.pag .\BIN\drdos.sys uncompressed
+IF ERRORLEVEL 1 GOTO FAILED
+:compressed
 
 %JWASMEXE% -bin -Fo=bin\country.sys country.asm
 IF ERRORLEVEL 1 GOTO FAILED
