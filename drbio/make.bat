@@ -38,7 +38,7 @@ REM *************************************
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -DLDOS -Fl.\BIN\biosmsgs.lst -Fo.\BIN\biosmsgs biosmsgs.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Fl.\BIN\init.lst -Fo.\BIN\init init.asm
+%JWASMEXE% -DCOMPRESSED=%compressdrbio% -c -Fl.\BIN\init.lst -Fo.\BIN\init init.asm
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\clock.lst -Fo.\BIN\clock clock.asm
 IF ERRORLEVEL 1 GOTO FAILED
@@ -56,7 +56,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\bdosldr.lst -Fo.\BIN\bdosldr bdosldr.asm
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Fl.\BIN\biosinit.lst -Fo.\BIN\biosinit biosinit.asm
+%JWASMEXE% -Dcompressdrdos=%compressdrdos% -c -Fl.\BIN\biosinit.lst -Fo.\BIN\biosinit biosinit.asm
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\config.lst -Fo.\BIN\config config.asm
 IF ERRORLEVEL 1 GOTO FAILED
@@ -74,9 +74,11 @@ echo.
 x2b2 .\bin\bios.exe .\bin\drbio.bin
 IF ERRORLEVEL 1 GOTO FAILED
 del .\bin\bios.exe
+
+if (%compressdrbio%)==(0) goto exit
 :: %LOCTOOLS%\compbios .\bin\drbio.sys .\bin\drbio.sys
-:: %LOCTOOLS%\compbios .\bin\drbio.bin .\bin\drbio.bin
-:: IF ERRORLEVEL 1 GOTO FAILED
+%LOCTOOLS%\compbios .\bin\drbio.bin .\bin\drbio.bin
+IF ERRORLEVEL 1 GOTO FAILED
 goto exit
 
 :failed

@@ -52,7 +52,7 @@
 
 ; IBM AT Hardware equates
 
-COMPRESSED	equ	FALSE		; enables compressed changes.
+;COMPRESSED	equ	FALSE		; enables compressed changes.
 
 ; a little macro to help locate things
 ; it warns us when the ORG get trampled on

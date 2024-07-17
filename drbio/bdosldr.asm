@@ -73,10 +73,15 @@ dos_version_check:
 	 jne	dev_fail		;  reject all but the one we want
 	ret				; return now I'm happy
 
+
+	public dev_fail
+
 dev_fail:	; any error has occurred loading the BDOS
 ;--------
 ; Print '$' terminated message at offset DX to console without using the BDOS
 ;
+	push cs
+	pop ds
 	mov	dx,offset dos_msg
 	les	di,resdev_chain		; get first device driver address
 fail_scan:

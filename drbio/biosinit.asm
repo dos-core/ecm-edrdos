@@ -124,6 +124,7 @@ INITCODE	segment public para 'INITCODE'
 	extrn	setup_ldt:near
 	extrn	setup_stacks:near
 	extrn	dos_version_check:near
+	extrn	dev_fail:near
 	extrn	preload_done:near
 
 		db	'Copyright (c) 1983,1996 '
@@ -371,6 +372,9 @@ dos_reloc:
 ;	compression algorithm.
 ;
 dos_r20:
+ife compressdrdos
+	jmp dev_fail
+else
 	lodsw				; get control word
 	mov	cx,ax			; as a count
 	 jcxz	dos_r40			; all done
@@ -385,6 +389,7 @@ dos_r30:
 	xor	ax,ax
 	rep	stosb			; fill with zeros
 	jmp	short dos_r20
+endif
 
 dos_r40:
 	push 	cs
