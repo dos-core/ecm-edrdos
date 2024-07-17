@@ -442,6 +442,7 @@ include	utils.fdo
 
 BDOS_DATA	segment public word 'DATA'
 
+shortversion equ 1
 		include version.inc
 		db	' Patches to original OpenDOS source code '
 		db	'Copyright (c) 2002-2011 Udo Kuhnt'

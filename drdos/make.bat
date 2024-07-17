@@ -85,7 +85,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\process.lst -Fo.\BIN\process process.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -DDELWATCH -DKANJI -DPASSWORD -DJOIN -DUNDELETE -Dshortversion -c -Fl.\BIN\fdos.lst -Fo.\BIN\fdos fdos.asm
+%JWASMEXE% -DDELWATCH -DKANJI -DPASSWORD -DJOIN -DUNDELETE -c -Fl.\BIN\fdos.lst -Fo.\BIN\fdos fdos.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -c -Zm -Zg -Fl.\BIN\dosgrps.lst -Fo.\BIN\dosgrps dosgrps.asm
