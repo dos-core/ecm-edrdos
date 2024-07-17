@@ -62,7 +62,7 @@ orgabs	MACRO	address, name
 	org address
 	is = offset $
 	if was GT is
-	%OUT ERROR - absolute data overwritten !! moving it: name
+	%OUT WARNING - absolute data overwritten !! moving it: name
 	org	was
 endif
 ENDM
