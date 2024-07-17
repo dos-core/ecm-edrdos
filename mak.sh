@@ -52,7 +52,22 @@ then
     sed -re 's/\.\\bin\\/drbio\/bin\//g;s/\.obj/\.lst/g'
   ) > drbio.tls
   echo === Creating DOS trace listing
+  bash -c '
+    for file
+      do [ "${file}" != ./bin/country.sys ] &&
+        ./ltools/fixupp drdos/"$file".obj /dev/null reloc > drdos/"$file".rel
+      true
+    done' scriptlet $(
+    grep JWASM drdos/make.bat |
+    grep -Eio '\-Fo[^ ]+' |
+    sed -re 's/-Fo//g;s/\\/\//g;s/\/BIN\//\/bin\//g'
+    ) &&
   convlist.pl drdos/bin/drdos.map $(
+    grep JWASM drdos/make.bat |
+    grep -v country.sys |
+    grep -Eio '\-Fo[^ ]+' |
+    sed -re 's/-Fo//g;s/\\/\//g;s/\/BIN\//\/bin\//g;s/^\.\//drdos\//g;s/$/\.rel/g'
+  ) $(
     cat drdos/wldrdos.lnk |
     grep -Eoi '.\\bin\\[0-9a-zA-Z]+\.obj' |
     sed -re 's/\.\\bin\\/drdos\/bin\//g;s/\.obj/\.lst/g'

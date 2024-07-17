@@ -118,7 +118,7 @@ goto :compressed
 IF ERRORLEVEL 1 GOTO FAILED
 :compressed
 
-%JWASMEXE% -bin -Fo=bin\country.sys country.asm
+%JWASMEXE% -bin -Fo.\BIN\country.sys country.asm
 IF ERRORLEVEL 1 GOTO FAILED
 goto exit
 
