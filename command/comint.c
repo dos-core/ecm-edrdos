@@ -1148,7 +1148,9 @@ GLOBAL VOID CDECL cmd_dir(REG BYTE *cmd)
 		    if ((OPT(DIR_2COLS)) && (nfiles%2 == 0)) printf (" : ");
 		}
 		else {
-		    if ((OPT(DIR_2COLS)) && (nfiles%2 == 0)) printf("\t\t\t");
+		    if ((OPT(DIR_2COLS)) && (nfiles%2 == 0)) {
+		      printf( "                : " );
+		    }
 		}
 	    }
 	    nfiles ++;
