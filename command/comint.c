@@ -676,6 +676,10 @@ MLOCAL const char * format_number( LONGLONG v, int space )
    char *bp = buf + sizeof(buf);
    *(--bp) = '\0';
 
+   if ( v >= 1024ll * 1024ll * 1024ll * 1000ll ) {
+      v /= 1024ll * 1024ll * 1024ll;
+      *(--bp) = 'G';
+   }
    if ( v >= 1024ll * 1024ll * 1000ll ) {
       v /= 1024ll * 1024ll;
       *(--bp) = 'M';
