@@ -1134,9 +1134,9 @@ GLOBAL VOID CDECL cmd_dir(REG BYTE *cmd)
 		  total_size += fsize;
 		  if ( OPT( DIR_2COLS ) ) {
 		    /* printf ("%9lu", search.fsize);*/
-		    printf( "%10s", format_number( fsize, 1 ) );
+		    printf( "%10s ", format_number( fsize, 1 ) );
 		  } else {
-		    printf( "%10s", format_number( fsize, 1 ) );
+		    printf( "%10s ", format_number( fsize, 1 ) );
 		  }
 		}
 
