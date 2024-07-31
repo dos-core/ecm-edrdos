@@ -55,12 +55,10 @@ CGROUP		group	INITCODE, INITDATA
 INITCODE	segment public word 'INITCODE'
 ASSUME CS:CGROUP,DS:CGROUP
 
-if DOS5
 VER_MUSTBE	equ	1072h
-else
-VER_MUSTBE	equ	1071h
-endif
 
+
+	Public	detect_boot_drv
 	Public	dos_version_check
 
 dos_version_check:
@@ -72,6 +70,62 @@ dos_version_check:
 	cmp	ax,VER_MUSTBE		; version check the DRDOS BDOS
 	 jne	dev_fail		;  reject all but the one we want
 	ret				; return now I'm happy
+
+
+	; Tries to detect to logical boot drive by the given phys boot drv
+	; and a partition offset
+detect_boot_drv proc
+	les	di,boot_device		; get device driver address
+	mov	dl,boot_drv		; get the boot drive sub unit
+	xor	dh,dh
+	dec	dh			; dh=255
+	mov	ax,es
+	or	ax,di			; make sure boot device is initialised
+	 jnz	@@get_device_procs
+	ret				; single-file kernel, user may resolve
+
+@@get_device_procs:
+	mov	ax,es:6[di]		; get strategy offset
+	mov	strat_off,ax
+	mov	strat_seg,es		; get strategy segment
+	mov	ax,es:8[di]		; get interrupt offset
+	mov	intrpt_off,ax
+	mov	intrpt_seg,es		; get interrupt segment
+@@test_drv:
+	mov	bx,offset req_hdr
+	mov	[bx+RH_UNIT],dl		; save logical unit to use
+	mov	[bx+RH_CMD],CMD_BUILD_BPB
+	call	device_request		; tell it to build a BPB
+	 jnc	@@bpb_ok		; BPB successfully built
+	jmp	@@next_drv		; if not, try next drive
+@@bpb_ok:
+	cmp	dl,boot_drv
+	 jne	@@compare_part_off
+	mov	dh,dl			; dh=boot_drv
+@@compare_part_off:
+	les	di,[bx+RH2_BPB]
+	mov	ax,part_off
+	cmp	es:word ptr BPB_HIDDEN[di],ax
+	 jne	@@next_drv
+	mov	ax,part_off+2
+	cmp	es:word ptr BPB_HIDDEN+2[di],ax
+	 jne	@@next_drv
+	mov	dh,dl
+	jmp	@@done
+@@next_drv:
+	inc	dl			; increase log drv num
+	 jz	@@done
+	jmp	@@test_drv
+@@done:
+	cmp	dh,255
+	 jne	@@store_boot_drv	; boot drv found?
+	jmp	dev_fail
+@@store_boot_drv:
+	mov	dl,dh
+	mov	boot_drv,dl
+	mov	init_drv,dl
+	ret
+detect_boot_drv endp
 
 
 	public dev_fail
@@ -173,10 +227,7 @@ part_off	dw	0,0			; offset of boot partition
 ;	single error message if BDOS can't be loaded:
 
 
-include	initmsgs.def				; Include TFT Header File
-
-
-;dos_msg	db	CR,LF,'Can''t load DOS file.$'
+include	initmsgs.def				; for dos_msg error msg
 
 
 ;	static request header for DOS device driver I/O
@@ -204,7 +255,8 @@ req3_sector	equ	word ptr req_media+7
 req3_volid	equ	word ptr req_media+9
 req3_sector32	equ	word ptr req_media+13
 
-	extrn	sector_buffer:byte
+BPB_HIDDEN		equ	17
+
 INITDATA	ends
 
 	end

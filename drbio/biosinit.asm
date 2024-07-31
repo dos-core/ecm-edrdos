@@ -123,6 +123,7 @@ INITCODE	segment public para 'INITCODE'
 	extrn	resident_device_init:near	; Device Driver Init
 	extrn	setup_ldt:near
 	extrn	setup_stacks:near
+	extrn	detect_boot_drv:near
 	extrn	dos_version_check:near
 	extrn	dev_fail:near
 	extrn	preload_done:near
@@ -314,6 +315,7 @@ relocated_init:
 	mov	ax,0100h		;  the multi tasker (386 or above)
 dont_align:
 	mov	free_seg,ax		;  and save as first Free Segment
+	call	detect_boot_drv
 	cmp	current_dos,0		; does the OEM want us to read
 	 jnz	dos_reloc		;   the DOS file from disk?
 	mov	ax,dos_cseg
