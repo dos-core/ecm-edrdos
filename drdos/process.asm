@@ -49,7 +49,7 @@ ASSUME DS:PCMDATA
 
 	.nolist
  	include	pcmode.equ
-	include fdos.def
+	include fdosdef.def
 	include	psp.def
 	include mserror.equ
 	include	vectors.def

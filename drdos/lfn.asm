@@ -10,7 +10,7 @@
 	include	pcmode.equ
 	include doshndl.def
 	include	lfn.equ
-	include	fdos.def
+	include	fdosdef.def
 	include	mserror.equ
 	.list
 

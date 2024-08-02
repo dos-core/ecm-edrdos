@@ -12,7 +12,7 @@ ASSUME DS:PCMDATA
 	.nolist
 	include	pcmode.equ
 	include	fdos.equ
-	include	fdos.def
+	include	fdosdef.def
 	include	dos7.equ
 	.list
 

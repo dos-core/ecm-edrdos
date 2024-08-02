@@ -127,7 +127,7 @@ PCMCODE group PCM_CODE,PCM_RODATA
 
 	.nolist
 	include	pcmode.equ
-	include	fdos.def
+	include	fdosdef.def
 	include	vectors.def
 	include	msdos.equ
 	include	mserror.equ

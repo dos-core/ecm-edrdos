@@ -101,7 +101,7 @@ ASSUME DS:PCMDATA
 
 	.nolist
 	include	pcmode.equ
-	include	fdos.def
+	include	fdosdef.def
 	include	doshndl.def
 	include	fdos.equ
 	include	psp.def

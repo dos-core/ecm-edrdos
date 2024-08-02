@@ -57,7 +57,7 @@ ASSUME DS:PCMDATA
 
 	.nolist
 	include	pcmode.equ
-	include	fdos.def	
+	include	fdosdef.def	
 	include mserror.equ
 	include	doshndl.def
 	.list

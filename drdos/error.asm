@@ -51,7 +51,7 @@ PCMCODE group PCM_CODE,PCM_RODATA
 ASSUME DS:PCMDATA
 
 	include pcmode.equ
-	include	fdos.def
+	include	fdosdef.def
 	include msdos.equ
 	include mserror.equ
 	include psp.def
