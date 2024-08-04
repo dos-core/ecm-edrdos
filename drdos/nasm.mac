@@ -116,6 +116,10 @@ uppercase
 %idefine GT >
 %idefine LTE <=
 %idefine GTE >=
+%idefine LE <=
+%idefine GE >=
+%idefine EQ ==
+%idefine NE !=
 
 %imacro EXTRN 1-*.nolist
  %push
