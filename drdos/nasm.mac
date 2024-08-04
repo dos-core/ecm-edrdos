@@ -1,0 +1,157 @@
+
+%if 0
+
+NASM macros to work with ported sources
+ 2023 to 2024 by E. C. Masloch, Public Domain
+
+%endif
+
+uppercase
+
+[list -]	; fix trace listing file to not display unknown segment
+
+%unimacro segment 1+.nolist
+%unimacro segment 0-1+.nolist
+
+%imacro segment 0-1+.nolist
+ %ifnempty %00
+	section %00
+ %else
+	section %1
+ %endif
+%endmacro
+
+[list +]
+
+
+%imacro labelsize 3.nolist
+ %define %1 (%3)
+%endmacro
+
+
+%unimacro group 1+.nolist
+%unimacro group 1-*.nolist
+
+%imacro group 1-*.nolist
+%ifndef IGNOREGROUP
+ %ifnempty %00
+  %xdefine %%all %00 %1
+ %else
+  %xdefine %%all %1
+ %endif
+%rep %0 - 1
+ %rotate 1
+ %xdefine %%all %%all %1
+%endrep
+	[group %%all]
+%endif
+%endmacro
+
+%imacro EVEN 0.nolist
+ %ifidni __SECT__, [segment _BSS]
+	alignb 2
+ %else
+	align 2, nop
+ %endif
+%endmacro
+
+
+%imacro LABEL 0-1+
+%endmacro
+
+
+%imacro assume 1+
+%endmacro
+
+
+%unimacro int 1.nolist
+
+%imacro int 1.nolist
+ %ifnum %1
+  %if %1 == 3
+	int3
+  %else
+	int %1
+  %endif
+ %else
+	int %1
+ %endif
+%endmacro
+
+
+%unimacro struc 1-2.nolist 0
+%unimacro struc 1.nolist
+%unimacro endstruc 0.nolist
+
+%imacro struc 0-2.nolist ,0
+    %push STRUCTURE
+ %ifempty %1
+        %define %$strucname %00
+ %else
+        %define %$strucname %1
+ %endif
+        [absolute %2]
+        %$strucname:        ; allow definition of `.member' to work sanely
+%endmacro
+
+%imacro endstruc 0.nolist
+        %{$strucname}_size equ ($-%$strucname)
+    %pop
+    __SECT__
+%endmacro
+
+%imacro ends 0.nolist
+ %ifnempty %00
+  %ifctx STRUCTURE
+        %{$strucname}_size equ ($-%$strucname)
+    %pop
+    __SECT__
+  %endif
+ %endif
+%endmacro
+
+%idefine OFFSET
+%idefine PTR
+%idefine LT <
+%idefine GT >
+%idefine LTE <=
+%idefine GTE >=
+
+%imacro EXTRN 1-*.nolist
+ %push
+  %rep %0
+   %defstr %$input %1
+   %strlen %$length %$input
+   %assign %$index 1
+   %rep %$length
+    %substr %$letter %$input %$index
+    %if %$letter == ':'
+     %exitrep
+    %endif
+    %assign %$index %$index + 1
+   %endrep
+   %substr %$output %$input 1, %$index - 1
+   %deftok %$label %$output
+	extern %$label
+   %rotate 1
+  %endrep
+ %pop
+%endmacro
+
+%idefine PUBLIC global
+
+%imacro PROC 0-1.nolist
+%00:
+ %ifnempty %1
+  %ifnidni %1, NEAR
+   %error Unknown keyword to PROC macro
+  %endif
+ %endif
+%endmacro
+%imacro ENDP 0.nolist
+%ifidni %00, 0
+%endif
+%endmacro
+
+%imacro END 0-1.nolist
+%endmacro
