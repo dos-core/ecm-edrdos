@@ -32,14 +32,14 @@
 ;
 ;    ENDLOG
 
-DCNTRL_DSADD    equ dword ptr 0000h  
-DCNTRL_DSOFF    equ  word ptr 0000h  
-DCNTRL_DSSEG    equ  word ptr 0002h  
-DCNTRL_COUNT    equ  word ptr 0004h  
+labelsize DCNTRL_DSADD, dword, 0000h  
+labelsize DCNTRL_DSOFF, word, 0000h  
+labelsize DCNTRL_DSSEG, word, 0002h  
+labelsize DCNTRL_COUNT, word, 0004h  
 DCNTRL_LEN	equ	6
 
-DHNDL_COUNT	equ	word ptr 00h		; 00 - Usage Count
-DHNDL_MODE	equ	word ptr 02h		; 02 - File Mode
+labelsize DHNDL_COUNT, word, 00h		; 00 - Usage Count
+labelsize DHNDL_MODE, word, 02h		; 02 - File Mode
 
 DHM_FCB		equ	8000h			; marks as FCB
 DHM_COMMIT	equ	4000h			; auto-commit file
@@ -59,9 +59,9 @@ DHM_RO		equ	00000000b		; file opened read only
 ;
 ;	01h to 03h To be Determined
 ;
-DHNDL_DATRB	equ	byte ptr 04h		; Disk attribute byte
-DHNDL_ATTR	equ	byte ptr 05h		; Attribute Byte
-DHNDL_WATTR	equ	word ptr 05h		; Attribute Word
+labelsize DHNDL_DATRB, byte, 04h		; Disk attribute byte
+labelsize DHNDL_ATTR, byte, 05h		; Attribute Byte
+labelsize DHNDL_WATTR, word, 05h		; Attribute Word
 
 DHAT_REMOTE	equ	8000h			; set if file remote
 DHAT_TIMEOK	equ	4000h			; set if timestamp up to date
@@ -77,67 +77,67 @@ DHAT_NUL	equ	0004h			; handle is null device
 DHAT_COT	equ	0002h			; handle is console output device
 DHAT_CIN	equ	0001h			; handle is console input device
 
-DHNDL_DEVPTR	equ	dword ptr 07h		; 07 - pointer to device
-DHNDL_DEVOFF	equ	word ptr 07h		; 07 - offset of device
-DHNDL_DEVSEG	equ	word ptr 09h		; 09 - segment of device
-DHNDL_BLK1	equ	word ptr 0Bh		; 0B - first cluster in file
+labelsize DHNDL_DEVPTR, dword, 07h		; 07 - pointer to device
+labelsize DHNDL_DEVOFF, word, 07h		; 07 - offset of device
+labelsize DHNDL_DEVSEG, word, 09h		; 09 - segment of device
+labelsize DHNDL_BLK1, word, 0Bh		; 0B - first cluster in file
 						;      (lower 32 bits)
-DHNDL_TIME	equ	word ptr 0Dh		; 0D - file time stamp
-DHNDL_DATE	equ	word ptr 0Fh		; 0F - file date stamp
-DHNDL_SIZE	equ	dword ptr 11h		; 11 - file length
+labelsize DHNDL_TIME, word, 0Dh		; 0D - file time stamp
+labelsize DHNDL_DATE, word, 0Fh		; 0F - file date stamp
+labelsize DHNDL_SIZE, dword, 11h		; 11 - file length
 						;      (lower 32 bits)
-DHNDL_SIZELO	equ	word ptr 11h
-DHNDL_SIZEHI	equ	word ptr 13h
-DHNDL_POS	equ	dword ptr 15h		; 15 - current file position
+labelsize DHNDL_SIZELO, word, 11h
+labelsize DHNDL_SIZEHI, word, 13h
+labelsize DHNDL_POS, dword, 15h		; 15 - current file position
 						;      (lower 32 bits)
-DHNDL_POSLO	equ	word ptr 15h
-DHNDL_POSHI	equ	word ptr 17h
-DHNDL_IDX	equ	word ptr 19h		; 19 - relative cluster within file of last read
+labelsize DHNDL_POSLO, word, 15h
+labelsize DHNDL_POSHI, word, 17h
+labelsize DHNDL_IDX, word, 19h		; 19 - relative cluster within file of last read
 						;      (lower 32 bits)
-DHNDL_DBLK	equ	word ptr 1Bh		; 1B - cluster # of dir entry
+labelsize DHNDL_DBLK, word, 1Bh		; 1B - cluster # of dir entry
 						;      (lower 32 bits)
-DHNDL_DCNTHI	equ	byte ptr 1Eh		; 1E - dir offset # within cluster
-DHNDL_DCNTLO	equ	byte ptr 1Fh		; 1F - dir offset # within cluster
-DHNDL_NAME	equ	byte ptr 20h		; 20 - File/Device Name
-DHNDL_EXT	equ	byte ptr 28h		; 28 - File extension
-DHNDL_SFT	equ	dword ptr 2Bh		; 2B - pointer to previous SFT
-DHNDL_UID	equ	word ptr 2Fh		; 2F - Owning Machine ID
-DHNDL_PSP	equ	word ptr 31h		; 31 - Owning PSP
-DHNDL_SHARE	equ	word ptr 33h		; 33 - Offset of sharing record
-DHNDL_BLK	equ	word ptr 35h		; 35 - absolute cluster of last read
+labelsize DHNDL_DCNTHI, byte, 1Eh		; 1E - dir offset # within cluster
+labelsize DHNDL_DCNTLO, byte, 1Fh		; 1F - dir offset # within cluster
+labelsize DHNDL_NAME, byte, 20h		; 20 - File/Device Name
+labelsize DHNDL_EXT, byte, 28h		; 28 - File extension
+labelsize DHNDL_SFT, dword, 2Bh		; 2B - pointer to previous SFT
+labelsize DHNDL_UID, word, 2Fh		; 2F - Owning Machine ID
+labelsize DHNDL_PSP, word, 31h		; 31 - Owning PSP
+labelsize DHNDL_SHARE, word, 33h		; 33 - Offset of sharing record
+labelsize DHNDL_BLK, word, 35h		; 35 - absolute cluster of last read
 						;      (lower 32 bits)
 						; 37 - dword reserved for IFS
-DHNDL_BLK1H	equ	word ptr 3Bh		; 3B - first cluster in file
+labelsize DHNDL_BLK1H, word, 3Bh		; 3B - first cluster in file
 						;      (higher 32 bits)
-DHNDL_IDXH	equ	word ptr 3Dh		; 3D - relative cluster within file of last read
+labelsize DHNDL_IDXH, word, 3Dh		; 3D - relative cluster within file of last read
 						;      (higher 32 bits)
-DHNDL_DBLKH	equ	word ptr 3Fh		; 3F - cluster # of dir entry
+labelsize DHNDL_DBLKH, word, 3Fh		; 3F - cluster # of dir entry
 						;      (higher 32 bits)
-DHNDL_BLKH	equ	word ptr 41h		; 41 - absolute cluster of last read
+labelsize DHNDL_BLKH, word, 41h		; 41 - absolute cluster of last read
 						;      (higher 32 bits)
-DHNDL_SIZEX	equ	dword ptr 43h		; 43 - file length
+labelsize DHNDL_SIZEX, dword, 43h		; 43 - file length
 						;      (higher 32 bits)
-DHNDL_SIZEXLO	equ	word ptr 43h
-DHNDL_SIZEXHI	equ	word ptr 45h
-DHNDL_POSX	equ	dword ptr 47h		; 47 - current file position
+labelsize DHNDL_SIZEXLO, word, 43h
+labelsize DHNDL_SIZEXHI, word, 45h
+labelsize DHNDL_POSX, dword, 47h		; 47 - current file position
 						;      (higher 32 bits)
-DHNDL_POSXLO	equ	word ptr 47h
-DHNDL_POSXHI	equ	word ptr 49h
+labelsize DHNDL_POSXLO, word, 47h
+labelsize DHNDL_POSXHI, word, 49h
 DHNDL_LEN	equ	4Bh
 
 ; With DOS 3 structures _DBLK is a 16 bit
 
 
 ; Logical Drive Table format
-LDT_NAME	equ	byte ptr 00h		; 00 - Ascii Name field
-LDT_FLAGS	equ	word ptr 43h		; 43 - Flag field
-LDT_PDT		equ	dword ptr 45h		; 45 - PDT for this drive
-LDT_BLK		equ	word ptr 49h		; 49 - directory sector 
-LDT_ROOT	equ	word ptr 4bh		; 4B - virtual block root
-LDT_DRV		equ	byte ptr 4dh		; 4D - physical drive 
-LDT_ROOTLEN	equ	word ptr 4fh		; 4F - Length of root portion
-LDT_BLKH	equ	word ptr 51h
-LDT_ROOTH	equ	word ptr 53h
+labelsize LDT_NAME, byte, 00h		; 00 - Ascii Name field
+labelsize LDT_FLAGS, word, 43h		; 43 - Flag field
+labelsize LDT_PDT, dword, 45h		; 45 - PDT for this drive
+labelsize LDT_BLK, word, 49h		; 49 - directory sector 
+labelsize LDT_ROOT, word, 4bh		; 4B - virtual block root
+labelsize LDT_DRV, byte, 4dh		; 4D - physical drive 
+labelsize LDT_ROOTLEN, word, 4fh		; 4F - Length of root portion
+labelsize LDT_BLKH, word, 51h
+labelsize LDT_ROOTH, word, 53h
 LDT_LEN		equ	58h
 
 LFLG_NETWRKD	equ	8000h

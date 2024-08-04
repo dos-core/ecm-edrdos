@@ -50,12 +50,12 @@ FDOS_MAXPARM	equ	7		; Maximum FDOS Parameter Length (WORDS)
 FD_FUNC		equ	fdos_data
 
 FD_DRIVE	equ	fdos_data + 2
-FD_DPB		equ	dword ptr fdos_data + 4
+labelsize FD_DPB, dword, fdos_data + 4
 FD_DPBOFF	equ	fdos_data + 4
 FD_DPBSEG	equ	fdos_data + 6
 FD_ADJUST	equ	fdos_data + 8
 
-FD_NAME		equ	dword ptr fdos_data + 2
+labelsize FD_NAME, dword, fdos_data + 2
 FD_NAMEOFF	equ	fdos_data + 2
 FD_NAMESEG	equ	fdos_data + 4
 
@@ -63,13 +63,13 @@ FD_MODE		equ	fdos_data + 6
 
 FD_HANDLE	equ	fdos_data + 2
 
-FD_BUF		equ	dword ptr fdos_data + 4
+labelsize FD_BUF, dword, fdos_data + 4
 FD_BUFOFF	equ	fdos_data + 4
 FD_BUFSEG	equ	fdos_data + 6
 
 FD_COUNT	equ	fdos_data + 8
 
-FD_OFFSET	equ	dword ptr fdos_data + 4
+labelsize FD_OFFSET, dword, fdos_data + 4
 
 FD_METHOD	equ	fdos_data + 8
 
@@ -77,15 +77,15 @@ FD_FLAG		equ	fdos_data + 6
 
 FD_ATTRIB	equ	fdos_data + 8
 
-FD_PATH		equ	dword ptr fdos_data + 4
+labelsize FD_PATH, dword, fdos_data + 4
 FD_PATHOFF	equ	fdos_data + 4
 FD_PATHSEG	equ	fdos_data + 6
 
-FD_ONAME	equ	dword ptr fdos_data + 2
+labelsize FD_ONAME, dword, fdos_data + 2
 FD_ONAMEOFF	equ	fdos_data + 2
 FD_ONAMESEG	equ	fdos_data + 4
 
-FD_NNAME	equ	dword ptr fdos_data + 10
+labelsize FD_NNAME, dword, fdos_data + 10
 FD_NNAMEOFF	equ	fdos_data + 10
 FD_NNAMESEG	equ	fdos_data + 12
 
@@ -93,12 +93,12 @@ FD_SFLAG	equ	fdos_data + 4
 FD_DATE		equ	fdos_data + 6
 FD_TIME		equ	fdos_data + 8
 
-FD_LENGTH	equ	dword ptr fdos_data + 8
-FD_LFLAG	equ	word  ptr fdos_data + 12
+labelsize FD_LENGTH, dword, fdos_data + 8
+labelsize FD_LFLAG, word, fdos_data + 12
 
 FD_NEWHND	equ	fdos_data + 4
 
-FD_FCBADR	equ	dword ptr fdos_data + 2
+labelsize FD_FCBADR, dword, fdos_data + 2
 FD_FCBOFF	equ	fdos_data + 2
 FD_FCBSEG	equ	fdos_data + 4
 

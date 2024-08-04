@@ -39,18 +39,18 @@
 ;	enough for the largest drive.
 ;
 
-BCB_NEXT	equ	word ptr  00h	; link to next buffer
-BCB_PREV	equ	word ptr  02h	; link to previous buffer
-BCB_DRV		equ	byte ptr  04h	; drive of this buffer or 0FFh
-BCB_FLAGS	equ	byte ptr  05h	; buffer flags
-BCB_REC		equ	word ptr  06h	; low 16 bits of sector address
-BCB_REC2	equ	word ptr  08h	; top 16 bits of sector address
+labelsize BCB_NEXT, word, 00h	; link to next buffer
+labelsize BCB_PREV, word, 02h	; link to previous buffer
+labelsize BCB_DRV, byte, 04h	; drive of this buffer or 0FFh
+labelsize BCB_FLAGS, byte, 05h	; buffer flags
+labelsize BCB_REC, word, 06h	; low 16 bits of sector address
+labelsize BCB_REC2, word, 08h	; top 16 bits of sector address
 ;BCB_REC2	equ	byte ptr  08h	; top 8 bits of record address
-BCB_COPIES	equ	byte ptr  0Ah	; number of copies to write
-BCB_SEPARATION	equ	word ptr  0Bh	; # sectors copies are apart
-BCB_DDSC	equ	dword ptr 0Dh	; DWORD ptr to DDSC_
-BCB_REMOTE	equ	word ptr  11h	; remote in-use count
-BCB_DATA	equ	byte ptr  14h	; buffer data
+labelsize BCB_COPIES, byte, 0Ah	; number of copies to write
+labelsize BCB_SEPARATION, word, 0Bh	; # sectors copies are apart
+labelsize BCB_DDSC, dword, 0Dh	; DWORD ptr to DDSC_
+labelsize BCB_REMOTE, word, 11h	; remote in-use count
+labelsize BCB_DATA, byte, 14h	; buffer data
 
 BF_ISFAT	equ	0002h		; buffer marked as FAT sector
 BF_ISDIR	equ	0004h		; buffer marked as Directory sector
@@ -65,12 +65,12 @@ MAX12		equ	0FF6h		; max. disk size w/ 12-bit media
 ;	Each hash control  block refers  to the hash codes of one
 ;	disrectory cluster or a root directory.
 
-HCB_LINK	equ	word ptr 0	; link to next control block
-HCB_DRV		equ	byte ptr 2	; drive for this entry or 0FFh
-HCB_CLU		equ	word ptr 4	; cluster number or 0000 if root
-HCB_CLUH	equ	word ptr 6	; high word of cluster number
-HCB_CNT		equ	word ptr 8	; number of hashed entries
-HCB_DATA	equ	word ptr 10	; hash buffer data
+labelsize HCB_LINK, word, 0	; link to next control block
+labelsize HCB_DRV, byte, 2	; drive for this entry or 0FFh
+labelsize HCB_CLU, word, 4	; cluster number or 0000 if root
+labelsize HCB_CLUH, word, 6	; high word of cluster number
+labelsize HCB_CNT, word, 8	; number of hashed entries
+labelsize HCB_DATA, word, 10	; hash buffer data
 
 
 ;		      Structure of DOS FCB
@@ -78,24 +78,24 @@ HCB_DATA	equ	word ptr 10	; hash buffer data
 ;	This is hopefully  consistent  with what DOS stores in an
 ;	open file control block for DOS 1.x functions
 
-MSF_EXTFLG	equ	byte ptr 0	; if this is 0xFF, skip 1st 7 byte
-MSF_ATTRIB	equ	byte ptr 6	; file attributes if MSF_EXTFLG
-MSF_DRIVE	equ	byte ptr 0	; 1st byte normally drive code
-MSF_NAME	equ	byte ptr 1	; 8-bit ASCII file name, 11 characters
-MSF_BLOCK	equ	word ptr 12	; current block number
-MSF_RECSIZE	equ	word ptr 14	; current logical record size
-MSF_SIZE	equ	word ptr 16	; 32-bit file size
-MSF_DATE	equ	word ptr 20	; last date stamp
-MSF_TIME	equ	word ptr 22	; last time stamp
-MSF_IFN		equ	byte ptr 24	;; internal file number
-MSF_IOCTL	equ	byte ptr 25	;; file status
-MSF_BLOCK1	equ	word ptr 26	;; 1st block of file
-MSF_DBLK	equ	word ptr 28	;; directory block
-MSF_DEVPTR	equ	dword ptr 28	;; address of device driver
-MSF_DCNT	equ	word ptr 30	;; directory count
-MSF_CR		equ	byte ptr 32	; current sequential record
-MSF_RR		equ	word ptr 33	; random record address (3 or 4 byte)
-MSF_RR2		equ	byte ptr 35	; random record overflow
+labelsize MSF_EXTFLG, byte, 0	; if this is 0xFF, skip 1st 7 byte
+labelsize MSF_ATTRIB, byte, 6	; file attributes if MSF_EXTFLG
+labelsize MSF_DRIVE, byte, 0	; 1st byte normally drive code
+labelsize MSF_NAME, byte, 1	; 8-bit ASCII file name, 11 characters
+labelsize MSF_BLOCK, word, 12	; current block number
+labelsize MSF_RECSIZE, word, 14	; current logical record size
+labelsize MSF_SIZE, word, 16	; 32-bit file size
+labelsize MSF_DATE, word, 20	; last date stamp
+labelsize MSF_TIME, word, 22	; last time stamp
+labelsize MSF_IFN, byte, 24	;; internal file number
+labelsize MSF_IOCTL, byte, 25	;; file status
+labelsize MSF_BLOCK1, word, 26	;; 1st block of file
+labelsize MSF_DBLK, word, 28	;; directory block
+labelsize MSF_DEVPTR, dword, 28	;; address of device driver
+labelsize MSF_DCNT, word, 30	;; directory count
+labelsize MSF_CR, byte, 32	; current sequential record
+labelsize MSF_RR, word, 33	; random record address (3 or 4 byte)
+labelsize MSF_RR2, byte, 35	; random record overflow
 
 
 ;		      Structure of DOS DPB
@@ -105,36 +105,36 @@ MSF_RR2		equ	byte ptr 35	; random record overflow
 ;	32h  and is required  by various  disk-related  utilities
 ;	like disk editors and CHKDSK.
 
-DDSC_UNIT	equ	byte ptr 0		; absolute drive number
-DDSC_RUNIT	equ	byte ptr 1		; relative unit number
-DDSC_SECSIZE	equ	word ptr 2		; sector size in bytes
-DDSC_CLMSK	equ	byte ptr 4		; sectors/cluster - 1
-DDSC_CLSHF	equ	byte ptr 5		; log2 (sectors/cluster)
-DDSC_FATADDR	equ	word ptr 6		; sector address of FAT
-DDSC_NFATS	equ	byte ptr 8		; # of FAT copies
-DDSC_DIRENT	equ	word ptr 9		; size of root directory
-DDSC_DATADDR	equ	word ptr 11		; sector address of cluster #2
-DDSC_NCLSTRS	equ	word ptr 13		; # of clusters on disk
-DDSC_NFATRECS	equ	word ptr 15		; # of sectors per FAT
-DDSC_DIRADDR	equ	word ptr 17		; sector address of root dir
-DDSC_DEVHEAD	equ	dword ptr 19		; device driver header
-DDSC_DEVOFF	equ	word ptr 19
-DDSC_DEVSEG	equ	word ptr 21
-DDSC_MEDIA	equ	byte ptr 23		; current media byte
-DDSC_FIRST	equ	byte ptr 24		; "drive never accessed" flag
-DDSC_LINK	equ	dword ptr 25		; next drive's DDSC
-DDSC_BLOCK	equ	word ptr 29		; next block to allocate
-DDSC_FREE	equ	word ptr 31		; total free clusters on drive
-DDSC_BFREE	equ	dword ptr 33		; total free clusters on drive (32-bit)
-DDSC_FSFLAGS	equ	word ptr 37		; FAT mirroring flags
-DDSC_FSINFO	equ	word ptr 39		; sector number of file system info block
-DDSC_BOOTBAK	equ	word ptr 41		; sector number of backup boot sector
-DDSC_BDATADDR	equ	dword ptr 43		; sector address of cluster #2 (32-bit)
-DDSC_BCLSTRS	equ	dword ptr 47		; # of clusters on disk (32-bit)
-DDSC_BFATRECS	equ	dword ptr 51		; # of sectors per FAT (32-bit)
-DDSC_FSROOT	equ	dword ptr 55		; starting cluster of root directory
-DDSC_BBLOCK	equ	dword ptr 59		; next block to allocate (32-bit)
-DDSC_FSVER	equ	word ptr 63		; version of file system
+labelsize DDSC_UNIT, byte, 0		; absolute drive number
+labelsize DDSC_RUNIT, byte, 1		; relative unit number
+labelsize DDSC_SECSIZE, word, 2		; sector size in bytes
+labelsize DDSC_CLMSK, byte, 4		; sectors/cluster - 1
+labelsize DDSC_CLSHF, byte, 5		; log2 (sectors/cluster)
+labelsize DDSC_FATADDR, word, 6		; sector address of FAT
+labelsize DDSC_NFATS, byte, 8		; # of FAT copies
+labelsize DDSC_DIRENT, word, 9		; size of root directory
+labelsize DDSC_DATADDR, word, 11		; sector address of cluster #2
+labelsize DDSC_NCLSTRS, word, 13		; # of clusters on disk
+labelsize DDSC_NFATRECS, word, 15		; # of sectors per FAT
+labelsize DDSC_DIRADDR, word, 17		; sector address of root dir
+labelsize DDSC_DEVHEAD, dword, 19		; device driver header
+labelsize DDSC_DEVOFF, word, 19
+labelsize DDSC_DEVSEG, word, 21
+labelsize DDSC_MEDIA, byte, 23		; current media byte
+labelsize DDSC_FIRST, byte, 24		; "drive never accessed" flag
+labelsize DDSC_LINK, dword, 25		; next drive's DDSC
+labelsize DDSC_BLOCK, word, 29		; next block to allocate
+labelsize DDSC_FREE, word, 31		; total free clusters on drive
+labelsize DDSC_BFREE, dword, 33		; total free clusters on drive (32-bit)
+labelsize DDSC_FSFLAGS, word, 37		; FAT mirroring flags
+labelsize DDSC_FSINFO, word, 39		; sector number of file system info block
+labelsize DDSC_BOOTBAK, word, 41		; sector number of backup boot sector
+labelsize DDSC_BDATADDR, dword, 43		; sector address of cluster #2 (32-bit)
+labelsize DDSC_BCLSTRS, dword, 47		; # of clusters on disk (32-bit)
+labelsize DDSC_BFATRECS, dword, 51		; # of sectors per FAT (32-bit)
+labelsize DDSC_FSROOT, dword, 55		; starting cluster of root directory
+labelsize DDSC_BBLOCK, dword, 59		; next block to allocate (32-bit)
+labelsize DDSC_FSVER, word, 63		; version of file system
 DDSC_LEN	equ	65
 
 
@@ -167,23 +167,23 @@ PASSWD_CHECK	equ	22h			; check an entry
 
 NUM_SHARE_STUB_ENTRIES	equ	15
 
-S_LOCKS		equ	DWORD*0		; share lock/unlock region
-S_UPDATE	equ	DWORD*1		; update DHNDL from share
-S_RECORD	equ	DWORD*2		; update share from DHNDL
-S_FDOSRW	equ	DWORD*3		; validate proposed operation
-S_DISCARD	equ	DWORD*4		; discard all files on drive
-S_OPEN		equ	DWORD*5		; files is opening, remember it
-S_CLOSE		equ	DWORD*6		; files is closing, forget it
-S_OM_COMPAT	equ	DWORD*7		; check open mode compatible
-S_CLOSE_IF_OPEN	equ	DWORD*8		; close if compat open, else deny
-S_DENY_IF_OPEN	equ	DWORD*9		; deny if open shared/by others
-S_GET_LIST_ENTRY equ	DWORD*10	; get open file list entry
-S_CLOSE_FILES	equ	DWORD*11	; close all files for given PSP/UID
+S_LOCKS		equ	4*0		; share lock/unlock region
+S_UPDATE	equ	4*1		; update DHNDL from share
+S_RECORD	equ	4*2		; update share from DHNDL
+S_FDOSRW	equ	4*3		; validate proposed operation
+S_DISCARD	equ	4*4		; discard all files on drive
+S_OPEN		equ	4*5		; files is opening, remember it
+S_CLOSE		equ	4*6		; files is closing, forget it
+S_OM_COMPAT	equ	4*7		; check open mode compatible
+S_CLOSE_IF_OPEN	equ	4*8		; close if compat open, else deny
+S_DENY_IF_OPEN	equ	4*9		; deny if open shared/by others
+S_GET_LIST_ENTRY equ	4*10	; get open file list entry
+S_CLOSE_FILES	equ	4*11	; close all files for given PSP/UID
 
 ; struct dirfcb
 
-DNAME		equ	byte ptr 0	;file name & type
-DATTS       equ byte ptr 11 
+labelsize DNAME, byte, 0	;file name & type
+labelsize DATTS, byte, 11 
   DA_RO		equ	01h		; 0x01 - read/only
   DA_HIDDEN	equ	02h		; 0x02 - hidden
   DA_SYSTEM	equ	04h		; 0x04 - system
@@ -193,7 +193,7 @@ DATTS       equ byte ptr 11
   DA_CLUSTER	equ	80h		; 0x80 - return starting cluster from search (API extention)
   DA_DELWATCH	equ	80h		; 0x88 - return pending delete files
   DA_FIXED	equ	11011000b	; can't CHMOD label, dir, unused bits
-  DA_CHANGE	equ	not DA_FIXED	; all others are changeable
+  DA_CHANGE	equ	~ DA_FIXED	; all others are changeable
   DA_LFN	equ	DA_RO+DA_HIDDEN+DA_SYSTEM+DA_VOLUME
 
 ;DATTS2		equ	12		;CP/M attributes
@@ -207,14 +207,14 @@ DATTS       equ byte ptr 11
 ;					; 0x01 - READ password
 DSIZEX		equ	12		;file size extension for FAT+ (bit 0-2 and 5-7)
 DUNDEL		equ	13		;1st letter of deleted file
-DPWD		equ	word ptr 14	;16-bit password hash code
-DMODTIME    	equ	word ptr 16	;delwatch time (hhhhhmmmmmmsssss)
-DMODDATE    	equ	word ptr 18	;delwatch date (yyyyyyymmmmddddd)
+labelsize DPWD, word, 14	;16-bit password hash code
+labelsize DMODTIME, word, 16	;delwatch time (hhhhhmmmmmmsssss)
+labelsize DMODDATE, word, 18	;delwatch date (yyyyyyymmmmddddd)
 ;DRECSIZE	equ	16		;FlexOS record size
 ;DUSER		equ	18		;FlexOS user ID of creator
 ;DGROUP		equ	19		;FlexOS group ID of creator
-DPWM		equ	word ptr 20	;FlexOS access rights
-DBLOCK1H	equ	word ptr 20	;high word of first block in file
+labelsize DPWM, word, 20	;FlexOS access rights
+labelsize DBLOCK1H, word, 20	;high word of first block in file
 DTIME		equ	22		;time (hhhhhmmmmmmsssss)
 DDATE		equ	24		;date (yyyyyyymmmmddddd)
 DBLOCK1		equ	26		;first block in file

@@ -39,33 +39,33 @@ JAP_DATE	equ	2		; Japanese Date Format yy/mm/dd
 CLOCK_12	equ	0		; 12 Hour Clock Time Format
 CLOCK_24	equ	1		; 24 Hour Clock Time Format
 
-CI_CODE		equ	word ptr -4		; Country Code
-CI_CODEPAGE	equ	word ptr -2		; Code page
-CI_DATEFMT	equ	word ptr 0		; Date Format
-CI_CURRENCY	equ	byte ptr 2		; Currency Symbols
-CI_THOUSANDS	equ	byte ptr 7		; Thousands Separator
-CI_DECIMAL	equ	byte ptr 9		; Decimal Separator
-CI_DATESEP	equ	byte ptr 11		; Date Separator
-CI_TIMESEP	equ	byte ptr 13		; Time Separator
-CI_CURFMT	equ	byte ptr 15		; Currency Format
-CI_CURDIGITS	equ	byte ptr 16		; Significant Currency Digits
-CI_TIMEFMT	equ	byte ptr 17		; Time Format
-CI_CASEOFF	equ	word ptr 18		; Case Translation Offset
-CI_CASESEG	equ	word ptr 20		; Case Translation Segment
-CI_DATASEP	equ	byte ptr 22		; Data List Separator
+labelsize CI_CODE, word, -4		; Country Code
+labelsize CI_CODEPAGE, word, -2		; Code page
+labelsize CI_DATEFMT, word, 0		; Date Format
+labelsize CI_CURRENCY, byte, 2		; Currency Symbols
+labelsize CI_THOUSANDS, byte, 7		; Thousands Separator
+labelsize CI_DECIMAL, byte, 9		; Decimal Separator
+labelsize CI_DATESEP, byte, 11		; Date Separator
+labelsize CI_TIMESEP, byte, 13		; Time Separator
+labelsize CI_CURFMT, byte, 15		; Currency Format
+labelsize CI_CURDIGITS, byte, 16		; Significant Currency Digits
+labelsize CI_TIMEFMT, byte, 17		; Time Format
+labelsize CI_CASEOFF, word, 18		; Case Translation Offset
+labelsize CI_CASESEG, word, 20		; Case Translation Segment
+labelsize CI_DATASEP, byte, 22		; Data List Separator
 CI_STATICLEN	equ	24			; Static Country Data Length
 CI_LENGTH	equ	32			; Total Country Data Length
 
-EXI_ID		equ	byte ptr 0		; Information ID
-EXI_TBLOFF	equ	word ptr 1		; Table Offset
-EXI_TBLSEG	equ	word ptr 3		; Table Segment
+labelsize EXI_ID, byte, 0		; Information ID
+labelsize EXI_TBLOFF, word, 1		; Table Offset
+labelsize EXI_TBLSEG, word, 3		; Table Segment
 
-EXI_ID1		equ	byte ptr 0		; 6501 Info ID (why move it?!)
-EXI_LENGTH	equ	word ptr 1		; 6501 Table Length
+labelsize EXI_ID1, byte, 0		; 6501 Info ID (why move it?!)
+labelsize EXI_LENGTH, word, 1		; 6501 Table Length
 EXI_DATA_LEN	equ	3			; 6501 Country Data
 
-EXCI_CUR_COUNTRY equ	word ptr 0		; Current Country
-EXCI_CUR_CP	equ	word ptr 2		; Current Codepage
+labelsize EXCI_CUR_COUNTRY, word, 0		; Current Country
+labelsize EXCI_CUR_CP, word, 2		; Current Codepage
 EXCI_CI_DATAOFF	equ	4			; Start of CI_ data
 
 EXCI_STATLEN	equ	CI_STATICLEN+4			; Static Ext Country Info

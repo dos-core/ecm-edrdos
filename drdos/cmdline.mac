@@ -32,21 +32,21 @@
 ;
 ;    ENDLOG
 
-RL_INPUT	equ	word ptr [bp-2]		; READ_LINE Input Handle
-RL_OUTPUT	equ	word ptr [bp-4]		; READ_LINE Output Handle
-RL_BUFSEG	equ	word ptr [bp-6]		; Retained line Segment
-RL_BUFOFF	equ	word ptr [bp-8]		; Retained line Offset
-RL_BUFPTR	equ	dword ptr [bp-8]	; Retained line Buffer
-RL_INICOL	equ	word ptr [bp-10]	; initial column
-RL_FLAGS	equ	word ptr [bp-12]	; Control Flags
-RL_MAXLEN	equ	word ptr [bp-14]	; Maximum Buffer Size
-RL_KANJI	equ	word ptr [bp-16]		; Kanji Character Buffer
-RL_SAVMAX	equ	word ptr [bp-18]	; Size of retained data
-RL_SAVPOS	equ	word ptr [bp-20]	; Current Position in data
-RL_HIST_RECL	equ	word ptr [bp-22]	; We recall from here
-RL_HIST_SAVE	equ	word ptr [bp-24]	; We save to here
-RL_HIST_SIZE	equ	word ptr [bp-26]	; buffer is this big
-RL_HIST_SEG	equ	word ptr [bp-28]	; buffer is at this segment
+labelsize RL_INPUT, word, bp-2		; READ_LINE Input Handle
+labelsize RL_OUTPUT, word, bp-4		; READ_LINE Output Handle
+labelsize RL_BUFSEG, word, bp-6		; Retained line Segment
+labelsize RL_BUFOFF, word, bp-8		; Retained line Offset
+labelsize RL_BUFPTR, dword, bp-8	; Retained line Buffer
+labelsize RL_INICOL, word, bp-10	; initial column
+labelsize RL_FLAGS, word, bp-12	; Control Flags
+labelsize RL_MAXLEN, word, bp-14	; Maximum Buffer Size
+labelsize RL_KANJI, word, bp-16		; Kanji Character Buffer
+labelsize RL_SAVMAX, word, bp-18	; Size of retained data
+labelsize RL_SAVPOS, word, bp-20	; Current Position in data
+labelsize RL_HIST_RECL, word, bp-22	; We recall from here
+labelsize RL_HIST_SAVE, word, bp-24	; We save to here
+labelsize RL_HIST_SIZE, word, bp-26	; buffer is this big
+labelsize RL_HIST_SEG, word, bp-28	; buffer is at this segment
 RL_LENGTH	equ	28
 
 RLF_ENHANCED	equ	00000001b		; Enhanced features are on
@@ -66,7 +66,7 @@ CHAR_ALPHAN	equ	00010000b	; Alpha/Numeric
 CHAR_OTHER	equ	00100000b	; Non AlphaNumeric
 CHAR_STD	equ	10000000b	; Stored as a Byte displayed in 1 Col
 
-CHAR_SIZE	equ	CHAR_STD or CHAR_KANJI or CHAR_TAB or CHAR_CTL
-CHAR_ONECOL	equ	CHAR_SPACE or CHAR_OTHER or CHAR_ALPHAN
+CHAR_SIZE	equ	CHAR_STD | CHAR_KANJI | CHAR_TAB | CHAR_CTL
+CHAR_ONECOL	equ	CHAR_SPACE | CHAR_OTHER | CHAR_ALPHAN
 
 CMDLINE_LEN	equ	128

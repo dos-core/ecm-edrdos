@@ -35,18 +35,18 @@
 ;   This file defines the DOS .EXE file Header
 
 
-EXE_SIGNATURE	equ	word ptr 0		; 0000 Valid EXE contains 'MZ'
-EXE_FINAL	equ	word ptr EXE_SIGNATURE+2; 0002 Image Length MOD 512
-EXE_SIZE	equ	word ptr EXE_FINAL+2	; 0004 Image Length DIV 512
-EXE_RELCNT	equ	word ptr EXE_SIZE+2	; 0006 No. of Relocation Items
-EXE_HEADER	equ	word ptr EXE_RELCNT+2	; 0008 Header Size in paragraphs
-EXE_MINPARA	equ	word ptr EXE_HEADER+2	; 000A Minimum No extra paragraphs
-EXE_MAXPARA	equ	word ptr EXE_MINPARA+2	; 000C Maximum No of extra paragraphs
-EXE_SS		equ	word ptr EXE_MAXPARA+2	; 000E Displacment of Stack Segment
-EXE_SP		equ	word ptr EXE_SS+2	; 0010 Initial SP
-EXE_CHECKSUM	equ	word ptr EXE_SP+2	; 0012 Negative CheckSum
-EXE_IP		equ	word ptr EXE_CHECKSUM+2	; 0014 Initial IP
-EXE_CS		equ	word ptr EXE_IP+2	; 0016 Code Segment displacement
-EXE_RELOFF	equ	word ptr EXE_CS+2	; 0018 Byte Offset of First REL item
-EXE_OVERLAY	equ	word ptr EXE_RELOFF+2	; 001A Overlay Number (0 == Resident)
+labelsize EXE_SIGNATURE, word, 0		; 0000 Valid EXE contains 'MZ'
+labelsize EXE_FINAL, word, EXE_SIGNATURE+2; 0002 Image Length MOD 512
+labelsize EXE_SIZE, word, EXE_FINAL+2	; 0004 Image Length DIV 512
+labelsize EXE_RELCNT, word, EXE_SIZE+2	; 0006 No. of Relocation Items
+labelsize EXE_HEADER, word, EXE_RELCNT+2	; 0008 Header Size in paragraphs
+labelsize EXE_MINPARA, word, EXE_HEADER+2	; 000A Minimum No extra paragraphs
+labelsize EXE_MAXPARA, word, EXE_MINPARA+2	; 000C Maximum No of extra paragraphs
+labelsize EXE_SS, word, EXE_MAXPARA+2	; 000E Displacment of Stack Segment
+labelsize EXE_SP, word, EXE_SS+2	; 0010 Initial SP
+labelsize EXE_CHECKSUM, word, EXE_SP+2	; 0012 Negative CheckSum
+labelsize EXE_IP, word, EXE_CHECKSUM+2	; 0014 Initial IP
+labelsize EXE_CS, word, EXE_IP+2	; 0016 Code Segment displacement
+labelsize EXE_RELOFF, word, EXE_CS+2	; 0018 Byte Offset of First REL item
+labelsize EXE_OVERLAY, word, EXE_RELOFF+2	; 001A Overlay Number (0 == Resident)
 EXE_LENGTH	equ	001Ch

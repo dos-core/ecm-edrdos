@@ -42,7 +42,7 @@ FALSE	   	equ	0		; value of FALSE
 
 IDLE_DETECT	equ	TRUE		; Check for IDLE Process's
 
-if IDLE_DETECT
+%if IDLE_DETECT
 IDLE_COMMAND	equ	0001h		; Command Processor Active
 IDLE_DOSFUNC	equ	0002h		; DOS Function Called
 IDLE_INT28	equ	0004h		; INT 28 Called
@@ -55,7 +55,7 @@ PROC_IDLE	equ	0001		; Process is IDLE
 PROC_INT28	equ	0002		; INT28 Polling Loop
 PROC_KEYIN	equ	0003		; Keyboard Input
 PROC_DEVIN	equ	0004		; Device Input Routine
-endif
+%endif
 
 
 STACK_SIZE	equ	192		; Local Stack Size (Levels)
@@ -118,32 +118,32 @@ PUSH_DOS macro			; Push User Registers
 endm
 
 
-reg_AX		equ	word ptr 00
-reg_AL		equ	byte ptr 00
-reg_AH		equ	byte ptr 01
+labelsize reg_AX, word, 00
+labelsize reg_AL, byte, 00
+labelsize reg_AH, byte, 01
 
-reg_BX		equ	word ptr 02
-reg_BL		equ	byte ptr 02
-reg_BH		equ	byte ptr 03
+labelsize reg_BX, word, 02
+labelsize reg_BL, byte, 02
+labelsize reg_BH, byte, 03
 
-reg_CX		equ	word ptr 04
-reg_CL		equ	byte ptr 04
-reg_CH		equ	byte ptr 05
+labelsize reg_CX, word, 04
+labelsize reg_CL, byte, 04
+labelsize reg_CH, byte, 05
 
-reg_DX		equ	word ptr 06
-reg_DL		equ	byte ptr 06
-reg_DH		equ	byte ptr 07
+labelsize reg_DX, word, 06
+labelsize reg_DL, byte, 06
+labelsize reg_DH, byte, 07
 
-reg_SI		equ	word ptr 08
-reg_DI		equ	word ptr 10
-reg_BP		equ	word ptr 12
+labelsize reg_SI, word, 08
+labelsize reg_DI, word, 10
+labelsize reg_BP, word, 12
 
-reg_DS		equ	word ptr 14
-reg_ES		equ	word ptr 16
+labelsize reg_DS, word, 14
+labelsize reg_ES, word, 16
 
-reg_IP		equ	word ptr 18
-reg_CS		equ	word ptr 20
-reg_FLAGS	equ	word ptr 22
+labelsize reg_IP, word, 18
+labelsize reg_CS, word, 20
+labelsize reg_FLAGS, word, 22
 
 ; Processor Flags
 CARRY_FLAG	equ	0001h		; Carry Flag
@@ -153,11 +153,11 @@ INT_FLAG	equ	0200h		; Interrupt Flag
 DIR_FLAG	equ	0400h		; Direction Flag
 OFLW_FLAG	equ	0800h		; OverFlow Flag
 
-DMD_ID          equ     byte ptr 0	; id code ('M' or 'Z')
-DMD_PSP         equ     word ptr 1	; owner of memory block
-DMD_LEN         equ     word ptr 3	; length of memory block
-DMD_IDLE_FLAGS  equ 	word ptr 6  	; idle flags live here
-DMD_NAME	equ	byte ptr 8	; ASCIIZ name field
+labelsize DMD_ID, byte, 0	; id code ('M' or 'Z')
+labelsize DMD_PSP, word, 1	; owner of memory block
+labelsize DMD_LEN, word, 3	; length of memory block
+labelsize DMD_IDLE_FLAGS, word, 6  	; idle flags live here
+labelsize DMD_NAME, byte, 8	; ASCIIZ name field
 DMD_NAME_LEN	equ	8		;  8 Bytes long
 IDM             equ     'M'		; not last id code
 IDZ             equ     'Z'		; last id code
