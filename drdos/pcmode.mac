@@ -180,7 +180,7 @@ IDZ             equ     'Z'		; last id code
 ;PCMODE_DATA	DSEG	WORD		; DOS Data
 ;FDOS_DSEG	DSEG	WORD COMMON	; FDOS Parameter Block	
 
-FDOS_DSEG	segment common word 'DATA'
+section FDOS_DSEG common align=2 class=DATA
 fdos_data	dw	7 dup (?)
 FDOS_DSEG	ends
 

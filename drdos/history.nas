@@ -47,7 +47,7 @@ ASSUME DS:PCMDATA
 	[list +]
 
 
-PCM_HISTORY	segment public word 'CODE'
+section PCM_HISTORY public align=2 class=CODE
 
 	public	init_history, save_history
 	public	del_history_buffers, del_cur_history_buffer
@@ -545,13 +545,13 @@ deln_word:
 
 PCM_HISTORY	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 	extrn	@hist_flg:byte		; To select between histbufs 1 or 2
 
 PCMODE_DATA	ends
 
-GLOBAL_DATA	segment public word 'DATA'
+section GLOBAL_DATA public align=2 class=DATA
 
 	extrn	histbuf1:word, histsiz1:word, histbuf2:word, histsiz2:word
 
