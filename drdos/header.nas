@@ -1485,7 +1485,7 @@ dummy_vecs_skip:
 def_data_vecs_loop:
 	push	es
 	mov	es,bp
-	lods 	cs:word ptr ax
+	cs lodsw
 	mov 	di,ax			; Get the Vector Offset (from CS)
 ;	db	2Eh			; CS:
 ;	movsw				; copy service routine offset
