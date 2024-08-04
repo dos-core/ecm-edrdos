@@ -72,19 +72,19 @@ PCMDATA group BDOS_DATA,PCMODE_DSIZE
 
 PCMCODE group PCM_HEADER,PCM_HISTORY,PCM_ICODE,PCM_CODEND
 
-	include pcmode.equ
-	include	vectors.def
+	%include "pcmode.mac"
+	%include "vectors.mac"
 
-	include	cmdline.equ
-	include	doshndl.def
-	include	driver.equ
-	include exe.def
-	include	f52data.def
-	include fdos.equ
-	include	mserror.equ
-	include	psp.def
-	include	request.equ
-	include	country.def
+	%include "cmdline.mac"
+	%include "doshndl.mac"
+	%include "driver.mac"
+	%include "exe.mac"
+	%include "f52data.mac"
+	%include "fdos.mac"
+	%include "mserror.mac"
+	%include "psp.mac"
+	%include "request.mac"
+	%include "country.mac"
 
 PADDING		equ	14*1024		; offset code start by this much
 
@@ -96,7 +96,7 @@ DOSINHMA	equ	1000h
 ;	The format of the header is FIXED and should not be modified.
 ;****************************************************************************
 
-PCM_HEADER	segment public para 'CODE'
+section PCM_HEADER public align=16 class=CODE
 
 	extrn	edit_size:word
 
@@ -141,7 +141,7 @@ PCM_HEADER ends
 ;	The format of the data is FIXED and should not be modified.
 ;****************************************************************************
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 
 	Public	codeSeg			; BDOS code segment
@@ -455,7 +455,7 @@ PCMODE_DATA ends
 
 ; WARNING - if anyone adds/deletes PCMODE_DATA they MUST adjust these
 ; values so the following data will origin correctly
-FIXED_DOS_DATA	segment public word 'DATA'
+section FIXED_DOS_DATA public align=2 class=DATA
 
 FIXED_DATA_START	equ	3B0h
 	public	MUSTBE03B0
@@ -591,7 +591,7 @@ Ucasetbl	dw  128	; Table Size
 	db	0e8h, 0e9h, 0eah, 0ebh, 0ech, 0edh, 0eeh, 0efh
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-info2_len	equ	word ptr (offset $ - offset Ucasetbl)
+info2_len equ (offset $ - offset Ucasetbl)
 
 
     org 0B2Fh - FIXED_DATA_START 
@@ -615,7 +615,7 @@ standard_table	label byte
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
 
-info4_len	equ	word ptr (offset $ - offset FileUcasetbl)
+info4_len equ (offset $ - offset FileUcasetbl)
 
     org 0BB1h - FIXED_DATA_START 
 
@@ -624,7 +624,7 @@ FileCharstbl:
 	db	 001h, 000h, 0ffh, 000h, 000h, 020h, 002h, 00eh
 	db	 02eh, 022h, 02fh, 05ch, 05bh, 05dh, 03ah, 07ch
 	db	 03ch, 03eh, 02bh, 03dh, 03bh, 02ch
-info5_len	equ	word ptr (offset $ - offset FileCharstbl)
+info5_len equ (offset $ - offset FileCharstbl)
 
     org 0BE1h - FIXED_DATA_START    
 
@@ -662,7 +662,7 @@ Collatingtbl:
 	db	 0e8h, 0e9h, 0eah, 0ebh, 0ech, 0edh, 0eeh, 0efh
 	db	 0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	 0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-info6_len	equ	word ptr (offset $ - offset Collatingtbl)
+info6_len equ (offset $ - offset Collatingtbl)
 
     org 0CE3h - FIXED_DATA_START    
 
@@ -670,7 +670,7 @@ DBCS_tbl:
 		dw	0	; Table Size
 	db	 000h, 000h, 000h, 000h, 000h, 000h, 000h, 000h
 	db	 000h, 000h, 000h, 000h, 000h, 000h, 000h, 000h
-info7_len	equ	word ptr (offset $ - offset DBCS_tbl)
+info7_len equ (offset $ - offset DBCS_tbl)
 
 ;    org 0d12h - FIXED_DATA_START    
     org 0d10h - FIXED_DATA_START    
@@ -813,7 +813,7 @@ childCS		dw	0
 exe_buffer	db	EXE_LENGTH dup (0)	; Local EXE header buffer
 
 
-ifdef IDLE_DETECT
+%if IDLE_DETECT
 
 	Public	idle_data
 	Public	active_cnt, idle_max
@@ -831,14 +831,14 @@ int28_delay	dw	0		; No. Consecutive INT28's
 int28_reload	dw	10		; INT28 Delay Reload Value
 		dw	indos_flag	; Offset of INDOS_FLAG
 		dw	2 dup (0)	; 2 OEM Reserved Words
-endif
+%endif
 
 	org	1000h - FIXED_DATA_START	; nice 4K boundry
 						; for multitasker
 
 FIXED_DOS_DATA ends
 
-PCMODE_DSIZE	segment public para 'DATA'
+section PCMODE_DSIZE public align=16 class=DATA
 
 	Public	data_end
 data_end	label word
@@ -851,7 +851,7 @@ PCMODE_DSIZE ends
 	extrn	int27_entry:near, int2F_entry:near
 	extrn	call5_entry:near
 
-PCMODE_CODE	segment public word 'DATA'
+section PCMODE_CODE public align=2 class=DATA
 
 
 PCMODE_CODE_START	equ	1000h
@@ -881,13 +881,13 @@ func4B05_stub	dw	Func4B05Stub,0		; Int 21/4B05 hook
 NUM_STUB_ENTRIES	equ	(offset $ - offset stub_entries)/4
 ;*** fixed data ends ***
 
-	cmp	ds:error_flag,0		; JT-FAX uses this code sequence to
+	cmp	byte [error_flag],0		; JT-FAX uses this code sequence to
 	jnz	$			; find the address of the ERROR_FLAG
 	mov	sp,0A06h
 
-	test	ss:error_flag,0FFh	; SIDEKICK usues this fragment to
+	test	byte [ss:error_flag],0FFh	; SIDEKICK usues this fragment to
 	 jnz	$			; locate the ERROR_FLAG
-	push	ss:word ptr int28_flag
+	push	word [ss:int28_flag]
 	int	28h
 
 ;==========================
@@ -971,7 +971,7 @@ A20Disable:
 	 jae	A20Disable10		;  EXE pack kludge
 	push	ax
 	mov	ah,6			; disable the A20 gate during EXEC
-	call	dword ptr cs:xmsDriver	;  so buggy EXE packing will work
+	call	far [cs:xmsDriver]	;  so buggy EXE packing will work
 	pop	ax
 A20Disable10:
 	ret
@@ -992,8 +992,8 @@ A20Enable:
 	push	ds
 	mov	ax,0FFFFh
 	mov	ds,ax
-	mov	ax,ds:94h		; is the HMA alias for Int 21
-	or	ax,ds:96h		;  zero - if so the HMA is there
+	mov	ax,[94h]		; is the HMA alias for Int 21
+	or	ax,[96h]		;  zero - if so the HMA is there
 	pop	ds
 	 jnz	A20Enable10
 	pop	ax
@@ -1002,17 +1002,17 @@ A20Enable:
 A20Enable10:
 ; We need to enable the A20 gate, go do so
 	push	bx
-	mov	cs:oldSS,ss		; save stack
-	mov	cs:oldSP,sp
+	mov	[cs:oldSS],ss		; save stack
+	mov	[cs:oldSP],sp
 	mov	ax,cs
 	mov	ss,ax			; swap to the error stack in case
 	mov	sp,offset error_stack	;  3rd part XMS driver needs a lot
 
 	mov	ah,5			; enable A20, ignoring errors as we
-	call	dword ptr cs:xmsDriver	;  can't do anything about them
+	call	far [cs:xmsDriver]	;  can't do anything about them
 
-	mov	ss,cs:oldSS		; switch back to callers stack
-	mov	sp,cs:oldSP
+	mov	ss,[cs:oldSS]		; switch back to callers stack
+	mov	sp,[cs:oldSP]
 
 	pop	bx
 	pop	ax
@@ -1113,11 +1113,11 @@ int2FNext	dw	Int2FBios, 0	; seg filled in at run time
 
 
 nul_strat:
-	cmp	es:RH_CMD[bx],CMD_INPUT
+	cmp	byte [es:RH_CMD + bx],CMD_INPUT
 	 jne	nul_strat10		; if it's input
-	mov	es:RH4_COUNT[bx],0		; Say none transferred #IJ
+	mov	word [es:RH4_COUNT + bx],0		; Say none transferred #IJ
 nul_strat10:
-	mov	es:RH_STATUS[bx],RHS_DONE	; Set the DONE bit in the
+	mov	word [es:RH_STATUS + bx],RHS_DONE	; Set the DONE bit in the
 nul_int:				; Request Header and Return
 	clc				; (indicate success for SHARE)
 	retf
@@ -1164,7 +1164,7 @@ CriticalSection:
 ; On Exit:
 ;	AX poped from stack
 ;
-	cmp	cs:criticalSectionEnable,0
+	cmp	byte [cs:criticalSectionEnable],0
 	 je	CriticalSection10
 	int	2ah			; issue critical section callout
 CriticalSection10:
@@ -1334,7 +1334,7 @@ default_country:
 intl_xlat dw	xlat_xlat	; Case Translation Routine
 	dw	0000h		; Case Translation Segment (Runtime Fixup)
 	db	',',0		; Data List Separator
-info1_len	equ	word ptr (offset $ - offset country_data)
+info1_len equ (offset $ - offset country_data)
 				; If NOT COUNTRY.SYS then include the
 	db	10 dup (0)	; 10 zero bytes held at the end of the
 				; country information.
@@ -1342,14 +1342,14 @@ info1_len	equ	word ptr (offset $ - offset country_data)
 
 PCMODE_CODE ends
 
-PCM_CODEND	segment public para 'CODE'
+section PCM_CODEND public align=16 class=CODE
 
 	Public	code_end
 code_end	label byte
 
 PCM_CODEND ends
 
-BDOS_DATA	segment public word 'DATA'
+section BDOS_DATA public align=2 class=DATA
 
 	Public	hashroot, hashmax
 
@@ -1385,14 +1385,14 @@ lfn_search_redir:
 BDOS_DATA ends
 
 
-PCM_HISTORY	segment public byte 'CODE'
+section PCM_HISTORY public align=1 class=CODE
 
 patch_area	dw	0666h
 		db 256 dup (090h)
 
 PCM_HISTORY ends
 
-PCM_ICODE	segment public byte 'CODE'
+section PCM_ICODE public align=1 class=CODE
 
 ;
 ;	The following routine initializes all the standard MS-DOS interrupt
@@ -1405,75 +1405,75 @@ PCM_ICODE	segment public byte 'CODE'
 ;			ES	Interrupt Stubs Seg
 ;
 pcmode_init:
-	mov	cs:int_stubs_seg,es
-	and	cs:patch_version,not DOSINROM
+	mov	[cs:int_stubs_seg],es
+	and	word [cs:patch_version],~ DOSINROM
 					; won't clear if we are in ROM...
-	mov	cs:pcmode_dseg,ds	; save PCM Dseg
-	mov	ds:instanceSeg,ds	; fixup pointer to instance items
+	mov	[cs:pcmode_dseg],ds	; save PCM Dseg
+	mov	[instanceSeg],ds	; fixup pointer to instance items
 
 ; removed this as VxD no longer required   BAP
 ;	mov	ds:vxdNameSeg,ds	;  and vxdName
 
 ;	add	ds:vxdName,dl		; fixup drive letter
-	mov	ds:word ptr buf_ptr+2,ds
-	mov	ds:word ptr file_ptr+2,ds
-	mov	ds:word ptr fcb_ptr+2,ds
+	mov	word ptr [buf_ptr+2],ds
+	mov	word ptr [file_ptr+2],ds
+	mov	word ptr [fcb_ptr+2],ds
 	push	ax			; Save the memory size
 	push	bx			; First Free Paragraph
-	mov	ds:current_dsk,dl	; save initial drive
+	mov	[current_dsk],dl	; save initial drive
 	inc	dl			; make drive one based
-	mov	ds:bootDrv,dl		;  and save for func 3305
+	mov	[bootDrv],dl		;  and save for func 3305
 	mov	ax,ds			; AX = PCMode Data
-	mov	ds:word ptr fdos_stub+WORD,ax
-	add	ds:dummy_sysdat,ax	; point dummy "sysdat" at a zero word
+	mov	word ptr [fdos_stub+2],ax
+	add	[dummy_sysdat],ax	; point dummy "sysdat" at a zero word
 					;  ie. dummy "secure path" segment
 	mov	si,offset countryTable
 countryFixupLoop:
-	mov	ds:word ptr 3[si],ds	; fixup the segment
+	mov	word ptr [3 + si],ds	; fixup the segment
 	add	si,5			; onto the next entry
-	cmp	ds:word ptr 3[si],0	; done the lot yet ?
+	cmp	word ptr [3 + si],0	; done the lot yet ?
 	 je	countryFixupLoop
 	mov	es,ax			; ES -> PCMode Data
 	mov	di,offset stub_entries	; ES:DI -> stub segs
 	mov	cx,NUM_STUB_ENTRIES	; entries to initialise
 stubs_loop:
-	add	di,WORD			; skip the offset
+	add	di,2			; skip the offset
 	stosw				; fixup segment
 	loop	stubs_loop		; do the next one
 	mov	di,offset share_stub	; fixup the SHARE entries
 	mov	cx,NUM_SHARE_STUB_ENTRIES
 share_loop:
-	add	di,WORD			; skip the offset
+	add	di,2			; skip the offset
 	stosw				; fixup segment
 	loop	share_loop
 ;	mov	cx,0
 	mov	es,cx			; Initialize the DOS vectors
 
-	mov	ax,es:INT2F_OFFSET	; remember address of BIOS Int 2F
-	mov	ds:int2FBiosHandler,ax
-	mov	ax,es:INT2F_SEGMENT
-	mov	ds:int2FBiosHandler+2,ax
-	mov	ds:int2FNext+2,ds	; fixup seg of out stub
+	mov	ax,[es:INT2F_OFFSET]	; remember address of BIOS Int 2F
+	mov	[int2FBiosHandler],ax
+	mov	ax,[es:INT2F_SEGMENT]
+	mov	[int2FBiosHandler+2],ax
+	mov	[int2FNext+2],ds	; fixup seg of out stub
 
 	mov	cx,40h-2Ah		; 2A-3F point at IRET in DOS Data Seg
 	mov	di,INT2A_OFFSET
-	mov	bp,cs:int_stubs_seg
+	mov	bp,[cs:int_stubs_seg]
 	xor	bx,bx
 dummy_vecs_loop:
 	cmp	cx,40h-31h
 	 je	dummy_vecs_skip
 	push	es
 	mov	es,bp
-	mov	es:byte ptr [bx],0eah	; jmp far instruction
+	mov	byte ptr [es:bx],0eah	; jmp far instruction
 	mov	ax,offset DummyIRET	; point at an IRET
 ;	stosw				; do the offset
-	mov	es:1[bx],ax
+	mov	[es:1 + bx],ax
 ;	mov	ax,ds
 ;	stosw				; then the segment
-	mov	es:3[bx],ds
+	mov	[es:3 + bx],ds
 	pop	es
-	mov	es:[di],bx
-	mov	es:2[di],bp
+	mov	[es:di],bx
+	mov	[es:2 + di],bp
 	add	bx,5
 dummy_vecs_skip:
 	add	di,4
@@ -1489,13 +1489,13 @@ def_data_vecs_loop:
 	mov 	di,ax			; Get the Vector Offset (from CS)
 ;	db	2Eh			; CS:
 ;	movsw				; copy service routine offset
-	mov	es:byte ptr [bx],0eah	; jmp far
-	mov	ax,cs:[si]
+	mov	byte ptr [es:bx],0eah	; jmp far
+	mov	ax,[cs:si]
 	add	si,2
-	mov	es:1[bx],ax
+	mov	[es:1 + bx],ax
 	mov	ax,ds			; finally fixup the segment too
 ;	stosw
-	mov	es:3[bx],ax
+	mov	[es:3 + bx],ax
 	pop	es
 	mov	ax,bx
 	stosw
@@ -1504,15 +1504,15 @@ def_data_vecs_loop:
 	add	bx,5
 	loop	def_data_vecs_loop
 
-	mov	es:byte ptr INT30_OFFSET,0EAh
+	mov	byte [es:INT30_OFFSET],0EAh
 					; fixup CALL 5 JMPF
 
 	mov	si,offset bdosInstanceFixups
 InstanceFixupLoop:
-	mov	ds:2[si],ds		; fixup data segment
+	mov	[2 + si],ds		; fixup data segment
 	add	si,6			; onto next item
-	mov	ax,ds:[si]		; still BDOS ?
-	or	ax,ds:2[si]
+	mov	ax,[si]		; still BDOS ?
+	or	ax,[2 + si]
 	 jnz	InstanceFixupLoop	; yep, do another one
 
 	push	cs			; we will have a RETF
@@ -1526,68 +1526,68 @@ InstanceFixupLoop:
 	add	ax,dx			; AX = possible next DMD
 	mov	es,ax
 	mov	al,IDZ			; assume no extra DMD's
-	cmp	al,es:DMD_ID		; have we extra one ?
+	cmp	al,[es:DMD_ID]		; have we extra one ?
 	 jne	pcmode_init10
 	mov	al,IDM			; yes, no longer end of chain
 	dec	dx			; decrement by size of existing DMD
 pcmode_init10:	
 	pop	es
-	mov	es:DMD_ID,al		; Last DMD in list
-	mov	es:DMD_PSP,0000h	; This is Free Memory Owning PSP == 0
-	mov	es:DMD_LEN,dx		; Save Memory Length
-	mov	es:word ptr DMD_NAME,'S'+256*'D'
-	mov	es:DMD_NAME+2,0
-	mov	ds:dmd_root,es		; Save the DMD address in root
+	mov	[es:DMD_ID],al		; Last DMD in list
+	mov	word [es:DMD_PSP],0000h	; This is Free Memory Owning PSP == 0
+	mov	[es:DMD_LEN],dx		; Save Memory Length
+	mov	word [es:DMD_NAME],'S'+256*'D'
+	mov	byte [es:DMD_NAME+2],0
+	mov	[dmd_root],es		; Save the DMD address in root
 	retf
 
 ;	Entry:		DS	PCM Dseg
 ;			ES	Interrupt Stubs Seg
 
 pcmode_init2:
-	mov	cs:int_stubs_seg,es
+	mov	[cs:int_stubs_seg],es
 ;	and	cs:patch_version,not DOSINROM
 					; won't clear if we are in ROM...
-	mov	cs:pcmode_dseg,ds	; save PCM Dseg
-	mov	ds:instanceSeg,ds	; fixup pointer to instance items
+	mov	[cs:pcmode_dseg],ds	; save PCM Dseg
+	mov	[instanceSeg],ds	; fixup pointer to instance items
 
 ; removed this as VxD no longer required   BAP
 ;	mov	ds:vxdNameSeg,ds	;  and vxdName
 
 ;	add	ds:vxdName,dl		; fixup drive letter
-	mov	ds:word ptr buf_ptr+2,ds
-	mov	ds:word ptr file_ptr+2,ds
-	mov	ds:word ptr fcb_ptr+2,ds
-	mov	ax,ds:word ptr fcb_ptr
+	mov	word ptr [buf_ptr+2],ds
+	mov	word ptr [file_ptr+2],ds
+	mov	word ptr [fcb_ptr+2],ds
+	mov	ax,word ptr [fcb_ptr]
 	mov	cl,4
 	shr	ax,cl
-	and	word ptr ds:fcb_ptr,15
-	add	word ptr ds:fcb_ptr+2,ax
+	and	word [fcb_ptr],15
+	add	word ptr [fcb_ptr+2],ax
 ;	push	ax			; Save the memory size
 ;	push	bx			; First Free Paragraph
 ;	mov	ds:current_dsk,dl	; save initial drive
 ;	inc	dl			; make drive one based
 ;	mov	ds:bootDrv,dl		;  and save for func 3305
 	mov	ax,ds			; AX = PCMode Data
-	mov	ds:word ptr fdos_stub+WORD,ax
-	add	ds:dummy_sysdat,ax	; point dummy "sysdat" at a zero word
+	mov	word ptr [fdos_stub+2],ax
+	add	[dummy_sysdat],ax	; point dummy "sysdat" at a zero word
 					;  ie. dummy "secure path" segment
 	mov	si,offset countryTable
 countryFixupLoop2:
-	mov	ds:word ptr 3[si],ds	; fixup the segment
+	mov	word ptr [3 + si],ds	; fixup the segment
 	add	si,5			; onto the next entry
-	cmp	ds:word ptr 3[si],0	; done the lot yet ?
+	cmp	word ptr [3 + si],0	; done the lot yet ?
 	 je	countryFixupLoop2
 	mov	es,ax			; ES -> PCMode Data
 	mov	di,offset stub_entries	; ES:DI -> stub segs
 	mov	cx,NUM_STUB_ENTRIES	; entries to initialise
 stubs_loop2:
-	add	di,WORD			; skip the offset
+	add	di,2			; skip the offset
 	stosw				; fixup segment
 	loop	stubs_loop2		; do the next one
 	mov	di,offset share_stub	; fixup the SHARE entries
 	mov	cx,NUM_SHARE_STUB_ENTRIES
 share_loop2:
-	add	di,WORD			; skip the offset
+	add	di,2			; skip the offset
 	stosw				; fixup segment
 	loop	share_loop2
 ;	mov	cx,0
@@ -1597,11 +1597,11 @@ share_loop2:
 ;	mov	ds:int2FBiosHandler,ax
 ;	mov	ax,es:.INT2F_SEGMENT
 ;	mov	ds:int2FBiosHandler+2,ax
-	mov	ds:int2FNext+2,ds	; fixup seg of out stub
+	mov	[int2FNext+2],ds	; fixup seg of out stub
 
 	mov	cx,40h-2Ah		; 2A-3F point at IRET in DOS Data Seg
 	mov	di,INT2A_OFFSET
-	mov	bp,cs:int_stubs_seg
+	mov	bp,[cs:int_stubs_seg]
 	xor	bx,bx
 	push	es
 	mov	es,bp
@@ -1611,7 +1611,7 @@ dummy_vecs_loop2:
 ;	mov	ax,offset DummyIRET	; point at an IRET
 ;	stosw				; do the offset
 ;	mov	ax,ds
-	mov	es:3[bx],ds
+	mov	[es:3 + bx],ds
 ;	stosw				; then the segment
 	add	bx,5
 dummy_vecs_skip2:
@@ -1624,12 +1624,12 @@ dummy_vecs_skip2:
 	mov	es,bp
 def_data_vecs_loop2:
 ;	lods cs:ax ! mov di,ax		; Get the Vector Offset (from CS)
-;	mov	ax,cs:[si]
+;	mov	ax,[cs:si]
 ;	db	2Eh			; CS:
 ;	movsw				; copy service routine offset
 ;	mov	ax,ds			; finally fixup the segment too
 ;	stosw
-	mov	es:3[bx],ds
+	mov	[es:3 + bx],ds
 	add	bx,5
 	loop	def_data_vecs_loop2
 	pop	es
@@ -1639,10 +1639,10 @@ def_data_vecs_loop2:
 
 	mov	si,offset bdosInstanceFixups
 InstanceFixupLoop2:
-	mov	ds:2[si],ds		; fixup data segment
+	mov	[2 + si],ds		; fixup data segment
 	add	si,6			; onto next item
-	mov	ax,ds:[si]		; still BDOS ?
-	or	ax,ds:2[si]
+	mov	ax,[si]		; still BDOS ?
+	or	ax,[2 + si]
 	 jnz	InstanceFixupLoop2	; yep, do another one
 
 	push	cs			; we will have a RETF
@@ -1677,30 +1677,30 @@ InstanceFixupLoop2:
 
 pcmode_reinit:
 ;=============
-	mov	ds:word ptr intl_xlat+2,ds
+	mov	word ptr [intl_xlat+2],ds
 					; fixup intl case routine
-	mov	ds:codeSeg,cs		; fixup code segment
+	mov	[codeSeg],cs		; fixup code segment
 
 
-	mov	ax,ds:hashptr		; make a copy of the hashroot
-	mov	ds:hashroot,ax		;  so it's global
-	mov	ax,ds:hashptr+WORD
-	mov	ds:hashroot+WORD,ax
-	mov	al,ds:@hist_flg		; get initial history flags
+	mov	ax,[hashptr]		; make a copy of the hashroot
+	mov	[hashroot],ax		;  so it's global
+	mov	ax,[hashptr+2]
+	mov	[hashroot+2],ax
+	mov	al,[@hist_flg]		; get initial history flags
 	and	ax,RLF_ENHANCED+RLF_INS+RLF_SEARCH
-	mov	ds:cle_state,ax		; use to set initial editing state
+	mov	[cle_state],ax		; use to set initial editing state
 
-	mov	ds:word ptr xmsDriver,offset invalid_stub
-	mov	ds:word ptr xmsDriver+2,ds
+	mov	word [xmsDriver],offset invalid_stub
+	mov	word ptr [xmsDriver+2],ds
 
 	mov	bx,offset FirstCodeEntryPoint
 pcmode_reinit10:
-	mov	ds:3[bx],cs		; fixup segment of the JMPF
+	mov	[3 + bx],cs		; fixup segment of the JMPF
 	add	bx,8			; onto the next one
 	cmp	bx,offset LastCodeEntryPoint
 	 jb	pcmode_reinit10
-	mov	ax,ds:hmaRoot		; have we established an HMA free chain
-	or	ax,ds:hmaAlloc		;  or have any registered users ?
+	mov	ax,[hmaRoot]		; have we established an HMA free chain
+	or	ax,[hmaAlloc]		;  or have any registered users ?
 	 jz	pcmode_reinit30		; if so hook for EXEPACK support	
 	mov	ax,4300h
 	int	2Fh			; do we have an XMS driver ?
@@ -1708,24 +1708,24 @@ pcmode_reinit10:
 	 jne	pcmode_reinit30
 	mov	ax,4310h		; get it's entry point
 	int	2Fh			;  in ES:BX
-	mov	ds:word ptr xmsDriver,bx
-	mov	ds:word ptr xmsDriver+2,es
+	mov	word ptr [xmsDriver],bx
+	mov	word ptr [xmsDriver+2],es
 
 	mov	ax,0FFFFh
 	mov	es,ax
 	inc	ax			; AX = 0
-	mov	es:94h,ax		; zero the HMA alias for Int 21
-	mov	es:96h,ax		;  we use this as our A20 gate test
+	mov	[es:94h],ax		; zero the HMA alias for Int 21
+	mov	[es:96h],ax		;  we use this as our A20 gate test
 
 	mov	bx,offset FirstCodeEntryPoint
 pcmode_reinit20:
 	mov	ax,offset A20Enable-3	; we need a relative offset to
 	sub	ax,bx			;  poke in a "call A20Enable"
-	xchg	ax,ds:1[bx]		; pick up the entry point segment
-	mov	ds:byte ptr 0[bx],0E8h	; CALL NEAR
-	mov	ds:byte ptr 3[bx],0EAh	; JMPF
-	mov	ds:4[bx],ax		; fixup the offset
-	mov	ds:6[bx],cs		; fixup the segment
+	xchg	ax,[1 + bx]		; pick up the entry point segment
+	mov	byte ptr [0 + bx],0E8h	; CALL NEAR
+	mov	byte ptr [3 + bx],0EAh	; JMPF
+	mov	[4 + bx],ax		; fixup the offset
+	mov	[6 + bx],cs		; fixup the segment
 	add	bx,8			; ready to do the next entry
 	cmp	bx,offset LastCodeEntryPoint
 	 jb	pcmode_reinit20
@@ -1742,9 +1742,9 @@ pcmode_reinit20:
 	mov	al,0C3h
 	stosb				; RET
 
-	cmp	ds:codeSeg,0F000h	; have we relocated DOS into the HMA ?
+	cmp	word [codeSeg],0F000h	; have we relocated DOS into the HMA ?
 	 jb	pcmode_reinit30		;  if so we must remember it
-	or	cs:patch_version,DOSINHMA
+	or	word [cs:patch_version],DOSINHMA
 pcmode_reinit30:
 	retf
 
