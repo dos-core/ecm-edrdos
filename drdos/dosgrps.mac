@@ -1,52 +1,39 @@
-PCMDATA group PCMODE_DATA,FDOS_DSEG,FIXED_DOS_DATA,PCMODE_CODE
-PCMDATA group GLOBAL_DATA,BDOS_DATA,PCMODE_DSIZE
-
-PCMCODE group PCM_HEADER,PCM_CODE,BDOS_CODE,PCM_RODATA,PCM_HISTORY
-PCMCODE group PCM_ICODE,PCM_CODEND
-
-PCM_HEADER segment public para 'CODE'
-PCM_HEADER ends
-
-PCM_CODE segment public byte 'CODE'
-PCM_CODE ends
-
-BDOS_CODE segment public word 'CODE'
-BDOS_CODE ends
-
-PCM_RODATA segment public word 'CODE'
-PCM_RODATA ends
-
-PCM_HISTORY segment public byte 'CODE'
-PCM_HISTORY ends
-
-PCM_ICODE segment public byte 'CODE'
-PCM_ICODE ends
-
-PCM_CODEND segment public para 'CODE'
-PCM_CODEND ends
+[list -]
 
 
 
-PCMODE_DATA segment public word 'DATA'
-PCMODE_DATA ends
+section PCM_HEADER public align=16 class=CODE
 
-FDOS_DSEG segment common word 'DATA'
-FDOS_DSEG ends
+section PCM_CODE public align=1 class=CODE
 
-FIXED_DOS_DATA segment public word 'DATA'
-FIXED_DOS_DATA ends
+section BDOS_CODE public align=2 class=CODE
 
-PCMODE_CODE segment public word 'DATA'
-PCMODE_CODE ends
+section PCM_RODATA public align=2 class=CODE
 
-GLOBAL_DATA segment public word 'DATA'
-GLOBAL_DATA ends
+section PCM_HISTORY public align=1 class=CODE
 
-BDOS_DATA segment public word 'DATA'
-BDOS_DATA ends
+section PCM_ICODE public align=1 class=CODE
 
-PCMODE_DSIZE segment public para 'DATA'
-PCMODE_DSIZE ends
+section PCM_CODEND public align=16 class=CODE
 
 
-end
+
+section PCMODE_DATA public align=2 class=DATA
+
+section FDOS_DSEG common align=2 class=DATA
+
+section FIXED_DOS_DATA public align=2 class=DATA
+
+section PCMODE_CODE public align=2 class=DATA
+
+section GLOBAL_DATA public align=2 class=DATA
+
+section BDOS_DATA public align=2 class=DATA
+
+section PCMODE_DSIZE public align=16 class=DATA
+
+
+group PCMDATA PCMODE_DATA FDOS_DSEG FIXED_DOS_DATA PCMODE_CODE GLOBAL_DATA BDOS_DATA PCMODE_DSIZE
+group PCMCODE PCM_HEADER PCM_CODE BDOS_CODE PCM_RODATA PCM_HISTORY PCM_ICODE PCM_CODEND
+
+[list +]
