@@ -67,10 +67,9 @@
 ; As we use the patch area the pointer in the header should be incremented
 ; in order to retain progressively larger amounts of code.
 
-PCMDATA group PCMODE_DATA,FIXED_DOS_DATA,PCMODE_CODE
-PCMDATA group BDOS_DATA,PCMODE_DSIZE
+group PCMDATA PCMODE_DATA FIXED_DOS_DATA PCMODE_CODE BDOS_DATA PCMODE_DSIZE
 
-PCMCODE group PCM_HEADER,PCM_HISTORY,PCM_ICODE,PCM_CODEND
+group PCMCODE PCM_HEADER PCM_HISTORY PCM_ICODE PCM_CODEND
 
 	%include "pcmode.mac"
 	%include "vectors.mac"
@@ -1308,8 +1307,10 @@ lengthof_country_filename equ $ - country_filename
 
 countryTable:
 	db	2
+UCasetbl equ Ucasetbl	; NASM port label
 	dw	offset UCasetbl,0
 	db	4
+FileUCasetbl equ FileUcasetbl	; NASM port label
 	dw	offset FileUCasetbl,0
 	db	5
 	dw	offset FileCharstbl,0
