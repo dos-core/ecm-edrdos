@@ -1292,7 +1292,13 @@ NoYesChars	db	'NnYy'
 dummy_fcbs	dw	0ffffh		; terminate now
 		dw	0
 		dw	1		; with one entry
-		db	DHNDL_LEN dup (0)	; this many bytes in it
+		; db	DHNDL_LEN dup (0)	; this many bytes in it
+		; Commented out for NASM port (ecm) because the SFT entry
+		;  structure has grown so large that the following org
+		;  would overwrite the trail of the structure. This appears
+		;  to be a fairly benign bug but NASM won't allow rewriting
+		;  data it has already assembled, so we comment out this
+		;  padding so that the correct number of zeroes is inserted.
 
     org 1232h - PCMODE_CODE_START   
 
