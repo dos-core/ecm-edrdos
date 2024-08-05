@@ -76,7 +76,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -DPASSWORD -c -Fl.\BIN\ioctl.lst -Fo.\BIN\ioctl ioctl.asm
 IF ERRORLEVEL 1 GOTO FAILED
 
-nasm -P nasm.mac -f obj history.nas -l bin/history.lst -o bin/history.obj
+nasm -s -P nasm.mac -f obj history.nas -l bin/history.lst -o bin/history.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -DDELWATCH -c -Fl.\BIN\int2f.lst -Fo.\BIN\int2f int2f.asm
