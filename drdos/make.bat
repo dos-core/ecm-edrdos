@@ -22,7 +22,7 @@ if not exist %JWASMEXE% goto badtool
 
 copy ..\version.inc . /y
 
-%JWASMEXE% -c -Fl.\BIN\header.lst -Fo.\BIN\header header.asm
+nasm -s -P nasm.mac -P nasmorg.mac -f obj header.nas -l bin/header.lst -o bin/header.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -c -Fl.\BIN\pcmif.lst -Fo.\BIN\pcmif pcmif.asm
