@@ -181,6 +181,7 @@ IDZ             equ     'Z'		; last id code
 ;FDOS_DSEG	DSEG	WORD COMMON	; FDOS Parameter Block	
 
 section FDOS_DSEG common align=2 class=DATA
+section FDOS_DSEG
 fdos_data	dw	7 dup (?)
 FDOS_DSEG	ends
 
