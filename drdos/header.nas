@@ -943,6 +943,7 @@ Int27Entry:
 
 Int2FEntry:
 	db	0EAh			; JMPF
+int2f_entry equ int2F_entry	; NASM port label
 	dw	int2f_entry
 	db	5 dup (0)		; filled in at run time
 
@@ -1247,8 +1248,9 @@ xlat_xlat:
 	 jb	xlat_exit
 	sub	al,080h
 	push	bx
+Standard_table equ standard_table	; NASM port label
 	mov	bx,offset Standard_table
-	xlat	cs:0
+	cs xlatb
 	pop	bx
 xlat_exit:
 	retf
