@@ -1297,7 +1297,8 @@ dummy_fcbs	dw	0ffffh		; terminate now
 
 	Public	country_filename
 country_filename db	'\COUNTRY.SYS'
-		db	64 - (lengthof country_filename) dup (0)
+lengthof_country_filename equ $ - country_filename
+		db	64 - (lengthof_country_filename) dup (0)
 
     org 1276h - PCMODE_CODE_START   
 
