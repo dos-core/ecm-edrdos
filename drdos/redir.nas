@@ -1456,7 +1456,7 @@ redir_build_path:
 	lodsw
 redir_bp10:
 ; Is it a "\\server\sharename\subdir\filename.ext" format ?
-	call	check_dslash		; if it is \\
+	call	check_dslash		; if it is \\.
 	 je	redir_bp20		;  then just copy the lot
 ; it's a normal "A:\subdir\filename.ext" pathname format
 	dec	si			; we have swallowed the 1st two
