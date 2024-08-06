@@ -196,8 +196,8 @@ int21_entry:
 	 ja	illegal_iret		;  no, return BEFORE enabling ints
 	cld				; Clear the direction flag
 	PUSH_DOS			; Save User Registers
-	mov	ds,[pcmode_dseg]		; get CS relative Data Segment
-	test	word [pcmode_dseg],0FFFFh	; if Data Segment is zero then get
+	mov	ds,[cs:pcmode_dseg]		; get CS relative Data Segment
+	test	word [cs:pcmode_dseg],0FFFFh	; if Data Segment is zero then get
 	 jz	int21_e01		; the Data segment address from
 int21_e02:				; the segment portion of INT 31
 
@@ -339,6 +339,7 @@ int21_idle:
 
 int21_active:				; Active function Executed
 	or	word [idle_flags],word ptr IDLE_DOSFUNC	; set DOSFUNC flag for BIOS
+	nop	; identicalise
 	call	active			; remember we were active
 	jmp	int21_e60		; continue execution
 
@@ -485,7 +486,7 @@ int21_func:
 	xor	bx,bx			; BH = 0
 	mov	bl,ah			; BX = function number
 	shl	bx,1			; make it a word offset
-	push	word [pcmode_ft + bx]		; save address of Function
+	push	word [cs:pcmode_ft + bx]		; save address of Function
 	les	bp,[int21regs_ptr]
 	mov	bx,[es:reg_BX + bp]	; reload from dos_BX,dos_BP,and dos_DS
 	les	bp,[es:reg_BP + bp]
@@ -506,7 +507,7 @@ internal_func:
 	cbw				; AH = 0
 	xchg	ax,bx			; get subfunction in BX
 	shl	bx,1			; make offset in the internal table
-	push	word [pcmode_ft + bx]		; save address of Function
+	push	word [cs:pcmode_ft + bx]		; save address of Function
 	xchg	ax,bx			; restore BX
 	mov	ax,[reg_AX + bp]		; recover function number
 	mov	es,[reg_DS + bp]		; ES = callers DS
@@ -652,7 +653,7 @@ int26_40:
 int26_50:				; no, make it general failure
 	mov	ah,al			; save error in AH
 	mov	bx,offset int13_error
-	xlatb		; convert error to int13 format
+	cs xlatb		; convert error to int13 format
 	xchg	al,ah			; get errors in correct registers
 int26_60:
 	stc				; Set the Carry Flag when an error
@@ -818,8 +819,8 @@ di24_abort:				; Abort this Process
 ;
 	Public	get_dseg
 get_dseg:
-	mov	ds,[pcmode_dseg]		; get CS relative Data Segment
-	test	word [pcmode_dseg],0FFFFh	; If Data Segment is zero then get
+	mov	ds,[cs:pcmode_dseg]		; get CS relative Data Segment
+	test	word [cs:pcmode_dseg],0FFFFh	; If Data Segment is zero then get
 	jz	get_d10			; the Data segment address from
 	ret				; the segment portion of INT 31
 get_d10:
