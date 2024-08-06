@@ -623,7 +623,7 @@ redir_chdir:
 	mov	si,offset pri_pathname
 
 ; DGM - don't allow path greater than 66 chars
-	mov	cx, [LDT_FLAGS-LDT_NAME]	; calculate max pathlen from LDT
+	mov	cx, LDT_FLAGS-LDT_NAME	; calculate max pathlen from LDT
 	mov	di, si
 	sub	ax,ax
 	repne	scasb
