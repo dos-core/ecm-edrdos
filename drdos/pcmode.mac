@@ -93,7 +93,7 @@ NO_CRIT_ERRORS	equ	01000000b	; critical error shouldn't be generated
 ;	are saved on the stack. This format is also seen by an application
 ;	when a critical error occurs.
 ;
-%macro POP_DOS 0			; Pop User Registers a la MS-DOS
+%macro POP_DOS 0.nolist			; Pop User Registers a la MS-DOS
 	pop	ax
 	pop	bx
 	pop	cx
@@ -105,7 +105,7 @@ NO_CRIT_ERRORS	equ	01000000b	; critical error shouldn't be generated
 	pop	es
 %endmacro
 
-%macro PUSH_DOS 0			; Push User Registers
+%macro PUSH_DOS 0.nolist		; Push User Registers
 	push	es
 	push	ds
 	push	bp
