@@ -122,21 +122,21 @@
 ; 14 jun 91 copy user regs to local copy after int24 for pcshell
 ;  8 aug 91 SI preserved on Int25/26 for SCAN 7.7
 
-PCMDATA group PCMODE_DATA,FDOS_DSEG
-PCMCODE group PCM_CODE,PCM_RODATA
+group PCMDATA PCMODE_DATA FDOS_DSEG
+group PCMCODE PCM_CODE PCM_RODATA
 
-	.nolist
-	include	pcmode.equ
-	include	fdosdef.def
-	include	vectors.def
-	include	msdos.equ
-	include	mserror.equ
-	include	psp.def
-	include	fdos.equ
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "fdosdef.mac"
+	%include "vectors.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
+	%include "psp.mac"
+	%include "fdos.mac"
+	[list +]
 
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 ASSUME DS:PCMDATA
 
 	extrn	pcmode_dseg:word
@@ -162,9 +162,9 @@ call5_entry:
 	pushf			; Save the Flags
 	push 	bp
 	mov 	bp,sp		; Get Stack Frame Pointer
-	mov	ax,02[bp]	; Get the FLAGS
-	xchg	ax,06[bp]	; Swap with the return offset
-	mov	02[bp],ax	; and then save the return offset
+	mov	ax,[02 + bp]	; Get the FLAGS
+	xchg	ax,[06 + bp]	; Swap with the return offset
+	mov	[02 + bp],ax	; and then save the return offset
 	pop	bp		; Restore the BP register
 	mov	ah,cl		; Make it look like an INT 21
 	cmp	ah,024h		; Check for a valid function for this
@@ -174,7 +174,7 @@ illegal_iret:
 	iret
 
 int21_e01:
-	mov	ds,word ptr ds:INT31_SEGMENT
+	mov	ds,word ptr [INT31_SEGMENT]
 	jmp	int21_e02
 
 ;	++++++++++++++++++++++++++
@@ -196,8 +196,8 @@ int21_entry:
 	 ja	illegal_iret		;  no, return BEFORE enabling ints
 	cld				; Clear the direction flag
 	PUSH_DOS			; Save User Registers
-	mov	ds,pcmode_dseg		; get CS relative Data Segment
-	test	pcmode_dseg,0FFFFh	; if Data Segment is zero then get
+	mov	ds,[pcmode_dseg]		; get CS relative Data Segment
+	test	word [pcmode_dseg],0FFFFh	; if Data Segment is zero then get
 	 jz	int21_e01		; the Data segment address from
 int21_e02:				; the segment portion of INT 31
 
@@ -220,40 +220,40 @@ int21_e10:
 	jmp	int21_exit
 
 int21_e20:
-	inc	indos_flag		; Increment the INDOS Flag
+	inc	byte [indos_flag]		; Increment the INDOS Flag
 
-	mov	int21AX,ax		; save function number
+	mov	[int21AX],ax		; save function number
 
-	cmp	WindowsHandleCheck,26h	; is windows active ?
+	cmp	byte [WindowsHandleCheck],26h	; is windows active ?
 	 jne	int21_e30
-	mov	ax,LocalMachineID	; get local machine ID (zero unless
-	mov	machine_id,ax		;  we are multi-tasking)
+	mov	ax,[LocalMachineID]	; get local machine ID (zero unless
+	mov	[machine_id],ax		;  we are multi-tasking)
 
 int21_e30:
-	mov	ax,current_psp
-	mov	owning_psp,ax
+	mov	ax,[current_psp]
+	mov	[owning_psp],ax
 	mov	es,ax			; Get the PSP
 
 	mov	ax,sp
-	mov	es:PSP_USERSP,ax	; Save the SS:SP pointer to 
-	mov	es:PSP_USERSS,ss	; the register image ready for any
+	mov	[es:PSP_USERSP],ax	; Save the SS:SP pointer to 
+	mov	[es:PSP_USERSS],ss	; the register image ready for any
 					; Critical errors that might occur
 
-	xchg	ax,int21regs_off	; point to callers registers
-	mov	prev_int21regs_off,ax	; while saving current
+	xchg	ax,[int21regs_off]	; point to callers registers
+	mov	[prev_int21regs_off],ax	; while saving current
 	mov	ax,ss			;  pointer to cater for
-	xchg	ax,int21regs_seg	;  re-entrancy
-	mov	prev_int21regs_seg,ax
+	xchg	ax,[int21regs_seg]	;  re-entrancy
+	mov	[prev_int21regs_seg],ax
 
 	xor	ax,ax
-	mov	remote_call,ax		; indicate we are a local call
-	mov	int28_flag,al		; Do NOT Generate INT 28s
-	mov	lfnpathflag, al
+	mov	[remote_call],ax		; indicate we are a local call
+	mov	[int28_flag],al		; Do NOT Generate INT 28s
+	mov	[lfnpathflag], al
 
 	mov	ax,ds
 	mov	ss,ax			; swap initially to the error
 	mov	sp,offset error_stack	;  stack until we know better
-	mov	ax,int21AX		; reload AX
+	mov	ax,[int21AX]		; reload AX
 
 	sti
 	cmp	ah,59h			; Func 59h - Return Extended Error
@@ -262,14 +262,14 @@ int21_e30:
 	 ja	int21_e40		;  in range 01-0C ?
 	cmp	ah,00h
 	 je	int21_e40
-	cmp	error_flag,0		; Use the "ERROR" Stack for the above
+	cmp	byte [error_flag],0		; Use the "ERROR" Stack for the above
 	 jnz	int21_e50		;  functions 01-0C if error_flag set
 	mov	sp,offset indos_stack	; else use the "INDOS" stack for these
-	mov	int28_flag,TRUE	and 0ffh	;  functions and generate INT 28s
+	mov	byte [int28_flag],TRUE	& 0ffh	;  functions and generate INT 28s
 	jmp	int21_e50
 
 int21_e40:
-	mov	error_flag,0		; clear the error flag in case someone
+	mov	byte [error_flag],0		; clear the error flag in case someone
 					; hasn't returned from an Int 24
 	push	ax			; save function on stack
 	mov	ah,82h			; magic number in AH
@@ -277,27 +277,27 @@ int21_e40:
 	pop	ax			; recover function number
 
 	mov	sp,offset normal_stack	; switch to the NORMAL stack
-	test	break_flag,0FFh		; is the Break Flag ON
+	test	byte [break_flag],0FFh		; is the Break Flag ON
 	 jz	int21_e50		;  NO - So continue
 	call	break_check		; Handle the Control-C
 int21_e50:
-if IDLE_DETECT
-	test	idle_flags,word ptr IDLE_DISABLE	; don't break the pipeline unless
+%if IDLE_DETECT
+	test	word [idle_flags],word ptr IDLE_DISABLE	; don't break the pipeline unless
 	 jz	int21_idle		;  IDLE checking enabled
 int21_e60:
-endif
+%endif
 	call	int21_func		; Execute the function
 	cli				; Stop anybody interfering
-	les	bp,int21regs_ptr	; point to user stack
-	mov	es:reg_AL[bp],al	; always return AL
-	mov	ax,prev_int21regs_off
-	mov	int21regs_off,ax
-	mov	ax,prev_int21regs_seg
-	mov	int21regs_seg,ax
+	les	bp,[int21regs_ptr]	; point to user stack
+	mov	[es:reg_AL + bp],al	; always return AL
+	mov	ax,[prev_int21regs_off]
+	mov	[int21regs_off],ax
+	mov	ax,[prev_int21regs_seg]
+	mov	[int21regs_seg],ax
 	mov	ax,es
 	mov	ss,ax			; back to users stack
 	mov	sp,bp
-	dec	indos_flag		; Decrement the INDOS_FLAG
+	dec	byte [indos_flag]		; Decrement the INDOS_FLAG
 ;	jmp	int21_exit
 
 	Public	int21_exit
@@ -305,17 +305,17 @@ int21_exit:
 	POP_DOS				; Restore Registers
 	iret
 
-if IDLE_DETECT
+%if IDLE_DETECT
 ; Only called if Idle detection is enabled
 ; AH,DL as on Int 21 Entry
 ; Decide if function is active/inactive
 
 int21_idle:
 ;----------
-if IDLE_DETECT
-	mov	bx,int28_reload		; reset the INT28 delay counter
-	mov	int28_delay,bx		;  with the Reload value
-endif
+%if IDLE_DETECT
+	mov	bx,[int28_reload]		; reset the INT28 delay counter
+	mov	[int28_delay],bx		;  with the Reload value
+%endif
 	cmp 	ah,5Ch
 	je 	int21_inactive		; Treat Lock/Unlock as inactive some
 					; applications poll locked record.
@@ -338,7 +338,7 @@ endif
 	je 	int21_inactive
 
 int21_active:				; Active function Executed
-	or	idle_flags,word ptr IDLE_DOSFUNC	; set DOSFUNC flag for BIOS
+	or	word [idle_flags],word ptr IDLE_DOSFUNC	; set DOSFUNC flag for BIOS
 	call	active			; remember we were active
 	jmp	int21_e60		; continue execution
 
@@ -352,16 +352,16 @@ inactive:
 	push 	es
 	push 	ax
 
-	dec	active_cnt		; Decrement the count
+	dec	word [active_cnt]		; Decrement the count
 	jnz	inactive_10		; Return if Non-Zero
 
-	mov	ax,idle_max		; Get the default count value
-	mov	active_cnt,ax		; and reset the internal count
+	mov	ax,[idle_max]		; Get the default count value
+	mov	[active_cnt],ax		; and reset the internal count
 
-	test	idle_flags,IDLE_DISABLE	; Has Idle Checking been enabled
+	test	word [idle_flags],IDLE_DISABLE	; Has Idle Checking been enabled
 	 jnz	inactive_10		; Skip if NO.
 	mov	ax,PROC_IDLE		; Process is IDLE
-	call	dword ptr idle_vec	; Call the IDLE Handler
+	call	far [idle_vec]	; Call the IDLE Handler
 
 inactive_10:
 	pop 	ax
@@ -374,11 +374,11 @@ inactive_10:
 	Public	active
 active:
 	push	ax
-	mov	ax,idle_max		; Get the default count value
-	mov	active_cnt,ax		; and reset the internal count
+	mov	ax,[idle_max]		; Get the default count value
+	mov	[active_cnt],ax		; and reset the internal count
 	pop	ax
 	ret
-endif
+%endif
 ;
 ;
 ;	This function is invoked for functions number above the last 
@@ -416,37 +416,37 @@ dos_entry:
 
 	call	get_dseg		; Get our Data Area
 
-	inc	internal_flag
+	inc	byte [internal_flag]
 
-	push	fdos_data+0*WORD	; save fdos pblk so we can
-	push	fdos_data+1*WORD	;  be re-entrant(ish)
-	push	fdos_data+2*WORD
-	push	fdos_data+3*WORD
-	push	fdos_data+4*WORD
-	push	fdos_data+5*WORD
-	push	fdos_data+6*WORD
+	push	word [fdos_data+0*2]	; save fdos pblk so we can
+	push	word [fdos_data+1*2]	;  be re-entrant(ish)
+	push	word [fdos_data+2*2]
+	push	word [fdos_data+3*2]
+	push	word [fdos_data+4*2]
+	push	word [fdos_data+5*2]
+	push	word [fdos_data+6*2]
 	
-	push	int21regs_off
-	push	int21regs_seg
+	push	word [int21regs_off]
+	push	word [int21regs_seg]
 
-	mov	int21regs_off,bp
-	mov	int21regs_seg,ss
+	mov	[int21regs_off],bp
+	mov	[int21regs_seg],ss
 
 	call	internal_func		; Execute the function
-	mov	reg_AL[bp],al		; always return AL to caller
+	mov	[reg_AL + bp],al		; always return AL to caller
 
-	pop	int21regs_seg
-	pop	int21regs_off		; restore previous pointer user REGS
+	pop	word [int21regs_seg]
+	pop	word [int21regs_off]		; restore previous pointer user REGS
 
-	pop	fdos_data+6*WORD
-	pop	fdos_data+5*WORD
-	pop	fdos_data+4*WORD
-	pop	fdos_data+3*WORD
-	pop	fdos_data+2*WORD
-	pop	fdos_data+1*WORD
-	pop	fdos_data+0*WORD	; restore fdos_pb for nested calls
+	pop	word [fdos_data+6*2]
+	pop	word [fdos_data+5*2]
+	pop	word [fdos_data+4*2]
+	pop	word [fdos_data+3*2]
+	pop	word [fdos_data+2*2]
+	pop	word [fdos_data+1*2]
+	pop	word [fdos_data+0*2]	; restore fdos_pb for nested calls
 
-	dec	internal_flag
+	dec	byte [internal_flag]
 
 	pop 	ax
 	pop 	bx			; Update the registers then
@@ -485,10 +485,10 @@ int21_func:
 	xor	bx,bx			; BH = 0
 	mov	bl,ah			; BX = function number
 	shl	bx,1			; make it a word offset
-	push	pcmode_ft[bx]		; save address of Function
-	les	bp,int21regs_ptr
-	mov	bx,es:reg_BX[bp]	; reload from dos_BX,dos_BP,and dos_DS
-	les	bp,es:dword ptr reg_BP[bp]
+	push	word [pcmode_ft + bx]		; save address of Function
+	les	bp,[int21regs_ptr]
+	mov	bx,[es:reg_BX + bp]	; reload from dos_BX,dos_BP,and dos_DS
+	les	bp,[es:reg_BP + bp]
 	ret
 
 
@@ -506,10 +506,10 @@ internal_func:
 	cbw				; AH = 0
 	xchg	ax,bx			; get subfunction in BX
 	shl	bx,1			; make offset in the internal table
-	push	pcmode_ft[bx]		; save address of Function
+	push	word [pcmode_ft + bx]		; save address of Function
 	xchg	ax,bx			; restore BX
-	mov	ax,reg_AX[bp]		; recover function number
-	mov	es,reg_DS[bp]		; ES = callers DS
+	mov	ax,[reg_AX + bp]		; recover function number
+	mov	es,[reg_DS + bp]		; ES = callers DS
 	ret				; "jump" to handler
 
 ;	INT25 and INT26 direct disk I/O interface
@@ -579,9 +579,9 @@ int26_10:				; Common Direct Disk I/O code
 	push 	ds
 	pop 	es			; ES = callers DS
 	call	get_dseg		; Get PCMODE Data Segment
-	inc	indos_flag		; Update the INDOS_FLAG
-	mov	normal_stack+2,ss	; save users SS:SP
-	mov	normal_stack,sp
+	inc	byte [indos_flag]		; Update the INDOS_FLAG
+	mov	[normal_stack+2],ss	; save users SS:SP
+	mov	[normal_stack],sp
 	cli
 	push 	ds
 	pop 	ss			; use normal stack when in here
@@ -599,24 +599,24 @@ int26_10:				; Common Direct Disk I/O code
 	mov	di,0201h		; assume bad drive
 	 jc	int26_20
 	mov	di,0207h		; assume large media, and this error
-if 0
+%if 0
 ; This code works out the total number of sectors on a drive
-	mov	ax,es:DDSC_NCLSTRS[bx]	; get last cluster #
+	mov	ax,[es:DDSC_NCLSTRS + bx]	; get last cluster #
 	dec	ax			;  make it # data clusters
 	xor	dx,dx
-	mov	dl,es:DDSC_CLMSK[bx]	; get sec/cluster -1
+	mov	dl,[es:DDSC_CLMSK + bx]	; get sec/cluster -1
 	inc	dx			; DX = sec/cluster
 	mul	dx			; DX:AX = # data sectors
-	add	ax,es:DDSC_DATADDR[bx]	; add in address of 1st data sector
+	add	ax,[es:DDSC_DATADDR + bx]	; add in address of 1st data sector
 	adc	dx,0
-else
-	mov	ax,es:DDSC_NCLSTRS[bx]	; get last cluster #
+%else
+	mov	ax,[es:DDSC_NCLSTRS + bx]	; get last cluster #
 	xor	dx,dx
-	mov	dl,es:DDSC_CLMSK[bx]	; get sec/cluster -1
+	mov	dl,[es:DDSC_CLMSK + bx]	; get sec/cluster -1
 	inc	dx			; DX = sec/cluster
 	mul	dx			; DX:AX is vaguely the # sectors
 	test	dx,dx			; close enough for bill
-endif
+%endif
 	stc				; assume an error
 	 jnz	int26_20
 	xor	di,di			; DI = zero, no error
@@ -629,19 +629,19 @@ int26_20:
 	xchg	ax,di			; AX = error code
 	jmp	int26_60		; return it
 int26_30:	
-	mov	dx,es:word ptr 0[bx]	; Get Starting Sector Low
-	mov	di,es:word ptr 2[bx]	; Get Starting Sector High
-	mov	cx,es:word ptr 4[bx]	; Get No. of sectors to transfer
-	les	bx,es:dword ptr 6[bx]	; Tranfer Address Offset
+	mov	dx,word ptr [es:0 + bx]	; Get Starting Sector Low
+	mov	di,word ptr [es:2 + bx]	; Get Starting Sector High
+	mov	cx,word ptr [es:4 + bx]	; Get No. of sectors to transfer
+	les	bx,[es:6 + bx]	; Tranfer Address Offset
 int26_40:
-	mov	FD_DDIO_DRV_OP,ax	; save drive and operation
-	mov	FD_DDIO_NSECTORS,cx	; No. of Sectors
-	mov	FD_DDIO_STARTLOW,dx	; Starting Sector No.
-	mov	FD_DDIO_STARTHIGH,di	; High Word of Sector Number
-	mov 	FD_DDIO_DMAOFF,bx	; DMA Offset
-	mov	FD_DDIO_DMASEG,es	; DMA Segment
+	mov	[FD_DDIO_DRV_OP],ax	; save drive and operation
+	mov	[FD_DDIO_NSECTORS],cx	; No. of Sectors
+	mov	[FD_DDIO_STARTLOW],dx	; Starting Sector No.
+	mov	[FD_DDIO_STARTHIGH],di	; High Word of Sector Number
+	mov 	[FD_DDIO_DMAOFF],bx	; DMA Offset
+	mov	[FD_DDIO_DMASEG],es	; DMA Segment
 
-	mov	FD_FUNC,FD_DDIO
+	mov	word [FD_FUNC],FD_DDIO
 	call	fdos_nocrit		; let the FDOS do the work
 	neg	ax			; AX is DOS extended error
 	 jz	int26_exit
@@ -652,16 +652,16 @@ int26_40:
 int26_50:				; no, make it general failure
 	mov	ah,al			; save error in AH
 	mov	bx,offset int13_error
-	xlat	int13_error		; convert error to int13 format
+	xlatb; convert error to int13 format
 	xchg	al,ah			; get errors in correct registers
 int26_60:
 	stc				; Set the Carry Flag when an error
 int26_exit:				; Occurs and return to the calling app.
 	cli
-	mov	ss,normal_stack+2	; back to user stack
-	mov	sp,normal_stack
+	mov	ss,[normal_stack+2]	; back to user stack
+	mov	sp,[normal_stack]
 	sti
-	dec	indos_flag		; Update the INDOS_FLAG
+	dec	byte [indos_flag]		; Update the INDOS_FLAG
 	sti
 	pop	dx
 	pop	di
@@ -718,7 +718,7 @@ int27_entry:
 ;
 	Public	do_int24
 do_int24:
-	cmp	error_flag,0		; Skip the critical error routine
+	cmp	byte [error_flag],0		; Skip the critical error routine
 	jz	di24_05			; if the handler is active
 	mov	al,ERR_FAIL		; Then return the FAIL condition
 	ret				; to the calling routine
@@ -728,24 +728,24 @@ di24_05:
 	cli				; Disable Interupts
 
 	mov	bp,es			; BP:SI points to dev header
-	mov	es,current_psp		; Get the current PSP and USER Stack
+	mov	es,[current_psp]		; Get the current PSP and USER Stack
 
-	push	es:PSP_USERSS		; Save the Users Real SS and SP
-	push	es:PSP_USERSP		; on the internal Stack
-	push	retry_sp		; also the retry info
-	push	retry_off
-	push	remote_call
-	push	machine_id
+	push	word [es:PSP_USERSS]		; Save the Users Real SS and SP
+	push	word [es:PSP_USERSP]		; on the internal Stack
+	push	word [retry_sp]		; also the retry info
+	push	word [retry_off]
+	push	word [remote_call]
+	push	word [machine_id]
 
-	mov	critical_sp,sp		; Internal Stack Pointer Offset
+	mov	[critical_sp],sp		; Internal Stack Pointer Offset
 
-	inc	error_flag		; Entering Critical Error Handler
-	dec	indos_flag		; I may be gone some time....
+	inc	byte [error_flag]		; Entering Critical Error Handler
+	dec	byte [indos_flag]		; I may be gone some time....
 					; (an application error handler need
 					; never return so tidy up first)
 
-	mov	ss,es:PSP_USERSS	; Switch to the Users Stack
-	mov	sp,es:PSP_USERSP
+	mov	ss,[es:PSP_USERSS]	; Switch to the Users Stack
+	mov	sp,[es:PSP_USERSP]
 
 	int	24h			; Call the Critical Error Handler
 
@@ -756,22 +756,22 @@ di24_05:
 
 	push 	ds
 	pop 	ss		; Swap back to the Internal stack
-	mov	sp,critical_sp		; and process the returned info.
+	mov	sp,[critical_sp]		; and process the returned info.
 
-	pop	machine_id
-	pop	remote_call
-	pop	retry_off		; restore retry info
-	pop	retry_sp
-	mov	es,current_psp		; Restore the Users original SS and
-	pop	es:PSP_USERSP		; SP registers from the Stack
-	pop	es:PSP_USERSS
+	pop	word [machine_id]
+	pop	word [remote_call]
+	pop	word [retry_off]		; restore retry info
+	pop	word [retry_sp]
+	mov	es,[current_psp]		; Restore the Users original SS and
+	pop	word [es:PSP_USERSP]		; SP registers from the Stack
+	pop	word [es:PSP_USERSS]
 
 	pop 	bp
 	pop 	bx			; Restore BP and original AX
 	sti
 
-	mov	error_flag,0
-    inc indos_flag  
+	mov	byte [error_flag],0
+    inc byte [indos_flag]  
 
 	cmp al,ERR_IGNORE
 	jnz di24_10			; Check for IGNORE and force
@@ -803,14 +803,14 @@ di24_40:
 	ret
 
 di24_abort:				; Abort this Process
-	mov	ax,current_psp		; check not root application because
+	mov	ax,[current_psp]		; check not root application because
 	mov	es,ax			; it must not be terminated so force
-	cmp	ax,es:PSP_PARENT	; Is this the root Process
+	cmp	ax,[es:PSP_PARENT]	; Is this the root Process
 	mov	al,ERR_FAIL		; convert the error to FAIL
 	 je	di24_40			; if not we terminate
-	mov	exit_type,TERM_ERROR	; Set the correct exit Type
+	mov	byte [exit_type],TERM_ERROR	; Set the correct exit Type
 	mov	ax,04C00h		; and return code.
-	mov	int21AX,ax
+	mov	[int21AX],ax
 	jmp	func4C			; Then terminate
 
 ;
@@ -818,12 +818,12 @@ di24_abort:				; Abort this Process
 ;
 	Public	get_dseg
 get_dseg:
-	mov	ds,pcmode_dseg		; get CS relative Data Segment
-	test	pcmode_dseg,0FFFFh	; If Data Segment is zero then get
+	mov	ds,[pcmode_dseg]		; get CS relative Data Segment
+	test	word [pcmode_dseg],0FFFFh	; If Data Segment is zero then get
 	jz	get_d10			; the Data segment address from
 	ret				; the segment portion of INT 31
 get_d10:
-	mov	ds,word ptr ds:INT31_SEGMENT
+	mov	ds,word ptr [INT31_SEGMENT]
 	ret
 
 
@@ -842,20 +842,20 @@ reload_registers:
 ; This routine is called to reload the registers we expect to have correct
 ; at the start of a PCMODE function.
 	push	ds
-	lds	bp,int21regs_ptr
-	mov	ax,ds:reg_AX[bp]
-	mov	bx,ds:reg_BX[bp]
-	mov	cx,ds:reg_CX[bp]
-	mov	dx,ds:reg_DX[bp]
-	mov	si,ds:reg_SI[bp]
-	mov	di,ds:reg_DI[bp]
-	les	bp,ds:dword ptr reg_BP[bp]
+	lds	bp,[int21regs_ptr]
+	mov	ax,[ds:reg_AX + bp]
+	mov	bx,[ds:reg_BX + bp]
+	mov	cx,[ds:reg_CX + bp]
+	mov	dx,[ds:reg_DX + bp]
+	mov	si,[ds:reg_SI + bp]
+	mov	di,[ds:reg_DI + bp]
+	les	bp,[ds:reg_BP + bp]
 	pop	ds
 	ret
 
 PCM_CODE ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 	extrn	retry_sp:word
 	extrn	retry_off:word
 	extrn	break_flag:byte
@@ -883,21 +883,21 @@ PCMODE_DATA	segment public word 'DATA'
 	extrn	WindowsHandleCheck:byte
 	extrn	lfnpathflag:byte
 
-if IDLE_DETECT
+%if IDLE_DETECT
 	extrn	active_cnt:word
 	extrn	idle_max:word
 	extrn	idle_flags:word
 	extrn	idle_vec:dword
 	extrn	int28_delay:word
 	extrn	int28_reload:word
-endif
+%endif
 	
 	extrn	critical_sp:word
 	extrn	internal_flag:byte
 	extrn	int28_flag:byte
 PCMODE_DATA 	ends
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 	extrn	func00:near, func01:near, func02:near, func03:near
 	extrn	func04:near, func05:near, func06:near, func07:near
 	extrn	func08:near, func09:near, func0A:near, func0B:near
@@ -932,7 +932,7 @@ PCM_CODE 	ends
 ;	Only word based Read Only data is held in this segment.
 ;
 
-PCM_RODATA segment public word 'CODE'
+section PCM_RODATA public align=2 class=CODE
 	Public	pcmode_ft, pcmode_ftl
 pcmode_ft	label word
 	dw	func00			; (00) Terminate Program
