@@ -31,7 +31,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -DDELWATCH -s -P nasm.mac -f obj buffers.nas -l bin/buffers.lst -o bin/buffers.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -DDELWATCH -DJOIN -c -Fl.\BIN\bdevio.lst -Fo.\BIN\bdevio bdevio.asm
+nasm -DDELWATCH -DJOIN -s -P nasm.mac -f obj bdevio.nas -l bin/bdevio.lst -o bin/bdevio.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -DDELWATCH -DKANJI -DJOIN -c -Fl.\BIN\redir.lst -Fo.\BIN\redir redir.asm
