@@ -4,22 +4,22 @@
 ; The DR-DOS/OpenDOS Enhancement Project - http://www.drdosprojects.de
 ; Copyright (c) 2002-2009 Udo Kuhnt
 
-	.nolist
-	include	bdos.equ
-	include	fdos.equ
-	include	pcmode.equ
-	include doshndl.def
-	include	lfn.equ
-	include	fdosdef.def
-	include	mserror.equ
-	.list
+	[list -]
+	%include "bdos.mac"
+	%include "fdos.mac"
+	%include "pcmode.mac"
+	%include "doshndl.mac"
+	%include "lfn.mac"
+	%include "fdosdef.mac"
+	%include "mserror.mac"
+	[list +]
 
-PCMCODE	GROUP	BDOS_CODE,PCM_CODE
-PCMDATA	GROUP	BDOS_DATA,PCMODE_DATA,FDOS_DSEG
+group PCMCODE BDOS_CODE PCM_CODE
+group PCMDATA BDOS_DATA PCMODE_DATA FDOS_DSEG
 
 ASSUME DS:PCMDATA
 
-BDOS_DATA	segment public word 'DATA'
+section BDOS_DATA public align=2 class=DATA
 	extrn	dcnt:word
 	extrn	fdos_pb:word
 
@@ -32,7 +32,7 @@ BDOS_DATA	segment public word 'DATA'
 	extrn lfn_search_redir:byte
 BDOS_DATA	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 	extrn	int21regs_ptr:dword
 	extrn	dma_segment:word
@@ -40,7 +40,7 @@ PCMODE_DATA	segment public word 'DATA'
 	extrn	current_psp:word
 PCMODE_DATA	ends
 
-BDOS_CODE	segment public word 'CODE'
+section BDOS_CODE public align=2 class=CODE
 
 	extrn	rd_pcdir:near
 	extrn	flush_dirbuf:near
@@ -50,9 +50,9 @@ BDOS_CODE	segment public word 'CODE'
 ;Exit:		carry flag set if LFN entry
 	Public	is_lfn
 is_lfn:
-	cmp	DATTS[bx],DA_LFN	; attribute combination of LFN entry?
+	cmp	byte [DATTS + bx],DA_LFN	; attribute combination of LFN entry?
 	 jne	is_lfn10		; no, must be something else
-	cmp	word ptr BLOCK1[bx],0	; no cluster chain?
+	cmp	word ptr [BLOCK1 + bx],0	; no cluster chain?
 	 jne	is_lfn10		; perhaps it is a Delwatch entry
 	stc				; it is probably a Long Filename
 	ret
@@ -63,27 +63,27 @@ is_lfn10:
 
 	Public	del_lfn
 del_lfn:
-	push	dcnt			; save dir count
+	push	word [dcnt]			; save dir count
 del_lfn10:
-	cmp	dcnt,0			; first entry in dir?
+	cmp	word [dcnt],0			; first entry in dir?
 	 je	del_lfn20		; then no LFN can exist before it
-	dec	dcnt			; point dir count to previous entry
-	dec	dcnt
+	dec	word [dcnt]			; point dir count to previous entry
+	dec	word [dcnt]
 	call	rd_pcdir		; read dir entry
 	mov	bx,ax
 	call	is_lfn			; check if it is a long filename
 	 jnc	del_lfn20		; no further LFN entries, done
-	mov	DNAME[bx],0e5h		; else mark this entry as deleted
+	mov	byte [DNAME + bx],0e5h		; else mark this entry as deleted
 	call	flush_dirbuf		; and copy it to the buffer
 	jmp	del_lfn10		; repeat with next entry
 del_lfn20:
-	pop	dcnt			; restore dir count
-	dec	dcnt
+	pop	word [dcnt]			; restore dir count
+	dec	word [dcnt]
 	call	rd_pcdir		; and old dir entry
 	ret
 BDOS_CODE	ends
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 	extrn	return_AX_CLC:near
 	extrn	vfy_dhndl_ptr_AX:near
 	extrn	check_handle:near
@@ -135,8 +135,8 @@ f71_error_7100:
 
 func7142:
 	push	ds
-	lds	bp,int21regs_ptr
-	mov	ax,ds:reg_CX[bp]	; AL = original CL
+	lds	bp,[int21regs_ptr]
+	mov	ax,[ds:reg_CX + bp]	; AL = original CL
 	pop	ds
 	cmp	al,2			; valid subfunction number?
 	 jbe	f7142_02
@@ -149,16 +149,16 @@ f7142_02:
 	neg	ax
 	jmp	f71_error
 f7142_handle_ok:
-	test	es:byte ptr DHNDL_WATTR+1[bx],DHAT_REMOTE/100h
+	test	byte ptr [es:DHNDL_WATTR+1 + bx],DHAT_REMOTE/100h
 	jz f7142_not_redirector
 
 f7142_redirector:
 	mov di, bx		; es:di -> SFT entry
 
 	push	ds
-	lds	bp,int21regs_ptr
-	mov	dx,ds:reg_DX[bp]
-	mov	ds,ds:reg_DS[bp]; ds:dx -> buffer
+	lds	bp,[int21regs_ptr]
+	mov	dx,[ds:reg_DX + bp]
+	mov	ds,[ds:reg_DS + bp]; ds:dx -> buffer
 
 		; If either of the calls fails with error 1
 		;  it means that call is not supported. So we
@@ -196,16 +196,16 @@ f71_error_j:
 	jmp	f71_error
 
 f7142_not_redirector:
-	test	es:DHNDL_ATTR[bx],DHAT_DEV
+	test	byte [es:DHNDL_ATTR + bx],DHAT_DEV
 	jnz	f7142_dev		; skip a part if character device
 f7142_05:
 	call	check_handle		; check if valid file handle
 f7142_dev:
 	push	ds
-	lds	bp,int21regs_ptr
-	mov	ax,ds:reg_CX[bp]	; AL = original CL
-	mov	si,ds:reg_DX[bp]	; DS:SI -> QWORD for position offset and result
-	mov	ds,ds:reg_DS[bp]
+	lds	bp,[int21regs_ptr]
+	mov	ax,[ds:reg_CX + bp]	; AL = original CL
+	mov	si,[ds:reg_DX + bp]	; DS:SI -> QWORD for position offset and result
+	mov	ds,[ds:reg_DS + bp]
 	or	al,al
 	 je	f7142_10		; seek from beginning
 	dec	al
@@ -214,51 +214,51 @@ f7142_dev:
 
 f7142_10:				; mode 0: set absolute position
 	mov	ax,[si]			; copy 64-bit offset to position
-	mov	es:DHNDL_POSLO[bx],ax
-	mov	ax,2[si]
-	mov	es:DHNDL_POSHI[bx],ax
-	mov	ax,4[si]
-	mov	es:DHNDL_POSXLO[bx],ax
-	mov	ax,6[si]
-	mov	es:DHNDL_POSXHI[bx],ax
+	mov	[es:DHNDL_POSLO + bx],ax
+	mov	ax,[2 + si]
+	mov	[es:DHNDL_POSHI + bx],ax
+	mov	ax,[4 + si]
+	mov	[es:DHNDL_POSXLO + bx],ax
+	mov	ax,[6 + si]
+	mov	[es:DHNDL_POSXHI + bx],ax
 	jmp	f7142_40
 
 f7142_20:				; mode 1: relative to current position
 	mov	ax,[si]			; add 64-bit offset to position
-	add	ax,es:DHNDL_POSLO[bx]
-	mov	es:DHNDL_POSLO[bx],ax
+	add	ax,[es:DHNDL_POSLO + bx]
+	mov	[es:DHNDL_POSLO + bx],ax
 	mov	[si],ax			; and store new position as result
-	mov	ax,2[si]
-	adc	ax,es:DHNDL_POSHI[bx]
-	mov	es:DHNDL_POSHI[bx],ax
-	mov	2[si],ax
-	mov	ax,4[si]
-	adc	ax,es:DHNDL_POSXLO[bx]
-	mov	es:DHNDL_POSXLO[bx],ax
-	mov	4[si],ax
-	mov	ax,6[si]
-	adc	ax,es:DHNDL_POSXHI[bx]
-	mov	es:DHNDL_POSXHI[bx],ax
-	mov	6[si],ax
+	mov	ax,[2 + si]
+	adc	ax,[es:DHNDL_POSHI + bx]
+	mov	[es:DHNDL_POSHI + bx],ax
+	mov	[2 + si],ax
+	mov	ax,[4 + si]
+	adc	ax,[es:DHNDL_POSXLO + bx]
+	mov	[es:DHNDL_POSXLO + bx],ax
+	mov	[4 + si],ax
+	mov	ax,[6 + si]
+	adc	ax,[es:DHNDL_POSXHI + bx]
+	mov	[es:DHNDL_POSXHI + bx],ax
+	mov	[6 + si],ax
 	jmp	f7142_40
 
 f7142_30:				; mode 2: relative to end of file
 	mov	ax,[si]			; add 64-bit offset to file size
-	add	ax,es:DHNDL_SIZELO[bx]
-	mov	es:DHNDL_POSLO[bx],ax	; and store as new position
+	add	ax,[es:DHNDL_SIZELO + bx]
+	mov	[es:DHNDL_POSLO + bx],ax	; and store as new position
 	mov	[si],ax			; and result
-	mov	ax,2[si]
-	adc	ax,es:DHNDL_SIZEHI[bx]
-	mov	es:DHNDL_POSHI[bx],ax
-	mov	2[si],ax
-	mov	ax,4[si]
-	adc	ax,es:DHNDL_SIZEXLO[bx]
-	mov	es:DHNDL_POSXLO[bx],ax
-	mov	4[si],ax
-	mov	ax,6[si]
-	adc	ax,es:DHNDL_SIZEXHI[bx]
-	mov	es:DHNDL_POSXHI[bx],ax
-	mov	6[si],ax
+	mov	ax,[2 + si]
+	adc	ax,[es:DHNDL_SIZEHI + bx]
+	mov	[es:DHNDL_POSHI + bx],ax
+	mov	[2 + si],ax
+	mov	ax,[4 + si]
+	adc	ax,[es:DHNDL_SIZEXLO + bx]
+	mov	[es:DHNDL_POSXLO + bx],ax
+	mov	[4 + si],ax
+	mov	ax,[6 + si]
+	adc	ax,[es:DHNDL_SIZEXHI + bx]
+	mov	[es:DHNDL_POSXHI + bx],ax
+	mov	[6 + si],ax
 f7142_40:
 	pop	ds
 f7142_ret_success:
@@ -274,9 +274,9 @@ func7143:
 	 je	f7143_10
 	jmp	f71_error_7100
 f7143_10:
-	mov	FD_FUNC,ax		; function number
-	mov	FD_NAMEOFF,dx		; filename
-	mov	FD_NAMESEG,es
+	mov	[FD_FUNC],ax		; function number
+	mov	[FD_NAMEOFF],dx		; filename
+	mov	[FD_NAMESEG],es
 	mov	dx,offset fdos_data	; parameter block
 	push	ds			; set up FDOS stack frame
 	push	dx
@@ -294,21 +294,21 @@ f7143_20:
 	mov	ax,2			; file not found
 	jmp	f71_error
 f7143_30:
-	les	bp,int21regs_ptr
-	mov	ax,es:reg_BX[bp]
+	les	bp,[int21regs_ptr]
+	mov	ax,[es:reg_BX + bp]
 	cmp	al,3			; subfunction 3?
 	 je	f7143_set_writetime
 f7143_get_writetime:
-	mov	cx,DTIME[bx]		; last write time
-	mov	di,DDATE[bx]		; last write date
-	mov	es:reg_CX[bp],cx
-	mov	es:reg_DI[bp],di
+	mov	cx,[DTIME + bx]		; last write time
+	mov	di,[DDATE + bx]		; last write date
+	mov	[es:reg_CX + bp],cx
+	mov	[es:reg_DI + bp],di
 	jmp	f7143_exit
 f7143_set_writetime:
-	mov	cx,es:reg_CX[bp]	; new last write time
-	mov	di,es:reg_DI[bp]	; new last write date
-	mov	DTIME[bx],cx
-	mov	DDATE[bx],di
+	mov	cx,[es:reg_CX + bp]	; new last write time
+	mov	di,[es:reg_DI + bp]	; new last write date
+	mov	[DTIME + bx],cx
+	mov	[DDATE + bx],di
 	call	update_dir		; update dir entry
 f7143_exit:
 	xor	ax,ax			; no error
@@ -316,13 +316,13 @@ f7143_exit:
 
 func714e:
 	xor	ch,ch
-	mov	FD_ATTRIB,cx		; search attributes
-	mov	FD_NAMEOFF,dx		; search pattern
-	mov	FD_NAMESEG,es
+	mov	[FD_ATTRIB],cx		; search attributes
+	mov	[FD_NAMEOFF],dx		; search pattern
+	mov	[FD_NAMESEG],es
 
 		; We don't need to store the pathname,
 		;  the DTA will have everything needed.
-if 0
+%if 0
 	mov di, dx
 	mov cx, -1
 	mov al, 0
@@ -330,7 +330,7 @@ if 0
 	not cx				; cx = size
 	add cx, 2 + 1
 	and cl, 0FEh
-endif
+%endif
 
 	push ds
 	pop es
@@ -350,14 +350,14 @@ f714e_found_handle:
 	mov cx, 2Eh			; size needed
 
 	mov ax, offset lfn_find_handle_heap_end
-	mov bx, lfn_find_handle_heap_free
+	mov bx, [lfn_find_handle_heap_free]
 	sub ax, bx
 	cmp ax, cx
 	jb f714e_oom
 
 	mov word ptr [di-2], bx
-	add lfn_find_handle_heap_free, cx
-	mov ax, current_psp
+	add [lfn_find_handle_heap_free], cx
+	mov ax, [current_psp]
 	mov word ptr [bx], ax
 	sub di, offset lfn_find_handles + 2
 	shr di, 1			; make it a handle
@@ -376,27 +376,27 @@ func714f:
 f714e_entry:
 	inc bx
 	inc bx				; -> our DTA
-	mov	FD_FUNC,ax
+	mov	[FD_FUNC],ax
 ;	mov	FD_LFNSEARCH,1		; use FAT+/LFN extensions
-	mov	fdos_pb+10,1		; use FAT+/LFN extensions
-	mov	word ptr lfnpathflag, 1	; lfn_search_redir = 0
+	mov	word [fdos_pb+10],1		; use FAT+/LFN extensions
+	mov	word [lfnpathflag], 1	; lfn_search_redir = 0
 	push	di			; handle
 	push	ds
-	push	ss:dma_segment		; save old DTA
-	push	ss:dma_offset
-	mov	ss:dma_segment,ds
-	mov	ss:dma_offset,bx
+	push	word [ss:dma_segment]		; save old DTA
+	push	word [ss:dma_offset]
+	mov	[ss:dma_segment],ds
+	mov	[ss:dma_offset],bx
 	mov	dx,offset fdos_data
 	call	fdos_entry		; call FindNext function
 	cmp	ax,ED_LASTERROR		; has an error occurred?
 	 jb	f714f_10		; no
-	pop	ss:dma_offset		; restore old DTA
-	pop	ss:dma_segment
+	pop	word [ss:dma_offset]		; restore old DTA
+	pop	word [ss:dma_segment]
 	pop	ds
 	pop	bx			; = handle for 714Eh
 
 	push ax
-	cmp FD_FUNC, 4Eh		; was find first ?
+	cmp word [FD_FUNC], 4Eh		; was find first ?
 	jne f714e_error_findnext	; no -->
 
 	call lfn_get_handle		; get handle data
@@ -408,9 +408,9 @@ f714e_error_findnext:
 	neg	ax
 	jmp	f71_error
 f714f_10:
-	les	bp,int21regs_ptr	; ES:BP -> initial parameters
-	mov	di,es:reg_DI[bp]
-	push	es:reg_ES[bp]
+	les	bp,[int21regs_ptr]	; ES:BP -> initial parameters
+	mov	di,[es:reg_DI + bp]
+	push	word [es:reg_ES + bp]
 	pop	es			; ES:DI -> Find Data buffer
 	call	lds_si_dmaptr		; DS:SI -> DTA
 	add	si,15h			; start at file attribute field
@@ -432,7 +432,7 @@ f714f_10:
 	xor	ax,ax			; zero high dword
 	stosw
 	stosw
-	rol ss:lfn_search_redir, 1
+	rol byte [ss:lfn_search_redir], 1
 	jc f714F_redir_no_plus_size
 	mov	al,[si-7]		; extended file size
 f714F_redir_no_plus_size:
@@ -446,11 +446,11 @@ f714F_redir_no_plus_size:
 	rep	movsb			; copy file name
 	add	di,260 - 13		; start of short name field
 	stosb				; no short name (0)
-	pop	ss:dma_offset		; restore old DTA
-	pop	ss:dma_segment
+	pop	word [ss:dma_offset]		; restore old DTA
+	pop	word [ss:dma_segment]
 	pop	ds
-	les	bp,int21regs_ptr
-	mov	es:reg_CX[bp],ax	; Unicode conversion flags (0)
+	les	bp,[int21regs_ptr]
+	mov	[es:reg_CX + bp],ax	; Unicode conversion flags (0)
 	pop	ax			; return handle
 	call	return_AX_CLC		; no error
 	ret
@@ -488,7 +488,7 @@ f71a1_next:
 	cmp di, offset lfn_find_handles_end
 					; more to go ?
 	jb f71a1_loop			; yes -->
-	sub lfn_find_handle_heap_free, 2Eh
+	sub word [lfn_find_handle_heap_free], 2Eh
 lfn_free_handle_ret:
 	ret
 
@@ -525,16 +525,16 @@ func71a6:
 	neg	ax
 	jmp	f71_error
 f71a6_handle_ok:
-	test	es:byte ptr DHNDL_WATTR+1[bx],DHAT_REMOTE/100h
+	test	byte ptr [es:DHNDL_WATTR+1 + bx],DHAT_REMOTE/100h
 	jz	f71a6_not_redirector
 
 f71a6_redirector:
 	mov di, bx		; es:di -> SFT entry
 
 	push	ds
-	lds	bp,int21regs_ptr
-	mov	dx,ds:reg_DX[bp]
-	mov	ds,ds:reg_DS[bp]; ds:dx -> buffer
+	lds	bp,[int21regs_ptr]
+	mov	dx,[ds:reg_DX + bp]
+	mov	ds,[ds:reg_DS + bp]; ds:dx -> buffer
 
 	mov	ax,11A6h
 	stc
@@ -553,19 +553,19 @@ f71a6_dev:
 	jmp f71_error_7100
 
 f71a6_not_redirector:
-	test	es:DHNDL_ATTR[bx],DHAT_DEV
+	test	byte [es:DHNDL_ATTR + bx],DHAT_DEV
 	 jnz	f71a6_dev		; skip if character device
 	call	verify_handle		; check if valid file handle
 	push	ds
-	lds	bp,int21regs_ptr	; DS:DI -> buffer for Get File Info structure
-	mov	di,ds:reg_DX[bp]
-	mov	ds,ds:reg_DS[bp]
+	lds	bp,[int21regs_ptr]	; DS:DI -> buffer for Get File Info structure
+	mov	di,[ds:reg_DX + bp]
+	mov	ds,[ds:reg_DS + bp]
 	push	ds			; ES:DI -> buffer, DS:BX -> DHNDL
 	push	es
 	pop	ds
 	pop	es
 	xor	ah,ah
-	mov	al,DHNDL_ATTR[bx]	; file attributes
+	mov	al,[DHNDL_ATTR + bx]	; file attributes
 	stosw
 	xor	ax,ax
 	stosw
@@ -573,15 +573,15 @@ f71a6_not_redirector:
 	rep	stosw			; creation time (0 = unsupported)
 					; last access time (0 = unsupported)
 	push	bx
-	mov	dx,DHNDL_DATE[bx]	; last write time
-	mov	cx,DHNDL_TIME[bx]
+	mov	dx,[DHNDL_DATE + bx]	; last write time
+	mov	cx,[DHNDL_TIME + bx]
 	xor	bx,bx			; 0 milliseconds
 	call	f71a701_entry2
 	pop	bx
 	add	di,8
 	push	ds			; save DS
 	mov	bp,sp			; restore PCM DS
-	mov	ds,2[bp]
+	mov	ds,[2 + bp]
 	sub	sp,25			; reserve space on stack
 	mov	bp,sp
 	push	es			; save registers
@@ -596,19 +596,19 @@ f71a6_not_redirector:
 	pop	di			; restore registers
 	pop	bx
 	pop	es
-	mov	ax,2[bp]		; volume serial number
+	mov	ax,[2 + bp]		; volume serial number
 	stosw
-	mov	ax,4[bp]
+	mov	ax,[4 + bp]
 	stosw
 	add	sp,25			; clean up stack again
 	pop	ds			; restore DS
-	mov	ax,DHNDL_SIZEXLO[bx]	; file size high
+	mov	ax,[DHNDL_SIZEXLO + bx]	; file size high
 	stosw
-	mov	ax,DHNDL_SIZEXHI[bx]
+	mov	ax,[DHNDL_SIZEXHI + bx]
 	stosw
-	mov	ax,DHNDL_SIZELO[bx]	; file size low
+	mov	ax,[DHNDL_SIZELO + bx]	; file size low
 	stosw
-	mov	ax,DHNDL_SIZEHI[bx]
+	mov	ax,[DHNDL_SIZEHI + bx]
 	stosw
 	xor	ax,ax
 	inc	ax			; links to file (1)
@@ -636,9 +636,11 @@ f71a701:				; Convert DOS time to Windows time
 	ret
 
 f71a701_entry:
-	les	bp,int21regs_ptr	; ES:DI -> 64-bit time
-	mov	di,es:REG_DI[bp]
-	mov	es,es:REG_ES[bp]
+	les	bp,[int21regs_ptr]	; ES:DI -> 64-bit time
+REG_DI equ reg_DI	; NASM port label
+	mov	di,[es:REG_DI + bp]
+REG_ES equ reg_ES	; NASM port label
+	mov	es,[es:REG_ES + bp]
 f71a701_entry2:
 	mov	bp,sp
 	push	dx			; save date
@@ -665,8 +667,8 @@ f71a701_05:
 	push	ax
 	mov	cx,365
 	mul	cx			; convert to days (without leap days)
-	mov	es:[di],ax		; save to ES:DI
-	mov	es:2[di],dx
+	mov	[es:di],ax		; save to ES:DI
+	mov	[es:2 + di],dx
 	pop	ax
 	xor	bx,bx			; compute leap days in 400 years
 	xor	dx,dx
@@ -703,8 +705,8 @@ f71a701_30:
 f71a701_40:
 	xor	ax,ax			; add leap days
 	mov	al,bl
-	add	es:[di],ax
-	adc	es:word ptr 2[di],0
+	add	[es:di],ax
+	adc	word ptr [es:2 + di],0
 	mov	ax,[bp-2]		; restore date
 	and	ax,1e0h			; bits 5-8 contain the month
 	mov	cl,5
@@ -717,7 +719,7 @@ f71a701_40:
 f71a701_50:
 	cmp	si,bx
 	 je	f71a701_60
-	mov	dl,cs:ndays[si]
+	mov	dl,[cs:ndays + si]
 	add	ax,dx
 	inc	si
 	jmp	f71a701_50
@@ -734,21 +736,21 @@ f71a701_70:
 	and	dx,1fh			; bits 0-4 contain the days
 	add	ax,dx			; AX = days in year
 	dec	ax			; minus one for the first day in 1601
-	add	es:[di],ax		; date converted to days
-	adc	es:word ptr 2[di],0
+	add	[es:di],ax		; date converted to days
+	adc	word ptr [es:2 + di],0
 
-	push	es:word ptr 2[di]	; number of days
-	push	es:word ptr [di]
+	push	word ptr [es:2 + di]	; number of days
+	push	word ptr [es:di]
 	xor	ax,ax
 	push	ax
 	mov	ax,43200		; 2-seconds per day
 	push	ax
 	sub	sp,8			; reserve space on stack
 	call	mul32			; convert to 2-seconds
-	pop	es:word ptr [di]	; save subtotal
-	pop	es:word ptr 2[di]
-	pop	es:word ptr 4[di]
-	pop	es:word ptr 6[di]
+	pop	word ptr [es:di]	; save subtotal
+	pop	word ptr [es:2 + di]
+	pop	word ptr [es:4 + di]
+	pop	word ptr [es:6 + di]
 	add	sp,8			; clean up stack again
 	mov	ax,[bp-4]		; restore time
 	and	ax,0f800h		; bits 11-15 contain the hours
@@ -756,31 +758,31 @@ f71a701_70:
 	shr	ax,cl
 	mov	cx,1800
 	mul	cx			; convert to 2-seconds
-	add	es:[di],ax		; and add subtotal
-	adc	es:2[di],dx
-	adc	es:word ptr 4[di],0
-	adc	es:word ptr 6[di],0
+	add	[es:di],ax		; and add subtotal
+	adc	[es:2 + di],dx
+	adc	word ptr [es:4 + di],0
+	adc	word ptr [es:6 + di],0
 	mov	ax,[bp-4]		; restore time
 	and	ax,7e0h			; bits 5-10 contain the minutes
 	mov	cl,5
 	shr	ax,cl
 	mov	cl,30
 	mul	cl			; convert to 2-seconds
-	add	es:[di],ax		; and add subtotal
-	adc	es:2[di],dx
-	adc	es:word ptr 4[di],0
-	adc	es:word ptr 6[di],0
+	add	[es:di],ax		; and add subtotal
+	adc	[es:2 + di],dx
+	adc	word ptr [es:4 + di],0
+	adc	word ptr [es:6 + di],0
 	mov	ax,[bp-4]		; restore time
 	and	ax,1fh			; bits 0-4 contain the 2-seconds
-	add	es:[di],ax		; and add subtotal
-	adc	es:2[di],dx
-	adc	es:word ptr 4[di],0
-	adc	es:word ptr 6[di],0
+	add	[es:di],ax		; and add subtotal
+	adc	[es:2 + di],dx
+	adc	word ptr [es:4 + di],0
+	adc	word ptr [es:6 + di],0
 f71a701_80:
-	push	es:word ptr 6[di]	; number of 2-seconds
-	push	es:word ptr 4[di]
-	push	es:word ptr 2[di]
-	push	es:word ptr [di]
+	push	word ptr [es:6 + di]	; number of 2-seconds
+	push	word ptr [es:4 + di]
+	push	word ptr [es:2 + di]
+	push	word ptr [es:di]
 	xor	ax,ax
 	push	ax
 	push	ax
@@ -790,10 +792,10 @@ f71a701_80:
 	push	ax
 	sub	sp,16			; reserve space on stack
 	call	mul64			; convert to 100-nanoseconds
-	pop	es:word ptr [di]	; save subtotal
-	pop	es:word ptr 2[di]
-	pop	es:word ptr 4[di]
-	pop	es:word ptr 6[di]
+	pop	word ptr [es:di]	; save subtotal
+	pop	word ptr [es:2 + di]
+	pop	word ptr [es:4 + di]
+	pop	word ptr [es:6 + di]
 	add	sp,24			; clean up stack again
 	xor	ax,ax			; centiseconds
 	push	ax
@@ -807,10 +809,10 @@ f71a701_80:
 	pop	ax
 	pop	dx
 	add	sp,12			; clean up stack again
-	add	es:[di],ax		; and add to result
-	adc	es:2[di],dx
-	adc	es:word ptr 4[di],0
-	adc	es:word ptr 6[di],0
+	add	[es:di],ax		; and add to result
+	adc	[es:2 + di],dx
+	adc	word ptr [es:4 + di],0
+	adc	word ptr [es:6 + di],0
 	add	sp,6
 	ret
 
@@ -824,9 +826,9 @@ f71_error_0001:
 	mov	ax,1			; invalid function number
 
 f71_error:
-	les	bp,int21regs_ptr
-	mov	es:reg_AX[bp],ax	; return error code
-	or	es:reg_FLAGS[bp],CARRY_FLAG ; set carry flag
+	les	bp,[int21regs_ptr]
+	mov	[es:reg_AX + bp],ax	; return error code
+	or	word [es:reg_FLAGS + bp],CARRY_FLAG ; set carry flag
 	stc
 	ret
 PCM_CODE	ends
