@@ -652,7 +652,7 @@ int26_40:
 int26_50:				; no, make it general failure
 	mov	ah,al			; save error in AH
 	mov	bx,offset int13_error
-	xlatb; convert error to int13 format
+	xlatb		; convert error to int13 format
 	xchg	al,ah			; get errors in correct registers
 int26_60:
 	stc				; Set the Carry Flag when an error
