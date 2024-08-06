@@ -25,7 +25,7 @@ copy ..\version.inc . /y
 nasm -s -P nasm.mac -P nasmorg.mac -f obj header.nas -l bin/header.lst -o bin/header.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\pcmif.lst -Fo.\BIN\pcmif pcmif.asm
+nasm -s -P nasm.mac -f obj pcmif.nas -l bin/pcmif.lst -o bin/pcmif.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -DDELWATCH -c -Fl.\BIN\buffers.lst -Fo.\BIN\buffers buffers.asm
