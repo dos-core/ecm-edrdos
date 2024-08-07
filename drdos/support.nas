@@ -50,19 +50,19 @@
 
 ;
 
-PCMDATA group PCMODE_DATA,FDOS_DSEG
-PCMCODE group PCM_CODE
+group PCMDATA PCMODE_DATA FDOS_DSEG
+group PCMCODE PCM_CODE
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include	pcmode.equ
-	include	fdosdef.def	
-	include mserror.equ
-	include	doshndl.def
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "fdosdef.mac"	
+	%include "mserror.mac"
+	%include "doshndl.mac"
+	[list +]
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 	extrn	error_exit:near		; Standard Error Exit Routine
 	extrn	fcberror_exit:near	; Special FCB function Error Exit
 	extrn	fdos_entry:near
@@ -107,17 +107,17 @@ set_retry_RF:
 
 	Public	set_retry
 set_retry:
-	mov	valid_flg,al		; Save Valid Error Reponses
-	pop	retry_off		; Save the Routine Address
-	mov	retry_sp,sp		; and the Stack Pointer
+	mov	[valid_flg],al		; Save Valid Error Reponses
+	pop	word [retry_off]		; Save the Routine Address
+	mov	[retry_sp],sp		; and the Stack Pointer
 	mov	al,ah			; get function number
 	xor	ah,ah			; make it a word
-	mov	FD_FUNC,ax		; save it for the FDOS
+	mov	[FD_FUNC],ax		; save it for the FDOS
 	push	ds
 	push	bx
-	lds	bx,int21regs_ptr	; point to users registers
-	and	reg_FLAGS[bx],not CARRY_FLAG
-	mov	al,reg_AL[bx]		; clear CY assuming we will succeed
+	lds	bx,[int21regs_ptr]	; point to users registers
+	and	word [reg_FLAGS + bx],~ CARRY_FLAG
+	mov	al,[reg_AL + bx]		; clear CY assuming we will succeed
 	pop	bx			;  and reload AL with entry value
 	pop	ds
 	jmp	retry_off
@@ -152,16 +152,16 @@ return_AX_CLC:
 ;
 	push 	ds
 	push 	di
-	lds	di,ss:int21regs_ptr
-	mov	reg_AX[di],ax		; return AX to caller
-	and	reg_FLAGS[di],not CARRY_FLAG
+	lds	di,[ss:int21regs_ptr]
+	mov	[reg_AX + di],ax		; return AX to caller
+	and	word [reg_FLAGS + di],~ CARRY_FLAG
 	pop 	di
 	pop 	ds
 	ret
 
 
 fdos_error:				; Process the Error
-	cmp	sp,retry_sp		; Is the user expecting use to 
+	cmp	sp,[retry_sp]		; Is the user expecting use to 
 	 jnz	fdos_e10		; return or use the default handler
 	jmp	error_exit		; If CALLed then return with the error
 fdos_e10:				; to the calling routine.
@@ -177,7 +177,7 @@ fcbfdos_crit:
 	ret
 
 fcbfdos_error:				; Process the Error
-	cmp	sp,retry_sp		; Is the user expecting use to 
+	cmp	sp,[retry_sp]		; Is the user expecting use to 
 	 jnz	fcbfdos_e10		; return or use the default handler
 	jmp	fcberror_exit		; If CALLed then return with the error
 fcbfdos_e10:				; to the calling routine.
@@ -211,8 +211,8 @@ reload_ES:
 ;	All regs preserved
 ;
 	push	bx
-	les	bx,ss:int21regs_ptr
-	mov	es,es:reg_ES[bx]	; reload with callers ES
+	les	bx,[ss:int21regs_ptr]
+	mov	es,[es:reg_ES + bx]	; reload with callers ES
 	pop	bx
 	ret
 
@@ -227,8 +227,8 @@ return_BX:
 ;
 	push 	ds
 	push 	si
-	lds	si,ss:int21regs_ptr
-	mov	reg_BX[si],bx		; return BX to caller
+	lds	si,[ss:int21regs_ptr]
+	mov	[reg_BX + si],bx		; return BX to caller
 	pop 	si
 	pop 	ds
 	ret
@@ -243,8 +243,8 @@ return_CX:
 ;
 	push 	ds
 	push 	bx
-	lds	bx,ss:int21regs_ptr
-	mov	reg_CX[bx],cx		; return CX to caller
+	lds	bx,[ss:int21regs_ptr]
+	mov	[reg_CX + bx],cx		; return CX to caller
 	pop 	bx
 	pop 	ds
 	ret
@@ -259,15 +259,15 @@ return_DX:
 ;
 	push 	ds
 	push 	bx
-	lds	bx,ss:int21regs_ptr
-	mov	reg_DX[bx],dx		; return DX to caller
+	lds	bx,[ss:int21regs_ptr]
+	mov	[reg_DX + bx],dx		; return DX to caller
 	pop 	bx
 	pop 	ds
 	ret
 
 PCM_CODE	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 
 	extrn	current_psp:word
