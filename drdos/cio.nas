@@ -86,21 +86,21 @@
 ;  1 mar 91 break_check now goes to con_device, not STDERR
 ; 17 jun 91 ij	fix to cooked_out to avoid status checks if STDOUT redirected
 
-	.nolist
-	include	pcmode.equ
-	include driver.equ
-	include	request.equ
-	include	msdos.equ
-	include	fdos.equ
-	include	psp.def
-	include	mserror.equ
-	include	char.def
-	include	redir.equ
-	include	doshndl.def
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "driver.mac"
+	%include "request.mac"
+	%include "msdos.mac"
+	%include "fdos.mac"
+	%include "psp.mac"
+	%include "mserror.mac"
+	%include "char.mac"
+	%include "redir.mac"
+	%include "doshndl.mac"
+	[list +]
 
-PCMDATA group PCMODE_DATA,GLOBAL_DATA,FIXED_DOS_DATA
-PCMCODE group PCM_CODE,PCM_RODATA
+group PCMDATA PCMODE_DATA GLOBAL_DATA FIXED_DOS_DATA
+group PCMCODE PCM_CODE PCM_RODATA
 
 ASSUME DS:PCMDATA
 
@@ -110,7 +110,7 @@ CIO_RAW		equ	00000100b	; no "cooked_status" checks
 
 CHECK_EVERY	equ	80		; check keyboard every "n" characters
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 	extrn	char_error:near
 	extrn	device_driver:near
 	extrn	dos_entry:near
@@ -221,7 +221,8 @@ hndl_write:
 ;
 	call	is_device		; Does this handle refer to a device
 	 jc	hndl_w10
-	test	es:DEVHDR.ATTRIB[si],DA_SPECIAL
+DEVHDR.ATTRIB equ ATTRIB	; NASM port label
+	test	word [es:DEVHDR.ATTRIB + si],DA_SPECIAL
 	 jz	hndl_w10		; Fast Console Output Using Int 29?
 	int	29h			; This device supports FAST console
 	ret				;  output so write this using Int29
@@ -268,9 +269,9 @@ func06:
 	call	is_device			; reading from file?
 	 jnc	func06_10			; no, exit
 	push	es
-	mov	es,current_psp			; get current PSP
-	les	bx,es:PSP_XFTPTR		; file handle table
-	mov	es:byte ptr STDIN[bx],1		; cancel input redirection
+	mov	es,[current_psp]			; get current PSP
+	les	bx,[es:PSP_XFTPTR]		; file handle table
+	mov	byte ptr [es:STDIN + bx],1		; cancel input redirection
 	pop	es
 func06_10:
 
@@ -319,11 +320,11 @@ funcICexit:
 ;	AL = character
 ;	dos_FLAGS ZF set if incomplete character
 ;
-	les	di,int21regs_ptr		; point to callers registers
-	and	es:reg_FLAGS[di],word ptr not ZERO_FLAG	; clear ZF
+	les	di,[int21regs_ptr]		; point to callers registers
+	and	word [es:reg_FLAGS + di],word ptr ~ ZERO_FLAG	; clear ZF
 	test	ah,RHS_IC/256			; is it an incomplete char ?
 	 jz	funcIC10			;  no - exit
-	or	es:reg_FLAGS[di],word ptr ZERO_FLAG	;  yes - set ZF
+	or	word [es:reg_FLAGS + di],word ptr ZERO_FLAG	;  yes - set ZF
 funcIC10:
 	ret
 
@@ -442,12 +443,12 @@ al_nogo:				; Illegal command to execute
 ;
 	Public	break_check
 break_check:
-	cmp	indos_flag,01		; Skip the check if we are
+	cmp	byte [indos_flag],01		; Skip the check if we are
 	 jnz	break_c15		; already in the emulator
 	push	ax
 	push	es
 	push	si
-	les	si,con_device
+	les	si,[con_device]
 	call	device_instat		; get the input status
 	pop	si
 	pop	es
@@ -466,7 +467,7 @@ go_int23:
 	push 	cs
 	pop 	es			; ES:DX -> Character Buffer
 	mov	si,offset cntrl_c_msg	; Message Offset
-	mov	cx,lengthof cntrl_c_msg	; Message Length
+	mov	cx,lengthof_cntrl_c_msg	; Message Length
 	call	stdout_cooked_write	; write the ^C String to console
 ;
 ;	Prepare to execute an Interrupt 23 (Break Check) and process
@@ -474,14 +475,14 @@ go_int23:
 ;	or with a RETF and the carry flag reset continue the function
 ;	otherwise Abort.
 ;
-	mov	es,current_psp		; Get the Entry SS and SP
-	mov	ax,es:PSP_USERSP	; Get the Users Stack Pointer
+	mov	es,[current_psp]		; Get the Entry SS and SP
+	mov	ax,[es:PSP_USERSP]	; Get the Users Stack Pointer
 	add	ax,18 - 2		; Compensate for the User Registers
-	mov	break_sp,ax		; and save for RETF check
+	mov	[break_sp],ax		; and save for RETF check
 	cli
-	dec	indos_flag		; Exit the PCDOS emulator
-	mov	ss,es:PSP_USERSS	; Switch to the Users Stack
-	mov	sp,es:PSP_USERSP	; and Restore the registers
+	dec	byte [indos_flag]		; Exit the PCDOS emulator
+	mov	ss,[es:PSP_USERSS]	; Switch to the Users Stack
+	mov	sp,[es:PSP_USERSP]	; and Restore the registers
 
 	POP_DOS				; Update the registers then
 					; set the flags and return
@@ -491,13 +492,13 @@ go_int23:
 	cli				; Check the Flag State
 	 jnc	do23_10			; If CARRY then Abort this process
 	call	get_dseg		; Get our data segment
-	mov	exit_type,TERM_BREAK	; Force EXIT_TYPE to TERM_BREAK
+	mov	byte [exit_type],TERM_BREAK	; Force EXIT_TYPE to TERM_BREAK
 	mov	ax,4C00h		; "Good-Bye Cruel World" 
 ;    jmp    do23_20
     do23_10:
 	push	ds			; Otherwise restart the aborted func
 	call	get_dseg
-	cmp	sp,break_sp
+	cmp	sp,[break_sp]
 	pop	ds			; Restore the the USER DS correct
 	 jz	do23_30			; Did we Use a RETF or Not
 do23_20:
@@ -533,13 +534,13 @@ cooked_status:
 	call	char_check		; is there a character ready
 	 jnz	cooked_s50		;  no so keep scanning
 
-	cmp	last_key_ext,0		; was last char an zero ?
-	mov	last_key_ext,0		; (clear flag for next time)
+	cmp	byte [last_key_ext],0		; was last char an zero ?
+	mov	byte [last_key_ext],0		; (clear flag for next time)
 	 jne	cooked_s40		; skip ^P,^S,^C checks if so
 	
 	cmp	al,CTLP			; has the user typed ^P
 	 jne	cooked_s10		;  flush the buffer and
-	xor	cio_state,CIO_CTLP	;  toggle ^P flag
+	xor	byte [cio_state],CIO_CTLP	;  toggle ^P flag
 	call	char_get		;  flush the character from buffer
 	call	open_or_close_prn	;  open/close printer device
 	test	ax,ax			; ZF clear, ie. no char available
@@ -562,7 +563,7 @@ cooked_s30:
 cooked_s40:
 	cmp	al,0
 	 jne	cooked_s45
-	mov	last_key_ext,1
+	mov	byte [last_key_ext],1
 cooked_s45:
 	cmp	ax,ax			; ZF set, ie. char available
 cooked_s50:
@@ -589,9 +590,9 @@ cmdline_read:
 	call	is_device		; reading from file?
 	 jnc	cmdline_read_wait	; no, keep scanning
 	push	es
-	mov	es,current_psp		; get current PSP
-	les	bx,es:PSP_XFTPTR	; file handle table
-	mov	es:byte ptr STDIN[bx],1	; cancel input redirection
+	mov	es,[current_psp]		; get current PSP
+	les	bx,[es:PSP_XFTPTR]	; file handle table
+	mov	byte ptr [es:STDIN + bx],1	; cancel input redirection
 	pop	es
 	jmp	cmdline_read_wait
 cmdline_read10:
@@ -609,9 +610,9 @@ raw_read:
 	call	is_device		; reading from file?
 	 jnc	raw_read_wait		; no, keep scanning
 	push	es
-	mov	es,current_psp		; get current PSP
-	les	bx,es:PSP_XFTPTR	; file handle table
-	mov	es:byte ptr STDIN[bx],1	; cancel input redirection
+	mov	es,[current_psp]		; get current PSP
+	les	bx,[es:PSP_XFTPTR]	; file handle table
+	mov	byte ptr [es:STDIN + bx],1	; cancel input redirection
 	pop	es
 	jmp	raw_read_wait
 ;	jmp	char_get
@@ -627,9 +628,9 @@ cooked_read:
 	call	is_device		; reading from file?
 	 jnc	cooked_read_wait	; no, keep scanning
 	push	es
-	mov	es,current_psp		; get current PSP
-	les	bx,es:PSP_XFTPTR	; file handle table
-	mov	es:byte ptr STDIN[bx],1	; cancel input redirection
+	mov	es,[current_psp]		; get current PSP
+	les	bx,[es:PSP_XFTPTR]	; file handle table
+	mov	byte ptr [es:STDIN + bx],1	; cancel input redirection
 	pop	es
 	jmp	cooked_read_wait
 ;	jmp	char_get		;  else get the character
@@ -678,31 +679,31 @@ stdout_cooked_write:
 cooked_write:
 	push	es
 	push	bx
-	mov	ah,cio_state		; get CIO_CTLP status
+	mov	ah,[cio_state]		; get CIO_CTLP status
 	or	ah,CIO_RAW+CIO_HANDLE	; assume we will want raw handle output
 	mov	al,bl
-	test	byte ptr remote_call+1,DHM_FCB/100h
+	test	byte [remote_call+1],DHM_FCB/100h
 	 jnz	cook_w03
-	mov	es,current_psp		; get our PSP
-	cmp	bx,es:PSP_XFNMAX	; range check our handle
+	mov	es,[current_psp]		; get our PSP
+	cmp	bx,[es:PSP_XFNMAX]	; range check our handle
 	 jae	cook_w05
-	les	di,es:PSP_XFTPTR
-	mov	al,es:byte ptr [bx+di]	; AL = Internal File Handle
+	les	di,[es:PSP_XFTPTR]
+	mov	al,byte ptr [es:bx+di]	; AL = Internal File Handle
 cook_w03:
 	call	ifn2dhndl		; ES:BX -> DHNDL_
 	 jc	cook_w05		; skip if bad handle
-	mov	dx,es:DHNDL_WATTR[bx]	; get handle attributes
+	mov	dx,[es:DHNDL_WATTR + bx]	; get handle attributes
 	and	dx,DHAT_DEV+DHAT_CIN+DHAT_COT+DHAT_BIN+DHAT_REMOTE
 	cmp	dx,DHAT_DEV+DHAT_CIN+DHAT_COT+DHAT_BIN
 	 je	cook_w04		; accept binary console device
 	cmp	dx,DHAT_DEV+DHAT_CIN+DHAT_COT
 	 jne	cook_w05		; skip if not cooked console device
-	and	ah,not CIO_RAW		; we want cooked output
+	and	ah,~ CIO_RAW		; we want cooked output
 cook_w04:
-	les	bx,es:DHNDL_DEVPTR[bx]	; its the console - but is it FAST ?
-	test	es:DEVHDR.ATTRIB[bx],DA_SPECIAL
+	les	bx,[es:DHNDL_DEVPTR + bx]	; its the console - but is it FAST ?
+	test	word [es:DEVHDR.ATTRIB + bx],DA_SPECIAL
 	 jz	cook_w05		; skip if not
-	and	ah,not CIO_HANDLE	; don't use handle functions
+	and	ah,~ CIO_HANDLE	; don't use handle functions
 cook_w05:
 	pop	bx
 	pop	es
@@ -721,13 +722,13 @@ cook_w10:
 	je 	cook_w60		; Just ring the Bell
 	cmp 	al,CR 
 	jne 	cook_w20		; CR zeros the column number
-	mov	column,0
-	mov	char_count,1		; check for ^S etc NOW
+	mov	byte [column],0
+	mov	byte [char_count],1		; check for ^S etc NOW
 	jmp	cook_w60
 cook_w20:
 	cmp 	al,CTLH
 	jne 	cook_w30		; BackSpace decrements the
-	dec	column			; column count by one
+	dec	byte [column]			; column count by one
 	jmp	cook_w60
 cook_w30:
 	cmp 	al,TAB
@@ -735,12 +736,12 @@ cook_w30:
 cook_w40:
 	mov	al,' '			;  spaces
 	call	cooked_out		; output a space char
-	inc	column
-	test	column,7		; are we at a TAB stop yet ?
+	inc	byte [column]
+	test	byte [column],7		; are we at a TAB stop yet ?
 	 jnz	cook_w40
 	jmp	cook_w70
 cook_w50:
-	inc	column			; Update the column count and
+	inc	byte [column]			; Update the column count and
 cook_w60:
 	call	cooked_out		;  output the character
 cook_w70:
@@ -756,7 +757,7 @@ cooked_out:
 ; On Exit:
 ;	AX, BX, CX, ES:SI preserved
 ;
-	dec	char_count		; time to check keyboard input ?
+	dec	byte [char_count]		; time to check keyboard input ?
 	 jz	cooked_o10		;  no, skip status check
 	test	ah,CIO_HANDLE+CIO_CTLP	; is it complicated ?
 	 jnz	cooked_o10
@@ -779,7 +780,7 @@ cooked_o20:
 	test	ah,CIO_RAW		; is it a cooked console ?
 	 jnz	cooked_o30		; skip check if not
 	call	cooked_status		; look for keyboard input
-	mov	char_count,CHECK_EVERY	; look again in a while
+	mov	byte [char_count],CHECK_EVERY	; look again in a while
 cooked_o30:
 	pop	si
 	pop	cx
@@ -798,28 +799,28 @@ idle_dev:
 	push	bx			; preserve handle
 	mov	ax,8400h
 	int	2ah			; Server hook for idle
-	dec	clock_count
+	dec	byte [clock_count]
 	 jnz	idle_dev10		; Zero if NO skip delay and execute
 	call	ReadTimeAndDate		; for PC BIOS's who must read every day
 idle_dev10:
-if IDLE_DETECT
-	test	idle_flags,IDLE_DISABLE	; Has Idle Checking been enabled
+%if IDLE_DETECT
+	test	word [idle_flags],IDLE_DISABLE	; Has Idle Checking been enabled
 	 jnz	idle_dev40		; Skip if NO
 	push 	es
 	push 	si
 	call	is_device		; The requested handle a file or device
 	 jc	idle_dev30		; File Access skip IDLE
 	mov	ax,PROC_KEYIN		; Assume this is the REAL Console
-	test	es:DEVHDR.ATTRIB[si],DA_ISCIN; Test Attribute Bits
+	test	word [es:DEVHDR.ATTRIB + si],DA_ISCIN; Test Attribute Bits
 	 jnz	idle_dev20		; Yes this is Default Console Device
 	mov	ax,PROC_DEVIN		; Input from Another Device
 idle_dev20:
-	call	dword ptr idle_vec	; Call the IDLE Handler
+	call	far [idle_vec]	; Call the IDLE Handler
 idle_dev30:
 	pop 	si
 	pop 	es
 idle_dev40:
-endif
+%endif
 	pop	bx			; recover handle
 	ret
 
@@ -861,20 +862,20 @@ device_common:
 	push	bx
 	sub	sp,RH4_LEN		; reserve space on the stack
 	mov	bx,sp			; request header offset
-	mov	ss:RH_LEN[bx],RH4_LEN	; request header length
-	mov	ss:RH4_BUFOFF[bx],dx	; buffer offset
-	mov	ss:RH4_BUFSEG[bx],ss	; buffer segment
+	mov	byte [ss:RH_LEN + bx],RH4_LEN	; request header length
+	mov	[ss:RH4_BUFOFF + bx],dx	; buffer offset
+	mov	[ss:RH4_BUFSEG + bx],ss	; buffer segment
 device_common10:
-	mov	ss:RH4_COUNT[bx],cx	; character count
+	mov	[ss:RH4_COUNT + bx],cx	; character count
 	call	device_req		; execute command
 	 jns	device_common20		; if no errors return to the caller
-	sub	cx,ss:RH4_COUNT[bx]	; CX = chars remaining
+	sub	cx,[ss:RH4_COUNT + bx]	; CX = chars remaining
 	push	ax			; save the error code
 	call	char_error		; ask int 24 what to do
 	cmp	al,ERR_RETRY		; should we retry the operation ?
 	pop	ax			; recover the error code
 	 ja	device_common20		; Fail/Abort return error
-	mov	al,ss:RH_CMD[bx]		; reload the command
+	mov	al,[ss:RH_CMD + bx]		; reload the command
 	 je	device_common10		; Retry, re-issue the device request
 	mov	ax,RHS_DONE		; Ignore, pretend no errors
 device_common20:
@@ -893,43 +894,43 @@ char_check:
 ;	AH = RIC status
 ;
 	push	bx			; Save the current handle status
-if IDLE_DETECT
-	test	idle_flags,IDLE_DISABLE	; Has Idle Checking been enabled
+%if IDLE_DETECT
+	test	word [idle_flags],IDLE_DISABLE	; Has Idle Checking been enabled
 	 jnz	char_check10		; Skip if NO
-	dec	int28_delay		; Has the INT28 Loop count reached
+	dec	word [int28_delay]		; Has the INT28 Loop count reached
 	 jnz	char_check10		; Zero if NO skip delay and execute
-	mov	ax,int28_reload		; INT28. Otherwise DELAY/DISPATCH
-	mov	int28_delay,ax
+	mov	ax,[int28_reload]		; INT28. Otherwise DELAY/DISPATCH
+	mov	[int28_delay],ax
 	mov	ax,PROC_INT28		; Process is IDLE
-	call	dword ptr idle_vec	; Call the IDLE Handler
+	call	far [idle_vec]	; Call the IDLE Handler
 char_check10:
-endif
-	cmp	indos_flag,1		; Only execute an INT 28
+%endif
+	cmp	byte [indos_flag],1		; Only execute an INT 28
 	 jnz	char_check20		; when the INDOS flag is 1
-	cmp	int28_flag,TRUE	and 0FFh	; Only generate INT 28s for the
+	cmp	byte [int28_flag],TRUE	& 0FFh	; Only generate INT 28s for the
 	 jnz	char_check20		; selected functions
 	
-	push	remote_call
-	push	machine_id
-	mov	es,current_psp		; Get the PSP
-	push	es:PSP_USERSP		; Save the SS:SP pointer to 
-	push	es:PSP_USERSS		; the register image
+	push	word [remote_call]
+	push	word [machine_id]
+	mov	es,[current_psp]		; Get the PSP
+	push	word [es:PSP_USERSP]		; Save the SS:SP pointer to 
+	push	word [es:PSP_USERSS]		; the register image
 
-if IDLE_DETECT				; Set IDLE_INT28 so $IDLE$ knows
-	or	idle_flags,word ptr IDLE_INT28	; that we are nolonger inside DOS
-endif
+%if IDLE_DETECT				; Set IDLE_INT28 so $IDLE$ knows
+	or	word [idle_flags],word ptr IDLE_INT28	; that we are nolonger inside DOS
+%endif
 	int	28h			; Execute an INT 28 for SideKick and
 					; the PRINT utility. INDOS flag is 1
 
-if IDLE_DETECT				; Reset IDLE_INT28 so $IDLE$ knows
-	and	idle_flags,word ptr not IDLE_INT28; that we are back DOS
-endif
-	mov	int28_flag,TRUE	and 0FFh	; Restore INT28_FLAG
-	mov	es,current_psp		; Get the PSP
-	pop	es:PSP_USERSS		; Restore the SS:SP pointer to 
-	pop	es:PSP_USERSP		; the register image
-	pop	machine_id
-	pop	remote_call
+%if IDLE_DETECT				; Reset IDLE_INT28 so $IDLE$ knows
+	and	word [idle_flags],word ptr ~ IDLE_INT28; that we are back DOS
+%endif
+	mov	byte [int28_flag],TRUE	& 0FFh	; Restore INT28_FLAG
+	mov	es,[current_psp]		; Get the PSP
+	pop	word [es:PSP_USERSS]		; Restore the SS:SP pointer to 
+	pop	word [es:PSP_USERSP]		; the register image
+	pop	word [machine_id]
+	pop	word [remote_call]
 char_check20:
 	pop	bx
 ;	jmp	hndl_instat		; Check Input Status. ZERO == Ready
@@ -939,7 +940,7 @@ char_check20:
 hndl_instat:
 	call	is_device		; Does this handle refer to a device
 	 jnc	device_instat
-	mov	ax,(MS_X_IOCTL shl 8)+6	; Get the file status
+	mov	ax,(MS_X_IOCTL << 8)+6	; Get the file status
 	call	dos_entry		; for the specified handle
 	cmp	al,0FFh			; and return ZERO until the EOF
 	ret
@@ -960,10 +961,10 @@ device_instat:
 	push	bx
 	sub	sp,RH5_LEN		; Reserve Space on the Stack
 	mov	bx,sp			; Request Header Offset
-	mov	ss:RH_LEN[bx],RH5_LEN	; Set Request Header Length
+	mov	byte [ss:RH_LEN + bx],RH5_LEN	; Set Request Header Length
 	mov	al,CMD_INPUT_NOWAIT	; Command Number
 	call	device_req		; Execute the Command
-	mov	al,ss:RH5_CHAR[bx]	; Assume a character is ready
+	mov	al,[ss:RH5_CHAR + bx]	; Assume a character is ready
 	add	sp,RH5_LEN		; Restore the Stack to its normal
 	test	ax,RHS_BUSY		; state and return the status.	
 	pop	bx			; Zero if a Character is ready
@@ -984,14 +985,14 @@ device_instat:
 
 device_req:
 ;----------
-	mov	ss:RH_CMD[bx],al		; save the command
+	mov	[ss:RH_CMD + bx],al		; save the command
 	push	ds
 	push	es
 	push 	es
 	pop 	ds			; DS:SI -> device driver
-	mov	es,ss:current_psp	; es = current PSP
-	mov	al,es:PSP_RIC		; al = Return Interim Character flag
-	mov	ss:RH4_RIC[bx],al		; Return Interim Char flag
+	mov	es,[ss:current_psp]	; es = current PSP
+	mov	al,[es:PSP_RIC]		; al = Return Interim Character flag
+	mov	[ss:RH4_RIC + bx],al		; Return Interim Char flag
 	push 	ss
 	pop 	es			; ES:BX -> RH_
 	call	device_driver
@@ -1018,22 +1019,22 @@ is_device:
 ;	mov	cx,current_psp		; into an internal handle number
 ;	 jcxz	is_dev10		; no PSP, we have IFN already
 ;	mov	es,cx
-	test	byte ptr remote_call+1,DHM_FCB/100h; if FCB initiated access
+	test	byte [remote_call+1],DHM_FCB/100h; if FCB initiated access
 	 jnz	is_dev10		; we have IFN already
-	mov	es,current_psp
-	cmp	bx,es:PSP_XFNMAX	; Check if the handle is in range for
+	mov	es,[current_psp]
+	cmp	bx,[es:PSP_XFNMAX]	; Check if the handle is in range for
 	 jae	is_dev_bad		; this PSP.
-	les	si,es:PSP_XFTPTR
-	mov	al,es:byte ptr [bx+si]	; AL = Internal File Handle
+	les	si,[es:PSP_XFTPTR]
+	mov	al,byte ptr [es:bx+si]	; AL = Internal File Handle
 is_dev10:
 	call	ifn2dhndl		; ES:BX -> DHNDL_
 	 jc	is_dev_bad
-	mov	ax,es:DHNDL_WATTR[bx]	; get file attributes
+	mov	ax,[es:DHNDL_WATTR + bx]	; get file attributes
 	and	ax,DHAT_REMOTE+DHAT_DEV
 	cmp	ax,DHAT_DEV		; is it a local device ?
 	stc				; assume it's a file
 	 jne	is_dev30
-	les	si,es:DHNDL_DEVPTR[bx]	; its a device
+	les	si,[es:DHNDL_DEVPTR + bx]	; its a device
 is_dev20:
 	clc
 is_dev30:
@@ -1042,7 +1043,7 @@ is_dev30:
 	ret
 
 is_dev_bad:
-	les	si,con_device		; bad handles map to console
+	les	si,[con_device]		; bad handles map to console
 	jmp	is_dev20
 
 open_or_close_prn:
@@ -1054,43 +1055,43 @@ open_or_close_prn:
 	push 	bx
 	mov	ax,CTLP
 	push	ax			; ^P on stack
-	mov	cx,current_psp		; look in PSP
+	mov	cx,[current_psp]		; look in PSP
 	 jcxz	oc_prn30		; no PSP, forget it
 	mov	es,cx
-	cmp	bx,es:PSP_XFNMAX	; Check if the handle is in range for
+	cmp	bx,[es:PSP_XFNMAX]	; Check if the handle is in range for
 	 jae	oc_prn30		; this PSP. 
-	les	si,es:PSP_XFTPTR	; for the internal handle number
-	mov	al,es:byte ptr STDPRN[si]
+	les	si,[es:PSP_XFTPTR]	; for the internal handle number
+	mov	al,byte ptr [es:STDPRN + si]
 	cmp	al,0FFh			; AL = Internal File Handle
 	 je 	oc_prn30		;  skip if invalid Handle Number
 	call	ifn2dhndl		; ES:BX -> doshndl
 	 jc	oc_prn30
-	test	es:DHNDL_WATTR[bx],DHAT_NETPRN
+	test	word [es:DHNDL_WATTR + bx],DHAT_NETPRN
 	 jz	oc_prn10
 	mov	ax,I2F_CTLP		; turn on the network printer
 	int	2fh			; with a magic INT 2F call
 	 jnc	oc_prn10
-	and	cio_state,not CIO_CTLP	; make sure Printer Echo is off
+	and	byte [cio_state],~ CIO_CTLP	; make sure Printer Echo is off
 	mov	ax,I2F_CTLP_ERR
 	int	2fh
 	jmp	oc_prn30
 oc_prn10:
-	mov	ax,es:DHNDL_WATTR[bx]	; get file attributes
+	mov	ax,[es:DHNDL_WATTR + bx]	; get file attributes
 	and	ax,DHAT_REMOTE+DHAT_DEV
 	cmp	ax,DHAT_DEV		; is it a local device ?
 	 jne	oc_prn30
 	mov	al,CMD_DEVICE_OPEN	; assume we've just opened
-	test	cio_state,CIO_CTLP	; Check for Printer Echo
+	test	byte [cio_state],CIO_CTLP	; Check for Printer Echo
 	 jnz	oc_prn20		; yes, skip next bit
 	mov	al,CMD_DEVICE_CLOSE	; no, we must close
 oc_prn20:
-	les	si,es:DHNDL_DEVPTR[bx]	; get the device driver address
-	test	es:DEVHDR.ATTRIB[si],DA_REMOVE
+	les	si,[es:DHNDL_DEVPTR + bx]	; get the device driver address
+	test	word [es:DEVHDR.ATTRIB + si],DA_REMOVE
 	 jz	oc_prn30		; no, skip call if not supported
 	sub	sp,RH13_LEN		; Reserve Space on the Stack
 	mov	bx,sp			; and point to it
-	mov	ss:RH_LEN[bx],RH13_LEN	; Set Request Header Length
-	mov	ss:RH_CMD[bx],al	; Command Number
+	mov	byte [ss:RH_LEN + bx],RH13_LEN	; Set Request Header Length
+	mov	[ss:RH_CMD + bx],al	; Command Number
 	call	device_driver		; issue the command
 	add	sp,RH13_LEN		; Restore the Stack to its normal
 oc_prn30:
@@ -1101,19 +1102,20 @@ oc_prn30:
 	ret
 PCM_CODE	ends	
 	
-PCM_RODATA 	segment public word 'CODE'
+section PCM_RODATA public align=2 class=CODE
 
 cntrl_c_msg	db	'^C', CR, LF	; Control-Break Message
+lengthof_cntrl_c_msg equ $ - cntrl_c_msg
 
 PCM_RODATA	ends
 
-GLOBAL_DATA 	segment public word 'DATA'
+section GLOBAL_DATA public align=2 class=DATA
 
 clock_count	db	0
 
 GLOBAL_DATA	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 	extrn	break_sp:word		; For Control-Break handler
 	extrn	char_count:byte
@@ -1126,16 +1128,16 @@ PCMODE_DATA	segment public word 'DATA'
 	extrn	int21regs_ptr:dword	; pointer to callers registers
 	extrn	machine_id:word
 	extrn	remote_call:word
-if IDLE_DETECT
+%if IDLE_DETECT
 	extrn	idle_flags:word		; IDLE State Flags
 	extrn	idle_vec:dword		; IDLE routine Vector
 	extrn	int28_delay:word
 	extrn	int28_reload:word
 	extrn	int28_flag:byte
-endif
+%endif
 PCMODE_DATA	ends
 
-FIXED_DOS_DATA	segment public word 'DATA'
+section FIXED_DOS_DATA public align=2 class=DATA
 	extrn	last_key_ext:byte
 FIXED_DOS_DATA	ends
 
