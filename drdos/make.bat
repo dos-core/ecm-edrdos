@@ -46,7 +46,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -DDELWATCH -s -P nasm.mac -f obj dirs.nas -l bin/dirs.lst -o bin/dirs.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\cio.lst -Fo.\BIN\cio cio.asm
+nasm -s -P nasm.mac -f obj cio.nas -l bin/cio.lst -o bin/cio.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -c -Fl.\BIN\support.lst -Fo.\BIN\support support.asm
