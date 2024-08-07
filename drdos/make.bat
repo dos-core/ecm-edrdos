@@ -55,7 +55,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -DDELWATCH -s -P nasm.mac -f obj disk.nas -l bin/disk.lst -o bin/disk.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\dosmem.lst -Fo.\BIN\dosmem dosmem.asm
+nasm -s -P nasm.mac -f obj dosmem.nas -l bin/dosmem.lst -o bin/dosmem.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -c -Fl.\BIN\cmdline.lst -Fo.\BIN\cmdline cmdline.asm
