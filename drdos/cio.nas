@@ -322,9 +322,11 @@ funcICexit:
 ;
 	les	di,[int21regs_ptr]		; point to callers registers
 	and	word [es:reg_FLAGS + di],word ptr ~ ZERO_FLAG	; clear ZF
+	nop	; identicalise
 	test	ah,RHS_IC/256			; is it an incomplete char ?
 	 jz	funcIC10			;  no - exit
 	or	word [es:reg_FLAGS + di],word ptr ZERO_FLAG	;  yes - set ZF
+	nop	; identicalise
 funcIC10:
 	ret
 
@@ -918,12 +920,14 @@ char_check10:
 
 %if IDLE_DETECT				; Set IDLE_INT28 so $IDLE$ knows
 	or	word [idle_flags],word ptr IDLE_INT28	; that we are nolonger inside DOS
+	nop	; identicalise
 %endif
 	int	28h			; Execute an INT 28 for SideKick and
 					; the PRINT utility. INDOS flag is 1
 
 %if IDLE_DETECT				; Reset IDLE_INT28 so $IDLE$ knows
 	and	word [idle_flags],word ptr ~ IDLE_INT28; that we are back DOS
+	nop	; identicalise
 %endif
 	mov	byte [int28_flag],TRUE	& 0FFh	; Restore INT28_FLAG
 	mov	es,[current_psp]		; Get the PSP
