@@ -94,30 +94,30 @@
 ; 23 mar 92 func67 will now shrink #handles
 ;
 
-PCMDATA group PCMODE_DATA,FDOS_DSEG,GLOBAL_DATA,BDOS_DATA
-PCMCODE group PCM_CODE
+group PCMDATA PCMODE_DATA FDOS_DSEG GLOBAL_DATA BDOS_DATA
+group PCMCODE PCM_CODE
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include	pcmode.equ
-	include	fdosdef.def
-	include	doshndl.def
-	include	fdos.equ
-	include	psp.def
-	include	msdos.equ
-	include	mserror.equ
-	include	redir.equ
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "fdosdef.mac"
+	%include "doshndl.mac"
+	%include "fdos.mac"
+	%include "psp.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
+	%include "redir.mac"
+	[list +]
 
 FCB_LEN		equ	32
 XFCB_LEN	equ	FCB_LEN+7
 
-BDOS_DATA	segment public word 'DATA'
+section BDOS_DATA public align=2 class=DATA
 	extrn	dosfat:word
 BDOS_DATA	ends
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 	extrn	dbcs_lead:near
 	extrn	dos_entry:near
 	extrn	fdos_nocrit:near
@@ -144,7 +144,7 @@ PCM_CODE	segment public byte 'CODE'
 ;
 	Public	func0D
 func0D:
-	mov	FD_FUNC,FD_FLUSH
+	mov	word [FD_FUNC],FD_FLUSH
 	call	fdos_nocrit		; flush buffers
 	mov	ax,0FFFFh
 	push	ax
@@ -168,12 +168,12 @@ func0E:
 ; Exit:
 ;	AL  ==  Number of Drives in System (from SYSDAT)
 ;
-	mov	FD_FUNC,FD_SELECT
+	mov	word [FD_FUNC],FD_SELECT
 	xchg	ax,dx			; drive in AL
 	cbw				; make that AX
-	mov	FD_DRIVE,ax
+	mov	[FD_DRIVE],ax
 	call	fdos_nocrit		; ask the FDOS to try to select it
-	mov	al,last_drv		; Return the number of valid drives
+	mov	al,[last_drv]		; Return the number of valid drives
 	ret
 
 ;
@@ -332,14 +332,14 @@ func28:
 ; All FCB function come through here
 	call	set_retry_RF		; Valid to RETRY or FAIL
 	mov	ax,FD_FCB		; FCB file function
-	xchg	ax,FD_FUNC		; recover function number
-	mov	FD_FCBFUNC,ax		; pass FCB function number
-	mov	FD_FCBOFF,dx		; Initialise the FCB Pointer
-	mov	FD_FCBSEG,es
-	mov	FD_FCBCNT,cx		; we may need record count
+	xchg	ax,[FD_FUNC]		; recover function number
+	mov	[FD_FCBFUNC],ax		; pass FCB function number
+	mov	[FD_FCBOFF],dx		; Initialise the FCB Pointer
+	mov	[FD_FCBSEG],es
+	mov	[FD_FCBCNT],cx		; we may need record count
 	call	fcbfdos_crit		; Execute the function
 	 jc	fcb_error		; Check for an Error
-	mov	cx,FD_FCBCNT		; Get the number of records
+	mov	cx,[FD_FCBCNT]		; Get the number of records
 	jmp	return_CX		; processed and return in CX
 fcb_error:
 	jmp	fcberror_exit		; Use default Error handler
@@ -353,7 +353,7 @@ fcb_error:
 
 	Public	func19
 func19:
-	mov	al,current_dsk		; Get the current logical disk
+	mov	al,[current_dsk]		; Get the current logical disk
 	ret				; and return
 
 
@@ -364,8 +364,8 @@ func19:
 
 	Public	func1A
 func1A:
-	mov	dma_offset,dx		; set the PCMODE DMA Offset
-	mov	dma_segment,es		;  and then the DMA Segment
+	mov	[dma_offset],dx		; set the PCMODE DMA Offset
+	mov	[dma_segment],es		;  and then the DMA Segment
 	ret
 
 ;	*****************************
@@ -388,21 +388,21 @@ func1C:
 	call	fdos_DISKINFO		; find out about drive
 	 jc	fdos_DI_error
 
-	mov	cx,es:DDSC_SECSIZE[bx]	; Get the Physical Sector Size
+	mov	cx,[es:DDSC_SECSIZE + bx]	; Get the Physical Sector Size
 	call	return_CX		; in bytes
 
-	mov	dx,es:DDSC_NCLSTRS[bx]	; Convert the last cluster no
+	mov	dx,[es:DDSC_NCLSTRS + bx]	; Convert the last cluster no
 	dec	dx			; returned in DDSC to maximum
 	call	return_DX		; number of clusters and return
 
-	mov	al,es:DDSC_CLMSK[bx]	; get (sectors per cluster)-1
+	mov	al,[es:DDSC_CLMSK + bx]	; get (sectors per cluster)-1
 	inc	ax			; return sectors per cluster
-	lea	bx,DDSC_MEDIA[bx]	; return address of media byte
+	lea	bx,[DDSC_MEDIA + bx]	; return address of media byte
 f1B1C1F32_common:
 	push	ds
-	lds	di,int21regs_ptr
-	mov	reg_DS[di],es
-	mov	reg_BX[di],bx
+	lds	di,[int21regs_ptr]
+	mov	[reg_DS + di],es
+	mov	[reg_BX + di],bx
 	pop	ds
 	ret
 
@@ -452,36 +452,36 @@ func36:
 	mov	ax,0FFFFh		; Invalid Drive Return 0FFFFh
 	 jc	f36_exit		; No Carry
 f36_OK:
-	mov	cx,es:DDSC_SECSIZE[bx]	; Get the Physical Sector Size
+	mov	cx,[es:DDSC_SECSIZE + bx]	; Get the Physical Sector Size
 	call	return_CX		; in bytes
 
-	mov	dx,es:DDSC_NCLSTRS[bx]	; Convert the last cluster no
-	cmp	dosfat,FAT32		; FAT32 file system?
+	mov	dx,[es:DDSC_NCLSTRS + bx]	; Convert the last cluster no
+	cmp	word [dosfat],FAT32		; FAT32 file system?
 	 jne	f36_OK20		; no, then use the 16-bit value
-	mov	dx,es:word ptr DDSC_BCLSTRS[bx]	; Convert the last cluster no
-	cmp	es:word ptr DDSC_BCLSTRS+2[bx],0	; more than fits into 16-bit register?
+	mov	dx,word ptr [es:DDSC_BCLSTRS + bx]	; Convert the last cluster no
+	cmp	word ptr [es:DDSC_BCLSTRS+2 + bx],0	; more than fits into 16-bit register?
 	 je	f36_OK20			; no, the value is exact
 	mov	dx,0ffffh		; yes, so fake the value for maximum compatibility
 f36_OK20:
 	dec	dx			; returned in DDSC to maximum
 	call	return_DX		; number of clusters
 
-	mov	cx,es:DDSC_FREE[bx]	; get number of free clusters
+	mov	cx,[es:DDSC_FREE + bx]	; get number of free clusters
 	xor	dx,dx
-	cmp	es:DDSC_NFATRECS[bx],0	; could this be a FAT32 drive?
+	cmp	word [es:DDSC_NFATRECS + bx],0	; could this be a FAT32 drive?
 	 jne	f36_OK25		; nah, it must be FAT12/16
-	cmp	es:DDSC_MEDIA[bx],8fh	; or is it a CD-ROM drive?
+	cmp	byte [es:DDSC_MEDIA + bx],8fh	; or is it a CD-ROM drive?
 	 je	f36_OK25		; apparently it is one, so handle it like FAT12/16
-	mov	cx,es:word ptr DDSC_BFREE[bx]	; get number of free clusters (32-bit)
-	mov	dx,es:word ptr DDSC_BFREE+2[bx]
+	mov	cx,word ptr [es:DDSC_BFREE + bx]	; get number of free clusters (32-bit)
+	mov	dx,word ptr [es:DDSC_BFREE+2 + bx]
 f36_OK25:
 	xor	ax,ax
-	mov	al,es:DDSC_CLMSK[bx]	; get the sectors per cluster -1
+	mov	al,[es:DDSC_CLMSK + bx]	; get the sectors per cluster -1
 	inc	ax			; AX = sectors per cluster
-ifdef DELWATCH
-	add	cx,FD_ADJUST		; now add in DELWATCH adjustment
+%ifdef DELWATCH
+	add	cx,[FD_ADJUST]		; now add in DELWATCH adjustment
 	adc	dx,0
-endif
+%endif
 f36_OK30:
 	cmp	dx,0			; more than fits into 16-bit register?
 	 je	f36_OK50			; no, the value is exact
@@ -514,7 +514,7 @@ fdos_DISKINFO:
 ; Odd numbered function use default drive (0)
 ; 
 	mov	ax,FD_DISKINFO		; get information about drive
-	xchg	ax,FD_FUNC		; while getting orginal function #
+	xchg	ax,[FD_FUNC]		; while getting orginal function #
 ;	test	al,1			; is it func1B/func1F ?
 	cmp	al,1bh			; is it func1B/func1F ?
 ;	 jz	fdos_DI10		; if so these use the default
@@ -524,7 +524,7 @@ fdos_DISKINFO:
 fdos_DI05:
 	xor	dl,dl			;  drive so zero DL
 fdos_DI10:
-	mov	FD_DRIVE,dx		; drive in DX
+	mov	[FD_DRIVE],dx		; drive in DX
 	call	fdos_crit
 	les	bx,FD_DPB		; get the DPB pointer
 	ret
@@ -536,11 +536,11 @@ fdos_DI10:
 
 	Public	func2F
 func2F:
-	les	bx,dword ptr dma_offset	; current dma address
+	les	bx,[dma_offset]	; current dma address
 	push	ds
-	lds	di,int21regs_ptr
-	mov	reg_ES[di],es
-	mov	reg_BX[di],bx
+	lds	di,[int21regs_ptr]
+	mov	[reg_ES + di],es
+	mov	[reg_BX + di],bx
 	pop	ds
 	ret
 
@@ -552,7 +552,7 @@ func2F:
 ;
 	Public	func41
 func41:
-	cmp	ss:remote_call,0
+	cmp	word [ss:remote_call],0
 	 jne	fdos_common41
 	mov	cl,06h
 
@@ -597,10 +597,10 @@ fdos_common41:
 ;	jmp	fdos_name
 
 fdos_name:
-	mov	FD_NAMEOFF,dx		; Initialise Pointer
-	mov	FD_NAMESEG,es
-	mov	FD_ATTRIB,cx		; and attributes
-	mov	FD_LFNSEARCH,0		; do not use FAT+/LFN extensions
+	mov	[FD_NAMEOFF],dx		; Initialise Pointer
+	mov	[FD_NAMESEG],es
+	mov	[FD_ATTRIB],cx		; and attributes
+	mov	word [FD_LFNSEARCH],0		; do not use FAT+/LFN extensions
 	jmp	fdos_ax_crit
 
 ;	*****************************
@@ -619,11 +619,11 @@ func5B:
 	Public	func3C
 func3C:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	cmp	FD_FUNC,MS_X_CREAT	; is it a standard create ?
+	cmp	word [FD_FUNC],MS_X_CREAT	; is it a standard create ?
 	 je	f3C_10
-	mov	FD_FUNC,FD_NEW		; no, create a new file
+	mov	word [FD_FUNC],FD_NEW		; no, create a new file
 f3C_10:
-	mov	FD_MODE,DHM_RW		; create as read/write
+	mov	word [FD_MODE],DHM_RW		; create as read/write
 	jmp	fdos_name		; go do it
 
 ;	*****************************
@@ -634,7 +634,7 @@ f3C_10:
 	Public	func3D
 func3D:
 	call	set_retry_RF			; Valid to RETRY or FAIL
-	cmp	ss:remote_call,0
+	cmp	word [ss:remote_call],0
 	 jne	funcExtendedOpenCreate
 	mov	cl,06h				; default search mode for local
 ;	jmp	funcExtendedOpenCreate		;  calls (remote it's in CL)
@@ -655,7 +655,7 @@ funcExtendedOpenCreate:
 	cmp	al,DHM_RW			; check RW bits are valid
 	pop	ax
 	 ja	open_mode_err
-	mov	FD_MODE,ax			; Set Open Mode
+	mov	[FD_MODE],ax			; Set Open Mode
 	jmp	fdos_name
 
 open_mode_err:
@@ -680,13 +680,13 @@ func3F:
 func40:
 	mov	al,OK_RIF			; Valid to RETRY,IGNORE or FAIL
 	call	set_retry
-	mov	FD_BUFOFF,dx
-	mov	FD_BUFSEG,es
-	mov	FD_COUNT,cx
+	mov	[FD_BUFOFF],dx
+	mov	[FD_BUFSEG],es
+	mov	[FD_COUNT],cx
 	call	fdos_handle
-	mov	dx,FD_COUNT
+	mov	dx,[FD_COUNT]
 	 jnc	f40_10				; no error, return # xfered
-	push	FD_HANDLE
+	push	word [FD_HANDLE]
 	push	dx				; an error, try critical error
 	call	error_exit			;  and if we get back here that
 	pop	dx				;  means we Fail/Ignore it
@@ -711,13 +711,13 @@ f40_20:
 	Public	func42
 func42:
 	call	set_retry_RF			; Valid to RETRY or FAIL
-	mov	word ptr FD_OFFSET+0,dx
-	mov	word ptr FD_OFFSET+2,cx
-	mov	FD_METHOD,ax
+	mov	word ptr [FD_OFFSET+0],dx
+	mov	word ptr [FD_OFFSET+2],cx
+	mov	[FD_METHOD],ax
 	call	fdos_handle
 	 jc	f42_error			; Do not return the current
-	mov	ax,word ptr FD_OFFSET+0		; file position if
-	mov	dx,word ptr FD_OFFSET+2		; an error occurs
+	mov	ax,word ptr [FD_OFFSET+0]		; file position if
+	mov	dx,word ptr [FD_OFFSET+2]		; an error occurs
 	call	return_DX
 	jmp	return_AX_CLC
 
@@ -725,7 +725,7 @@ f42_error:
 	jmp	error_exit
 
 fdos_handle:
-	mov	FD_HANDLE,bx
+	mov	[FD_HANDLE],bx
 	jmp	fdos_crit
 
 ;	*****************************
@@ -745,13 +745,13 @@ fdos_handle:
 	Public	func43
 func43:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	mov	FD_FLAG,ax		; Requested Attributes ignored
+	mov	[FD_FLAG],ax		; Requested Attributes ignored
 	call	fdos_name		; if flags are not being set
 	 jc	f42_error
 	call	reload_registers	; get back AL
 	test	al,81h
 	 jnz    f43_exit        
-	mov	cx,FD_ATTRIB
+	mov	cx,[FD_ATTRIB]
 	call	return_CX		; Return Attribs/Password
 	xchg	ax,cx			; Also in AX
 f43_exit:
@@ -787,11 +787,11 @@ func45:
 func3E:
 	mov	al,OK_FAIL
 	call	set_retry		; Valid to FAIL
-	mov	FD_NEWHND,cx		; (in case it's force dup)
+	mov	[FD_NEWHND],cx		; (in case it's force dup)
 ;	jmp	fdos_ax_handle
 
 fdos_ax_handle:
-	mov	FD_HANDLE,bx
+	mov	[FD_HANDLE],bx
 	jmp	fdos_ax_crit
 
 ;	*****************************
@@ -802,12 +802,12 @@ fdos_ax_handle:
 	Public	func5C
 func5C:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	mov	FD_FUNC,FD_LOCK		; Lock/Unlock File
-	mov	word ptr FD_OFFSET+0,dx	; Lock Offset (LOW)
-	mov	word ptr FD_OFFSET+2,cx	; Lock Offset (HIGH)
-	mov	word ptr FD_LENGTH+0,di	; Lock Length (LOW)
-	mov	word ptr FD_LENGTH+2,si	; Lock Length (HIGH)
-	mov	FD_LFLAG,ax		; Lock Type
+	mov	word [FD_FUNC],FD_LOCK		; Lock/Unlock File
+	mov	word ptr [FD_OFFSET+0],dx	; Lock Offset (LOW)
+	mov	word ptr [FD_OFFSET+2],cx	; Lock Offset (HIGH)
+	mov	word ptr [FD_LENGTH+0],di	; Lock Length (LOW)
+	mov	word ptr [FD_LENGTH+2],si	; Lock Length (HIGH)
+	mov	[FD_LFLAG],ax		; Lock Type
 	jmp	fdos_ax_handle
 
 ;	*****************************
@@ -818,11 +818,11 @@ func5C:
 	Public	func47
 func47:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	mov	FD_PATHOFF,si		; Initialise Pointer
-	mov	FD_PATHSEG,es
+	mov	[FD_PATHOFF],si		; Initialise Pointer
+	mov	[FD_PATHSEG],es
 	xchg	ax,dx			; drive in AL
 	cbw				; make that AX
-	mov	FD_DRIVE,ax
+	mov	[FD_DRIVE],ax
 	jmp	fdos_ax_crit		; return garbage in AH (SPJ bug)
 
 ;	*****************************
@@ -835,13 +835,13 @@ func47:
 	Public	func53
 func53:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	mov	FD_BPBOFF,si		; Segment and Offset of BPB
-	mov	FD_BPBSEG,es
-	mov	FD_DDSCOFF,bp		; Segment and Offset of DDSC
-	mov	FD_SIG1,cx		; signatures for extended function
-	mov	FD_SIG2,dx
+	mov	[FD_BPBOFF],si		; Segment and Offset of BPB
+	mov	[FD_BPBSEG],es
+	mov	[FD_DDSCOFF],bp		; Segment and Offset of DDSC
+	mov	[FD_SIG1],cx		; signatures for extended function
+	mov	[FD_SIG2],dx
 	call	reload_ES
-	mov	FD_DDSCSEG,es
+	mov	[FD_DDSCSEG],es
 	jmp	fdos_nocrit
 ;
 ;	*****************************
@@ -852,18 +852,18 @@ func53:
 	Public	func56
 func56:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	mov	FD_NNAMEOFF,di		; New FileName
+	mov	[FD_NNAMEOFF],di		; New FileName
 	push	es
 	call	reload_ES		; callers ES:DI
-	mov	FD_NNAMESEG,es		; point to new filename
+	mov	[FD_NNAMESEG],es		; point to new filename
 	pop	es
-	mov	FD_ONAMEOFF,dx		; Old FileName
-	mov	FD_ONAMESEG,es
-	cmp	ss:remote_call,0
+	mov	[FD_ONAMEOFF],dx		; Old FileName
+	mov	[FD_ONAMESEG],es
+	cmp	word [ss:remote_call],0
 	 jne	func56_10
 	mov	cl,17h
 func56_10:
-	mov	FD_ATTRIB,cx
+	mov	[FD_ATTRIB],cx
 	jmp	fdos_crit
 
 ;	*****************************
@@ -874,9 +874,9 @@ func56_10:
 	Public	func57
 func57:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	mov	FD_DATE,dx
-	mov	FD_TIME,cx
-	mov	FD_SFLAG,ax
+	mov	[FD_DATE],dx
+	mov	[FD_TIME],cx
+	mov	[FD_SFLAG],ax
 	cmp	al,1			; allow get/set only
 	mov	ax,ED_FUNCTION		; all else fails horribly
 	 ja	f57_error
@@ -885,9 +885,9 @@ func57:
     call    reload_registers  
 	test	al,al
 	 jnz	f57_exit
-	mov	cx,FD_TIME
+	mov	cx,[FD_TIME]
 	call	return_CX		; return TIME in CX
-	mov	dx,FD_DATE
+	mov	dx,[FD_DATE]
 	jmp	return_DX		; and DATE in DX
 
 f57_exit:
@@ -910,7 +910,7 @@ func5A:
 	xor	ax,ax			; no previous char
 func5A_10:
 	xchg	ax,bx			; BL = previous char
-	lodsb	es:0			; get next char
+	es lodsb			; get next char
 	test	al,al			; is it the end of the string?
 	 jz	func5A_20
 	call	dbcs_lead		; is it a KANJI char?
@@ -923,7 +923,7 @@ func5A_20:
 	 je	func5A_30
 	cmp	bl,'/'			; (or a '/' for unix freaks)
 	 je	func5A_30
-	mov	es:byte ptr [si],'\'	; append a '\' to name
+	mov	byte ptr [es:si],'\'	; append a '\' to name
 	inc	si
 func5A_30:
 ; Here ES:DX -> start of name, ES:SI -> position to append <unique name>,0
@@ -941,7 +941,7 @@ func5A_30:
 	mov	ah,MS_X_MKNEW		; try to create unique file
 	call	dos_entry
 	 jnc	func5A_50		; exit if we succeeded
-	mov	es:byte ptr [si],0	;  else forget extention
+	mov	byte ptr [es:si],0	;  else forget extention
 	cmp	ax,ED_EXISTS		; we only retry if it already exists 
 	 je	func5A_30
 func5A_40:
@@ -964,8 +964,8 @@ func5A_append_unique_name:
 	mov	ax,120dh
 	int	2fh			; get date/time in AX & DX
 	pop	di
-	add	ax,unique_name_seed	; randomise the date otherwise we would
-	inc	unique_name_seed	;  have one second wait between names
+	add	ax,[unique_name_seed]	; randomise the date otherwise we would
+	inc	word [unique_name_seed]	;  have one second wait between names
 	call	func5A_app_AX		; store 4 ascii bytes
 	xchg	ax,dx			; was DX = time
 	call	func5A_app_AX		; store 4 ascii bytes
@@ -1006,12 +1006,12 @@ func5A_app_NIB:
 	Public	func60
 func60:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	mov	FD_FUNC,FD_EXPAND	; Expand a relative Path
-	mov	FD_ONAMEOFF,si		; Initialise Source Pointer
-	mov	FD_ONAMESEG,es
-	mov	FD_NNAMEOFF,di		; Initialise Destination
+	mov	word [FD_FUNC],FD_EXPAND	; Expand a relative Path
+	mov	[FD_ONAMEOFF],si		; Initialise Source Pointer
+	mov	[FD_ONAMESEG],es
+	mov	[FD_NNAMEOFF],di		; Initialise Destination
 	call	reload_ES		;  pointer
-	mov	FD_NNAMESEG,es
+	mov	[FD_NNAMESEG],es
 	jmp	fdos_crit
 
 ;	*****************************
@@ -1031,16 +1031,16 @@ func60:
 	Public	func67
 func67:
 	push	ds
-	mov	ds,current_psp		; DS -> current PSP blk
+	mov	ds,[current_psp]		; DS -> current PSP blk
 	cmp	bx,20			; force to minimum value of 20
 	 jae	f67_10
 	mov	bx,20			; never have less than 20 handles
 f67_10:
 
-	mov	cx,ds:PSP_XFNMAX	; we have this many handles
+	mov	cx,[PSP_XFNMAX]	; we have this many handles
 	sub	cx,bx			; are we growing ?
 	 jbe	f67_20			; if shrinking make sure none open
-	les	di,ds:PSP_XFTPTR	; point to existing handle table
+	les	di,[PSP_XFTPTR]	; point to existing handle table
 	lea	di,[di+bx]		; point to 1st handle we will lose
 	mov	al,0FFh			; they must all be closed
 	repe	scasb			;  or we fail
@@ -1066,12 +1066,12 @@ f67_30:
 	 jc	f67_error		; ES:DI -> new handle table
 
 	mov	cx,bx			; CX = new # handles
-	xchg	cx,ds:PSP_XFNMAX	; Update the Handle Count	
+	xchg	cx,[PSP_XFNMAX]	; Update the Handle Count	
 
 	mov	si,di			; Update the Table Offset
-	xchg	si,ds:PSP_XFTOFF
+	xchg	si,[PSP_XFTOFF]
 	mov	ax,es
-	xchg	ax,ds:PSP_XFTSEG	; Update the Table Segment
+	xchg	ax,[PSP_XFTSEG]	; Update the Table Segment
 	mov	ds,ax			; DS:SI -> old handle table
 					; ES:DI -> new handle table
 					; CX = # old handles to copy
@@ -1111,7 +1111,7 @@ f67_error:
 	Public	func68
 func68:
 	call	set_retry_RF		; Valid to RETRY or FAIL
-	mov	FD_FUNC,FD_COMMIT	; Close a File Handle
+	mov	word [FD_FUNC],FD_COMMIT	; Close a File Handle
 	jmp	fdos_handle
 
 
@@ -1130,7 +1130,7 @@ func6C:
 f6C10:
 	call	set_retry
 	mov	ax,ED_FUNCTION		; assume an illegal action code
-	test	dx,not 0113h		; now check for sensible bits
+	test	dx,~ 0113h		; now check for sensible bits
 	 jnz	f6C_error
 	inc	dx
 	test	dl,4			; also reject bits 0-3 = 3
@@ -1145,7 +1145,7 @@ f6C10:
 	 jz	f6C_open		; no, skip the attempt at make new
 
 	and	ah,(DHM_COMMIT+DHM_NOCRIT)/100h
-	mov	FD_FUNC,FD_NEW		; create only if not there
+	mov	word [FD_FUNC],FD_NEW		; create only if not there
 	call	funcExtendedOpenCreate	; try to open/create the file
 
 	mov	cx,2			; CX = file created
@@ -1158,7 +1158,7 @@ f6C_open:
 	xchg	ax,bx			; AX = open mode, BX = action
 	push	bx			; save action
 	and	ah,(DHM_COMMIT+DHM_NOCRIT)/100h
-	mov	FD_FUNC,MS_X_OPEN	; try an open an existing file
+	mov	word [FD_FUNC],MS_X_OPEN	; try an open an existing file
 	call	funcExtendedOpenCreate
 	pop	bx			; recover action
 	 jc	f6C_error		; return error if we can't open file
@@ -1191,7 +1191,7 @@ f6C_error:
 
 PCM_CODE	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 	extrn	current_psp:word
 	extrn	current_dsk:byte
 	extrn	dma_offset:word
@@ -1199,12 +1199,12 @@ PCMODE_DATA	segment public word 'DATA'
 	extrn	int21regs_ptr:dword
 	extrn	last_drv:byte
 	extrn	remote_call:word
-ifdef DELWATCH
+%ifdef DELWATCH
 	extrn	fdos_stub:dword
-endif
+%endif
 PCMODE_DATA	ends
 
-GLOBAL_DATA	segment public word 'DATA'
+section GLOBAL_DATA public align=2 class=DATA
 ; When creating unique files we use the date/time to make the name.
 ; We add this seed value to "randomise" things, INCing on failure so the next
 ; attempt usually succeeds.
