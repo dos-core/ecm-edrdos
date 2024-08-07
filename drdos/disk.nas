@@ -526,7 +526,7 @@ fdos_DI05:
 fdos_DI10:
 	mov	[FD_DRIVE],dx		; drive in DX
 	call	fdos_crit
-	les	bx,FD_DPB		; get the DPB pointer
+	les	bx,[FD_DPB]		; get the DPB pointer
 	ret
 
 ;	*****************************
