@@ -709,7 +709,7 @@ cook_w05:
 	pop	es
      jcxz   cook_w80        
 cook_w10:
-	lodsb	es:0			; Read the next character
+	es lodsb			; Read the next character
 	cmp 	al,DEL
 	je 	cook_w60		; DEL is a NON Printing Character
 	cmp 	al,' '
