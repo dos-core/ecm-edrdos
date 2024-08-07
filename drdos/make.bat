@@ -52,7 +52,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj support.nas -l bin/support.lst -o bin/support.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -DDELWATCH -c -Fl.\BIN\disk.lst -Fo.\BIN\disk disk.asm
+nasm -DDELWATCH -s -P nasm.mac -f obj disk.nas -l bin/disk.lst -o bin/disk.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -c -Fl.\BIN\dosmem.lst -Fo.\BIN\dosmem dosmem.asm
