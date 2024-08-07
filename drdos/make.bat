@@ -40,7 +40,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj lfn.nas -l bin/lfn.lst -o bin/lfn.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\cdevio.lst -Fo.\BIN\cdevio cdevio.asm
+nasm -s -P nasm.mac -f obj cdevio.nas -l bin/cdevio.lst -o bin/cdevio.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -DDELWATCH -c -Fl.\BIN\dirs.lst -Fo.\BIN\dirs dirs.asm
