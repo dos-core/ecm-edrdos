@@ -1,4 +1,4 @@
-title 'F_DOS Character device I/O'
+;title 'F_DOS Character device I/O'
 ;    File              : $CDEVIO.ASM$
 ;
 ;    Description       :
@@ -43,27 +43,27 @@ title 'F_DOS Character device I/O'
 ;    Update char_error so ES:SI -> device driver header itself;
 ;    ENDLOG
 
-PCMCODE	GROUP	BDOS_CODE
-PCMDATA	GROUP	BDOS_DATA,PCMODE_DATA
+group PCMCODE BDOS_CODE
+group PCMDATA BDOS_DATA PCMODE_DATA
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include psp.def
-	include modfunc.def
-	include fdos.equ
-	include mserror.equ
-	include doshndl.def
-	include driver.equ
-	include request.equ
-	include cmdline.equ
-	.list
+	[list -]
+	%include "psp.mac"
+	%include "modfunc.mac"
+	%include "fdos.mac"
+	%include "mserror.mac"
+	%include "doshndl.mac"
+	%include "driver.mac"
+	%include "request.mac"
+	%include "cmdline.mac"
+	[list +]
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 	extrn	fdos_buf:byte		; caveat: in PCMODE data segment
 PCMODE_DATA	ends
 
-BDOS_DATA	segment public word 'DATA'
+section BDOS_DATA public align=2 class=DATA
 	extrn	fdos_pb:word
 	extrn	fdos_ret:word
 BDOS_DATA	ends
@@ -77,7 +77,7 @@ ERR_RETRY	equ	1		; Retry the Operation
 ERR_ABORT	equ	2		; Terminate the Process
 ERR_FAIL	equ	3		; Fail Function
 
-BDOS_CODE	segment public byte 'CODE'
+section BDOS_CODE public align=1 class=CODE
 
 	public	open_dev
 	public	close_dev
@@ -120,36 +120,38 @@ open_dev:
 	pop	dx			; DX = XFN
 	xchg	ax,si			; SI = IFN
 	xor	ax,ax
-	lea	di,DHNDL_DATRB[bx]	; point at start of area to fill
+	lea	di,[DHNDL_DATRB + bx]	; point at start of area to fill
 	mov	cx,DHNDL_UID-DHNDL_DATRB
 	rep	stosb
-	lea	di,DHNDL_SIZEX[bx]
+	lea	di,[DHNDL_SIZEX + bx]
 	mov	cx,(DHNDL_LEN - DHNDL_SIZEX) / 2
 	rep	stosw			; clear 64-bit high dwords size/seek
-	mov	es:DHNDL_SHARE[bx],ax	; also zap share word	
-	pop	es:DHNDL_DEVOFF[bx]
-	pop	es:DHNDL_DEVSEG[bx]	; save device driver address
+	mov	[es:DHNDL_SHARE + bx],ax	; also zap share word	
+	pop	word [es:DHNDL_DEVOFF + bx]
+	pop	word [es:DHNDL_DEVSEG + bx]	; save device driver address
 
 	push 	si
 	push 	dx			; save IFN/XFN
 
-	mov	es:DHNDL_COUNT[bx],1
+	mov	word [es:DHNDL_COUNT + bx],1
 	push	ds
-	mov	ax,fdos_pb+6		; AX = open mode
+	mov	ax,[fdos_pb+6]		; AX = open mode
 	mov	cx,DHAT_DEV+DHAT_CLEAN+DHAT_TIMEOK
-	lds	si,es:DHNDL_DEVPTR[bx]	; DS:SI -> device driver
-	or	cl,ds:byte ptr DEVHDR.ATTRIB[si]
+	lds	si,[es:DHNDL_DEVPTR + bx]	; DS:SI -> device driver
+DEVHDR.ATTRIB equ ATTRIB	; NASM port label
+	or	cl,byte ptr [DEVHDR.ATTRIB + si]
 					; get attrib from device driver
 	test	al,DHM_LOCAL		; is it private ?
 	 jz	open_dev10
-	and	al,not DHM_LOCAL	; clear inherit bit
+	and	al,~ DHM_LOCAL	; clear inherit bit
 	or	ch,DHAT_LOCAL/256	; rememmber it's local
 open_dev10:
-	mov	es:DHNDL_MODE[bx],ax
-	mov	es:DHNDL_WATTR[bx],cx
-	lea	si,DEVHDR.NAM[si]	; copy the device name
-	lea	di,DHNDL_NAME[bx]	;  from the device header
-	mov	cx,8/WORD
+	mov	[es:DHNDL_MODE + bx],ax
+	mov	[es:DHNDL_WATTR + bx],cx
+DEVHDR.NAM equ NAM	; NASM port label
+	lea	si,[DEVHDR.NAM + si]	; copy the device name
+	lea	di,[DHNDL_NAME + bx]	;  from the device header
+	mov	cx,8/2
 	rep	movsw
 	mov	al,' '
 	mov	cl,3			; space the file extension
@@ -168,9 +170,9 @@ open_dev10:
 open_dev20:
 	pop	es
 
-	mov	fdos_ret,ax		; save XFN (IFN for FCB open) to return
+	mov	[fdos_ret],ax		; save XFN (IFN for FCB open) to return
 	call	timestamp_dhndl
-	or	es:DHNDL_ATTR[bx],DHAT_READY
+	or	byte [es:DHNDL_ATTR + bx],DHAT_READY
 ;	jmp	open_dup_dev
 
 open_dup_dev:
@@ -192,10 +194,10 @@ open_close_dev:
 	push 	es
 	push 	bx
 	push 	si
-	lds	si,es:DHNDL_DEVPTR[bx]	; DS:SI -> device driver
-	test	ds:DEVHDR.ATTRIB[si],DA_REMOVE
+	lds	si,[es:DHNDL_DEVPTR + bx]	; DS:SI -> device driver
+	test	word [DEVHDR.ATTRIB + si],DA_REMOVE
 	 jz	ocdev1			 ; does the device support OPEN/CLOSE/RM
-	sub	sp,RH13_LEN-2*word	; make space on stack for RH_
+	sub	sp,RH13_LEN-2*2	; make space on stack for RH_
 	push	ax			; RH_CMD = AL
 	mov	ax,RH13_LEN
 	push	ax			; RH_LEN = RH13_LEN
@@ -219,7 +221,7 @@ dup_dev:
 ;	None
 ;	AX trashed
 ;
-	mov	ax,es:DHNDL_WATTR[bx]
+	mov	ax,[es:DHNDL_WATTR + bx]
 	test	al,DHAT_DEV
 	 jz	dup_dev10		; skip if disk file
 	test	ax,DHAT_REMOTE		; or remote
@@ -237,7 +239,7 @@ close_dev:	; close character device handle
 	mov	al,CMD_DEVICE_CLOSE
 	call	open_close_dev		; call device close routine
 	call	release_handle		; release the XFN
-	dec	es:DHNDL_COUNT[bx]	; one less XFN refers to this IFN
+	dec	word [es:DHNDL_COUNT + bx]	; one less XFN refers to this IFN
 	ret
 
 
@@ -247,24 +249,24 @@ write_dev:	; write to character device handle
 ;
 
 	mov	cl,CMD_OUTPUT		; OUTPUT driver function
-	or	es:DHNDL_ATTR[bx],DHAT_READY
-	mov	al,es:DHNDL_ATTR[bx]	; get file info
+	or	byte [es:DHNDL_ATTR + bx],DHAT_READY
+	mov	al,[es:DHNDL_ATTR + bx]	; get file info
 	and	al,DHAT_BIN+DHAT_NUL+DHAT_CIN+DHAT_COT
 	cmp	al,DHAT_CIN+DHAT_COT	; is it cooked console?
 	 jne	inst_io			; no, device driver i/o
-	mov	si,2[bp]		; SI -> parameter block
-	mov	cx,ds:8[si]		; CX = string length
+	mov	si,[2 + bp]		; SI -> parameter block
+	mov	cx,[8 + si]		; CX = string length
 	 jcxz	write_dev20		; exit if nothing to write
-	les	di,ds:4[si]		; ES:DI -> string to print
+	les	di,[4 + si]		; ES:DI -> string to print
 	mov	al,'Z'-40h		; we have to stop at ^Z
 	repne	scasb			; scan for ^Z character
 	 jne	write_dev10		; skip if ^Z not found
 	inc	cx			; include ^Z in count of chars to skip
-	sub	ds:8[si],cx		; subtract from total count
+	sub	[8 + si],cx		; subtract from total count
 write_dev10:
-	mov	bx,ds:2[si]		; BX = handle number
-	mov	cx,ds:8[si]		; CX = string length
-	mov	si,ds:4[si]		; ES:SI -> string to print
+	mov	bx,[2 + si]		; BX = handle number
+	mov	cx,[8 + si]		; CX = string length
+	mov	si,[4 + si]		; ES:SI -> string to print
 	call	cooked_write		; write w/ tab expansion & ^C checking
 write_dev20:
 	sub	bx,bx			; no errors
@@ -276,7 +278,7 @@ read_dev:	; read to character device handle
 ;--------
 ;	entry:	ES:BX -> DHNDL_ structure
 
-	mov	al,es:DHNDL_ATTR[bx]	; get the file info
+	mov	al,[es:DHNDL_ATTR + bx]	; get the file info
 	mov	ah,al			; save ioctl info
 	and	al,DHAT_BIN+DHAT_CIN+DHAT_COT
 	cmp	al,DHAT_CIN+DHAT_COT	; is it cooked console?
@@ -286,8 +288,8 @@ read_dev:	; read to character device handle
 rddev1:
 	test	ah,DHAT_READY		; previous EOF ?
 	 jnz	rddev2			; yes we return now
-	mov	di,2[bp]		; DI -> parameter block
-	mov	ds:word ptr 8[di],0	; zero bytes xfered
+	mov	di,[2 + bp]		; DI -> parameter block
+	mov	word ptr [8 + di],0	; zero bytes xfered
 	ret
 rddev2:
 	mov	cl,CMD_INPUT
@@ -297,11 +299,11 @@ inst_io:
 	mov	di,bx			; save address DHNDL_ in DI
 	mov	bx,sp			; SS:BX -> request header
 
-	mov	ds:RH_CMD[bx],cl
-	mov	ds:RH_LEN[bx],RH4_CDEV_LEN
-	mov	ds:RH_STATUS[bx],0	; status OK in case of zero chars
-	mov	si,2[bp]		; DS:SI -> parameter block
-	lea	si,4[si]		; point at buffer offset
+	mov	[RH_CMD + bx],cl
+	mov	byte [RH_LEN + bx],RH4_CDEV_LEN
+	mov	word [RH_STATUS + bx],0	; status OK in case of zero chars
+	mov	si,[2 + bp]		; DS:SI -> parameter block
+	lea	si,[4 + si]		; point at buffer offset
 	lodsw				; get buffer offset
 ; Normalising the address has been unnecessary so far
 ;	push	ax
@@ -309,10 +311,10 @@ inst_io:
 ;	pop	cx
 ;	shr	cx,1 ! shr cx,1
 ;	shr	cx,1 ! shr cx,1
-	mov	ds:RH4_BUFOFF[bx],ax	; set buffer offset in request header
+	mov	[RH4_BUFOFF + bx],ax	; set buffer offset in request header
 	lodsw				; get buffer segment
 ;	add	ax,cx			; add in normalised offset/16
-	mov	ds:RH4_BUFSEG[bx],ax	; get buffer segment in request header
+	mov	[RH4_BUFSEG + bx],ax	; get buffer segment in request header
 	lodsw				; get byte count
 	xchg	ax,cx			; byte count in CX
 
@@ -320,14 +322,14 @@ inst_io:
 ; ES:DI -> DHNDL_, CX = total number of bytes to xfer
 
 inst_io20:
-	mov	ds:RH4_COUNT[bx],cx	; try and do this many
-	test	es:DHNDL_ATTR[di],DHAT_BIN+DHAT_NUL
+	mov	[RH4_COUNT + bx],cx	; try and do this many
+	test	byte [es:DHNDL_ATTR + di],DHAT_BIN+DHAT_NUL
 					; are we in binary mode ?
 	 jcxz	inst_io30		; return on zero length xfer
 	 jnz	inst_io25		; binary, skip calling PCMODE
-    mov ds:RH4_COUNT[bx],1  ; do one char at a time
+    mov word [RH4_COUNT + bx],1  ; do one char at a time
 	call	break_check		; call the break check routine
-	cmp	ds:RH_CMD[bx],CMD_OUTPUT ; which way are we going 
+	cmp	byte [RH_CMD + bx],CMD_OUTPUT ; which way are we going 
 	 jne	inst_io25
 	call	inst_io_getchar		; AL = 1st char in the buffer
 	cmp	al,1Ah			; EOF - don't send it or anything after
@@ -337,7 +339,7 @@ inst_io25:
 	push 	es
 	push 	di
 	push 	cx
-	lds	si,es:DHNDL_DEVPTR[di]	; DS:SI -> device driver
+	lds	si,[es:DHNDL_DEVPTR + di]	; DS:SI -> device driver
 	push 	ss
 	pop 	es			; ES:BX -> RH_
 	call	device_driver		; execute the command
@@ -347,36 +349,36 @@ inst_io25:
 	pop 	ds
 	 jns	inst_io_continue	; if no errors carry on
 	push	es
-	les	si,es:DHNDL_DEVPTR[di]	; ES:SI -> device driver
+	les	si,[es:DHNDL_DEVPTR + di]	; ES:SI -> device driver
 	call	char_error		; this will handle the Int 24
 	pop	es
 	cmp	al,ERR_RETRY		; what should we do ?
 	 je	inst_io20		; retry the operation
 	 ja	inst_io30		; fail - return error
-	mov	ds:RH_STATUS[bx],RHS_DONE
+	mov	word [RH_STATUS + bx],RHS_DONE
 	jmp	inst_io_ignore		; ignore - fiddle status and
 inst_io_continue:			;  say we did it all
-	mov	dx,ds:RH4_COUNT[bx]	; how many did we xfer ?
+	mov	dx,[RH4_COUNT + bx]	; how many did we xfer ?
 	test	dx,dx			;  if we haven't done any
 	 jz	inst_io30		;  we are stuck so exit now
 inst_io_ignore:
 	call	inst_io_getchar		; AL = 1st char in the buffer
-	add	ds:RH4_BUFOFF[bx],dx	; it may not enough so adjust offset
+	add	[RH4_BUFOFF + bx],dx	; it may not enough so adjust offset
 	sub	cx,dx			;  and number still to do
-	cmp	ds:RH_CMD[bx],CMD_INPUT	; which way are we going - if input
+	cmp	byte [RH_CMD + bx],CMD_INPUT	; which way are we going - if input
 	 jne	inst_io20		;  we need to check for CR/EOF
-	test	es:DHNDL_ATTR[di],DHAT_BIN+DHAT_NUL
+	test	byte [es:DHNDL_ATTR + di],DHAT_BIN+DHAT_NUL
 	 jnz	inst_io30		; if BIN then exit now
 	cmp	al,13			; is it a CR character ?
 	 je	inst_io30		;  yes, we stop now
 	cmp	al,1Ah			; is it the EOF character ?
 	 jne	inst_io20		;  yes, we aren't ready
-	and	es:DHNDL_ATTR[di],not DHAT_READY
+	and	byte [es:DHNDL_ATTR + di],~ DHAT_READY
 inst_io30:
-	mov	di,2[bp]		; DI -> parameter block
-	sub	ds:8[di],cx		; subtract # not xfered from byte count
+	mov	di,[2 + bp]		; DI -> parameter block
+	sub	[8 + di],cx		; subtract # not xfered from byte count
 
-	mov	ax,ds:RH_STATUS[bx]	; get result for later
+	mov	ax,[RH_STATUS + bx]	; get result for later
 	sub	bx,bx			; assume no errors
 	test	ax,ax			; test error bit (8000h)
 	 jns	rddev_no_err		; skip if ERROR set
@@ -389,7 +391,7 @@ rddev_no_err:
 
 inst_io_getchar:
 	push	ds
-	lds	si,ds:RH4_BUFFER[bx]	; point to the users buffer
+	lds	si,[RH4_BUFFER + bx]	; point to the users buffer
 	lodsb				; get 1st char in the buffer
 	pop	ds
 	ret
@@ -410,7 +412,7 @@ con_dev_not_eof:
 	push	es
 	push	bx			; save DHNDL_
 con_dev_loop:
-	mov	bx,word ptr fdos_buf	; get # of bytes already used
+	mov	bx,word ptr [fdos_buf]	; get # of bytes already used
 	xor	ax,ax
 	xchg	al,bh			; get # bytes in the buffer
 	inc 	ax
@@ -419,9 +421,9 @@ con_dev_loop:
 	 ja	con_dev_cont		; yes, return them
 	 				; no, we need a fresh input line
 ;	mov	fdos_buf,128		; read up to 128 characters
-	mov	fdos_buf,CMDLINE_LEN	; read up to 128 characters
-	mov	si,2[bp]		; SI -> parameter block
-	mov	bx,ds:2[si]		; BX = input handle
+	mov	byte [fdos_buf],CMDLINE_LEN	; read up to 128 characters
+	mov	si,[2 + bp]		; SI -> parameter block
+	mov	bx,[2 + si]		; BX = input handle
 	push	ds
 	pop 	es
 	mov	dx,offset fdos_buf	; ES:DX -> console buffer
@@ -430,33 +432,33 @@ con_dev_loop:
 	push	bp
 	call	read_line		; read edited line
 	pop	bp
-	mov	bl,fdos_buf+1		; # byte we have read
+	mov	bl,[fdos_buf+1]		; # byte we have read
 	mov	bh,0			; BX = # of characters read
-	mov	word ptr fdos_buf+2[bx],0A0Dh; append carriage return/line feed
-	mov	fdos_buf,0		; start reading at beginning
-	lea	si,fdos_buf+3[bx]	; Echo the LF character to the 
+	mov	word ptr [fdos_buf+2 + bx],0A0Dh; append carriage return/line feed
+	mov	byte [fdos_buf],0		; start reading at beginning
+	lea	si,[fdos_buf+3 + bx]	; Echo the LF character to the 
 	pop	bx			; Same Output handle
 	mov	cx,1			; Only One Character
 	call	cooked_write
 	jmp	con_dev_loop
 
 con_dev_cont:				; BX = buffer offset
-	mov	di,2[bp]		; DI -> parameter block
-	mov	cx,ds:8[di]		; CX = # of bytes to read
+	mov	di,[2 + bp]		; DI -> parameter block
+	mov	cx,[8 + di]		; CX = # of bytes to read
 	cmp	cx,ax			; reading more than available?
 	 jbe	con_dev_ok		; no, read as much as you want
 	mov	cx,ax			; else take all that there is
 con_dev_ok:
-	add	fdos_buf,cl		; update buffer index for next time
-	les	di,ds:4[di]		; ES:DI -> buffer to read into
-	lea	si,fdos_buf+2[bx]	; DS:SI -> function 10 buffer
+	add	[fdos_buf],cl		; update buffer index for next time
+	les	di,[4 + di]		; ES:DI -> buffer to read into
+	lea	si,[fdos_buf+2 + bx]	; DS:SI -> function 10 buffer
 	push	cx			; save count
 	rep	movsb			; read all the data
 	pop	cx			; restore count
 	mov	al,1Ah			; now we look for EOF mark...
 	push 	ds
 	pop 	es
-	lea	di,fdos_buf+2[bx]	; ES:DI -> function 10 buffer
+	lea	di,[fdos_buf+2 + bx]	; ES:DI -> function 10 buffer
 	mov	si,cx			; keep count safe
 	repne	scasb
 	xchg	cx,si			; restore count
@@ -465,10 +467,10 @@ con_dev_ok:
 	 jne	con_dev_exit		; if no EOF, skip to exit
 	sub	cx,si			; subtract any after EOF mark
 	dec	cx			; and the EOF mark itself
-	and	es:DHNDL_ATTR[bx],not DHAT_READY
+	and	byte [es:DHNDL_ATTR + bx],~ DHAT_READY
 con_dev_exit:
-	mov	di,2[bp]		; DI -> parameter block
-	mov	ds:8[di],cx		; set # of characters read
+	mov	di,[2 + bp]		; DI -> parameter block
+	mov	[8 + di],cx		; set # of characters read
 	sub	bx,bx			; good return code
 	ret
 
@@ -492,7 +494,7 @@ first_dev:	; F_DOS FIRST call on device performed
 	mov	cx,4
 	rep	stosw			; zero time, date, file size
 
-	lea	si,10[bx]
+	lea	si,[10 + bx]
 	push	ds
 	mov	ds,dx			; DS:SI -> name in device header
 	mov	cx,4
@@ -501,7 +503,7 @@ first_dev:	; F_DOS FIRST call on device performed
 
 	mov	cx,8
 frstdev1:				; scan off trailing spaces
-	cmp	es:byte ptr [di-1],' '
+	cmp	byte ptr [es:di-1],' '
 	 jne	frstdev2
 	dec	di
 	loop	frstdev1
@@ -526,26 +528,26 @@ ioc7_dev:	; IOCTL(7) - output status for device
 	mov	al,CMD_OUTPUT_STATUS	; OUTPUT STATUS
 ioc67d:					; common code for I/O STATUS
 	push	ds
-	sub	sp,RH5_LEN-2*word	; allocate request header on stack
+	sub	sp,RH5_LEN-2*2	; allocate request header on stack
 	push	ax			; RH_CMD = AL
 	mov	ax,RH5_LEN
 	push	ax			; RH_LEN = RH5_LEN
-	lds	si,es:DHNDL_DEVPTR[bx]	; DS:SI -> device driver
+	lds	si,[es:DHNDL_DEVPTR + bx]	; DS:SI -> device driver
 	push 	ss
 	pop 	es
 	mov	bx,sp			; ES:BX -> RH_
-	mov	es:RH5_CHAR[bx],0	; zero the char
+	mov	byte [es:RH5_CHAR + bx],0	; zero the char
 	call	device_driver		; do the CALLF's to the device driver
 	xor	dl,dl			; assume not ready
-	mov	dh,es:RH5_CHAR[bx]	; possible peeked character
+	mov	dh,[es:RH5_CHAR + bx]	; possible peeked character
 	add	sp,RH5_LEN		; recover stack space
 	pop	ds
 	test	ax,RHS_ERROR+RHS_BUSY	; test if BUSY bit set in status
 	 jnz	ioc67d_ret		; device not ready if error or busy
 	dec	dl			; return ready DL = FF
 ioc67d_ret:
-	mov	si,2[bp]		; SI -> user's parameter block
-	mov	ds:6[si],dx		; update returned status
+	mov	si,[2 + bp]		; SI -> user's parameter block
+	mov	[6 + si],dx		; update returned status
 	sub	bx,bx			; no error occurred
 	ret				;	for now
 
