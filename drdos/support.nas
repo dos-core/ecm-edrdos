@@ -120,7 +120,7 @@ set_retry:
 	mov	al,[reg_AL + bx]		; clear CY assuming we will succeed
 	pop	bx			;  and reload AL with entry value
 	pop	ds
-	jmp	retry_off
+	jmp	near [retry_off]
 
 ;
 ;	The FDOS routine executes the CCP/M FDOS function using the 
