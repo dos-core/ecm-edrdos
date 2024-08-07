@@ -49,7 +49,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj cio.nas -l bin/cio.lst -o bin/cio.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\support.lst -Fo.\BIN\support support.asm
+nasm -s -P nasm.mac -f obj support.nas -l bin/support.lst -o bin/support.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -DDELWATCH -c -Fl.\BIN\disk.lst -Fo.\BIN\disk disk.asm
