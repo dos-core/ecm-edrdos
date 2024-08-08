@@ -183,7 +183,7 @@ f5D_05:
 	mov	bx,func5D_ftl			;  subfunction
 f5D_10:
 	shl	bx,1
-	push	word [func5D_ft + bx]			; save function address
+	push	word [cs:func5D_ft + bx]			; save function address
 	shr	bx,1
 	xchg	ax,bx				; restore BX
 	ret					; go to function
@@ -485,7 +485,7 @@ f33_60:
 	mov	ax,[dos_version-2]	; if not, then honestly return true version number
 	mov	[reg_BX + bp],ax
 f33_61:
-	mov	ax,[patch_version]
+	mov	ax,[cs:patch_version]
 	mov	[reg_DX + bp],ax		; return revision+HMA
 	ret
 
@@ -1011,7 +1011,7 @@ days_left:
 	xor	bx,bx
 	mov	cx,12
 get_month:				; find the appropriate month
-	cmp	dx,[totaldays + bx]
+	cmp	dx,[cs:totaldays + bx]
 	 jbe	got_month
 	inc 	bx
 	inc 	bx
@@ -1022,7 +1022,7 @@ got_month:
 	
 	dec	bx
 	shl	bx,1			; BX = index to previous months
-	sub	dx,[totaldays + bx]	; get days into this month
+	sub	dx,[cs:totaldays + bx]	; get days into this month
 
 	cmp	bx,2			; if it's FEB 29th we've lost a day
 	 jne	not_leap_yr		; check it's FEB
@@ -1061,13 +1061,13 @@ ConvertDate:
 
 not_leap_year:
 	dec	dx
-	cmp	dl,[monthdays + bx]	; Day of month within range for non-leap
+	cmp	dl,[cs:monthdays + bx]	; Day of month within range for non-leap
 					; year ?
 	jnc	xset_date_error
 
 day_valid:
 	shl	bx,1
-	add	ax,[totaldays + bx]	; Get total days in current year
+	add	ax,[cs:totaldays + bx]	; Get total days in current year
 
 	push	ax
 
@@ -1378,7 +1378,7 @@ func65_read_table:
 	cbw				; Get the request sub-function
 	mov	si,ax			; into SI
 	shl	si,1
-	mov	si,[func65_dt + si]
+	mov	si,[cs:func65_dt + si]
 	inc	si			; is SI = 0FFFFh
 	 jz	f65_invalid		; if so it's an invalid function
 	dec	si
@@ -1505,7 +1505,7 @@ f65_p20:
 	cbw				; make info type a word
 	mov	si,ax			;  into index register
 	shl	si,1			; now a word offset
-	mov	si,[func65_dt + si]	; pick up offset of correct table
+	mov	si,[cs:func65_dt + si]	; pick up offset of correct table
 	jmp	f65_p90
 f65_p30:
 	push	ax
