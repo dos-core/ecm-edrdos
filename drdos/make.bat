@@ -85,7 +85,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj network.nas -l bin/network.lst -o bin/network.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\misc.lst -Fo.\BIN\misc misc.asm
+nasm -s -P nasm.mac -f obj misc.nas -l bin/misc.lst -o bin/misc.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -c -Fl.\BIN\process.lst -Fo.\BIN\process process.asm
