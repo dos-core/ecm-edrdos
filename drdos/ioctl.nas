@@ -144,7 +144,7 @@ func44common:
 f44_10:
 	xchg	ax,si
 	shl	si,1
-	mov	si,[func44_ft + si]
+	mov	si,[cs:func44_ft + si]
 	xchg	ax,si
 	jmp	ax
 f44_20:
