@@ -1,4 +1,4 @@
-title 'FCB - DOS file system FCB support'
+;title 'FCB - DOS file system FCB support'
 ;    File              : $FCBS.ASM$
 ;
 ;    Description       :
@@ -36,22 +36,22 @@ title 'FCB - DOS file system FCB support'
 ;    fix for >255 open files (PNW Server)
 ;    ENDLOG
 
-PCMCODE	GROUP	BDOS_CODE
-PCMDATA	GROUP	BDOS_DATA,PCMODE_DATA
+group PCMCODE BDOS_CODE
+group PCMDATA BDOS_DATA PCMODE_DATA
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include fdos.equ
-	include msdos.equ
-	include mserror.equ
-	include doshndl.def	; DOS Handle Structures
-	.list
+	[list -]
+	%include "fdos.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
+	%include "doshndl.mac"	; DOS Handle Structures
+	[list +]
 
-BDOS_DATA	segment public word 'DATA'
+section BDOS_DATA public align=2 class=DATA
 BDOS_DATA	ends
 
-BDOS_CODE	segment public byte 'CODE'
+section BDOS_CODE public align=1 class=CODE
 
 	extrn	ifn2dhndl:near
 	extrn	parse_one:near
@@ -84,17 +84,17 @@ fdos_exit:
 fdos_exit10:
 	call	ifn2dhndl		; get DHNDL_
 	 jc	fdos_exit40		; stop if we have run out
-	mov	fcb_pb+2,ax		; we may close this IFN
+	mov	[fcb_pb+2],ax		; we may close this IFN
 	push	ax
-	mov	cx,es:DHNDL_COUNT[bx]	; get the open count
+	mov	cx,[es:DHNDL_COUNT + bx]	; get the open count
 	 jcxz	fdos_exit30		; skip if nothing to do
-	mov	ax,current_psp		; get current PSP
-	cmp	ax,es:DHNDL_PSP[bx]	; does it belong to this PSP
+	mov	ax,[current_psp]		; get current PSP
+	cmp	ax,[es:DHNDL_PSP + bx]	; does it belong to this PSP
 	 jne	fdos_exit30
-	mov	ax,ss:machine_id	; get current process
-    cmp ax,es:DHNDL_UID[bx] 
+	mov	ax,[ss:machine_id]	; get current process
+    cmp ax,[es:DHNDL_UID + bx] 
 	 jne	fdos_exit30
-	test	es:DHNDL_MODE[bx],DHM_FCB
+	test	word [es:DHNDL_MODE + bx],DHM_FCB
 	 jz	fdos_exit20		; skip close if not FCB
 	push	es
 	push	bx			; save the DHNDL
@@ -103,7 +103,7 @@ fdos_exit10:
 	pop	bx
 	pop	es			; recover the DHNDL
 fdos_exit20:
-	mov	es:DHNDL_COUNT[bx],0	; always free the handle if it's ours
+	mov	word [es:DHNDL_COUNT + bx],0	; always free the handle if it's ours
 fdos_exit30:
 	pop	ax
 	inc	al			; onto next IFN
@@ -138,23 +138,23 @@ fdos_exit40:
 
 fdos_fcb:
 ;--------
-	mov	bx,2[bp]		; BX -> parameter block
-	mov	bx,8[bx]		; get subfunction code
+	mov	bx,[2 + bp]		; BX -> parameter block
+	mov	bx,[8 + bx]		; get subfunction code
 	shl	bx,1			; make it word index
-	sub	bl,15*WORD		; adjust to base address
+	sub	bl,15*2		; adjust to base address
 	 jc	fcb_error		; reject if too low
 	cmp	bl,FCB_MAX1		; is it in 1st block
 	 jb	fdos_fcb10
-	sub	bl,(33-24)*WORD		; adjust for gap
+	sub	bl,(33-24)*2		; adjust for gap
 	 jc	fcb_error
 	cmp	bl,FCB_MAX2		; is it in 2nd block
 	 jb	fdos_fcb10
-	sub	bl,(39-37)*WORD		; adjust for gap
+	sub	bl,(39-37)*2		; adjust for gap
 	 jc	fcb_error
 fdos_fcb10:
 	cmp	bx,FCB_MAX3		; check the range
 	 jae	fcb_error		; skip if invalid function
-	jmp	fcb_table[bx]		; call the right function
+	jmp	[fcb_table + bx]		; call the right function
 
 fcb_error:
 	mov	bx,ED_FUNCTION
@@ -190,7 +190,7 @@ fcb_open:
 	call	fcb_path_prep		; build pathname
 	mov	ax,MS_X_OPEN
 fcb_open_make_common:
-	mov	fcb_pb+6,DHM_RW+DHM_FCB	; open as an FCB for read/write
+	mov	word [fcb_pb+6],DHM_RW+DHM_FCB	; open as an FCB for read/write
 	call	fcb_fdos		; lets try and open the file
 	 jnc	fcb_open10		; skip if we can't
 	ret
@@ -202,30 +202,30 @@ fcb_open10:
 	call	fcb_point		; ES:BX = FCB
 	pop 	si
 	pop 	ds			; DS:SI -> DHNDL_
-	mov	es:MSF_IFN[bx],al	; store IFN away
-	mov	es:MSF_BLOCK[bx],0	; current block number
-	mov	es:MSF_RECSIZE[bx],128	; current logical record size
+	mov	[es:MSF_IFN + bx],al	; store IFN away
+	mov	word [es:MSF_BLOCK + bx],0	; current block number
+	mov	word [es:MSF_RECSIZE + bx],128	; current logical record size
 	call	fcb_update		; update misc changing fields
-	mov	ax,ds:DHNDL_DEVOFF[si]
-	mov	es:word ptr MSF_DEVPTR[bx],ax
-	mov	ax,ds:DHNDL_DEVSEG[si]
-	mov	es:word ptr MSF_DEVPTR+2[bx],ax
-	mov	ax,ds:DHNDL_BLK1[si]
-	mov	es:MSF_BLOCK1[bx],ax
-	mov	al,ds:DHNDL_ATTR[si]
-	mov	es:MSF_IOCTL[bx],al
-	mov	al,es:MSF_DRIVE[bx]	; get drive from FCB
+	mov	ax,[DHNDL_DEVOFF + si]
+	mov	word ptr [es:MSF_DEVPTR + bx],ax
+	mov	ax,[DHNDL_DEVSEG + si]
+	mov	word ptr [es:MSF_DEVPTR+2 + bx],ax
+	mov	ax,[DHNDL_BLK1 + si]
+	mov	[es:MSF_BLOCK1 + bx],ax
+	mov	al,[DHNDL_ATTR + si]
+	mov	[es:MSF_IOCTL + bx],al
+	mov	al,[es:MSF_DRIVE + bx]	; get drive from FCB
 	dec	al			; was absolute drive specified ?
 	 jns	fcb_open20		; if so use it
-	mov	al,ss:current_dsk	; else use default drive
+	mov	al,[ss:current_dsk]	; else use default drive
 fcb_open20:
 	inc	al			; make drive 1 rather than 0 based
-	mov	es:MSF_DRIVE[bx],al	; drive code
-if 0
-	test	ds:DHNDL_DATRB[si],DA_VOLUME
-else
-	test	ss:fcb_pb+8,DA_VOLUME
-endif
+	mov	[es:MSF_DRIVE + bx],al	; drive code
+%if 0
+	test	byte [DHNDL_DATRB + si],DA_VOLUME
+%else
+	test	word [ss:fcb_pb+8],DA_VOLUME
+%endif
 	pop	ds
 	 jnz	fcb_close		; don't leave VOL label's open
 	xor	bx,bx			; no errors !
@@ -240,19 +240,19 @@ fcb_update:
 ; On Exit:
 ;	DATE/TIME/SIZE/DBLK/DCNT fields updated
 ;
-	mov	ax,ds:DHNDL_TIME[si]
-	mov	es:MSF_TIME[bx],ax
-	mov	ax,ds:DHNDL_DATE[si]
-	mov	es:MSF_DATE[bx],ax
-	mov	ax,ds:DHNDL_SIZELO[si]
-	mov	es:MSF_SIZE[bx],ax
-	mov	ax,ds:DHNDL_SIZEHI[si]
-	mov	es:MSF_SIZE+2[bx],ax
-	mov	ax,ds:DHNDL_DBLK[si]
-	mov	es:MSF_DBLK[bx],ax
-	mov	al,ds:DHNDL_DCNTLO[si]
-	mov	ah,ds:DHNDL_DCNTHI[si]
-	mov	es:MSF_DCNT[bx],ax
+	mov	ax,[DHNDL_TIME + si]
+	mov	[es:MSF_TIME + bx],ax
+	mov	ax,[DHNDL_DATE + si]
+	mov	[es:MSF_DATE + bx],ax
+	mov	ax,[DHNDL_SIZELO + si]
+	mov	[es:MSF_SIZE + bx],ax
+	mov	ax,[DHNDL_SIZEHI + si]
+	mov	[es:MSF_SIZE+2 + bx],ax
+	mov	ax,[DHNDL_DBLK + si]
+	mov	[es:MSF_DBLK + bx],ax
+	mov	al,[DHNDL_DCNTLO + si]
+	mov	ah,[DHNDL_DCNTHI + si]
+	mov	[es:MSF_DCNT + bx],ax
 	ret
 
 fcb_close:
@@ -260,10 +260,10 @@ fcb_close:
 ; close file (DOS function 10h)
 	call	fcb_point		; ES:BX -> FCB
 	mov	al,0FFh
-	cmp	al,es:MSF_IFN[bx]	; is it a multiple close ?
+	cmp	al,[es:MSF_IFN + bx]	; is it a multiple close ?
 	 je	fcb_fdos_common10	;  don't re-open for this...
 	call	fcb_handle_vfy		; verify we have a sensible handle
-	mov	es:MSF_IFN[bx],al	; mark FCB as closed (it will be)
+	mov	[es:MSF_IFN + bx],al	; mark FCB as closed (it will be)
 	mov	ax,MS_X_CLOSE		; now close it
 ;	jmp	fcb_fdos_common
 
@@ -315,13 +315,13 @@ fcb_setrecord:
 ;-------------
 	call	fcb_point		; ES:BX -> FCB
 	mov	ax,128			; multiply current block by 128
-	mul	es:MSF_BLOCK[bx]	;  to give current record number
+	mul	word [es:MSF_BLOCK + bx]	;  to give current record number
 	xor	cx,cx
-	mov	cl,es:MSF_CR[bx]	; Add in the current record
+	mov	cl,[es:MSF_CR + bx]	; Add in the current record
 	add	ax,cx			;  to DX:AX to give the
 	adc	dx,0			;  relative record
-	mov	es:MSF_RR[bx],ax	; save the result
-	mov	es:MSF_RR2[bx],dl
+	mov	[es:MSF_RR + bx],ax	; save the result
+	mov	[es:MSF_RR2 + bx],dl
 	xor	bx,bx			; we did OK
 	ret
 
@@ -357,19 +357,19 @@ fcb_rw:
 ;	fcb_pb+2 = IFN
 ; On Exit:
 ;	BX = error code
-	les	dx,ss:dword ptr dma_offset
+	les	dx,[ss:dma_offset]
 	add	cx,dx			; see if we overflow
 	 jc	fcb_rw20
 	sub	cx,dx			; count back to normal
 	push	cx			; save target count
-	mov	fcb_pb+4,dx
-	mov	fcb_pb+6,es		; setup buffer address
-	mov	fcb_pb+8,cx		;  and target count
+	mov	[fcb_pb+4],dx
+	mov	[fcb_pb+6],es		; setup buffer address
+	mov	[fcb_pb+8],cx		;  and target count
 	call	fcb_fdos		; ask the FDOS to do the read/write
 	 jc	fcb_rw10		; we got a real error...
 	push	ds
 	push	es
-	mov	ax,fcb_pb+2		; get IFN
+	mov	ax,[fcb_pb+2]		; get IFN
 	call	ifn2dhndl		; ES:BX -> DHNDL_ we have open
 	push 	es
 	push 	bx			; save DHNDL_
@@ -380,7 +380,7 @@ fcb_rw:
 	pop	es
 	pop	ds
 	pop	ax			; recover target count
-	mov	cx,fcb_pb+8		; we xfered this much
+	mov	cx,[fcb_pb+8]		; we xfered this much
 	cmp	cx,ax			; did we xfer enough
 	 jb	fcb_rw30		; nope..
 	xor	bx,bx			; xfer went OK
@@ -399,7 +399,7 @@ fcb_rw20:
 fcb_rw30:
 ; We have some form of EOF - lets look into it
 	call	fcb_point		; ES:BX = FCB
-	mov	bx,es:MSF_RECSIZE[bx]	; BX = record size
+	mov	bx,[es:MSF_RECSIZE + bx]	; BX = record size
 	mov	ax,cx
 	xor	dx,dx			; DX:AX = bytes xfer'd
 	div	bx			; did we xfer a complete
@@ -408,7 +408,7 @@ fcb_rw30:
 ; Partial data was read - fill out with zero's and return 3
 	inc	ax			; allow for incomplete record
 	push	ax			; save rounded up xfer count
-	les	di,ss:dword ptr dma_offset
+	les	di,[ss:dma_offset]
 	add	di,cx			; point to 1st byte after xfer
 	mov	cx,bx			; this many in a record
 	sub	cx,dx			; so this many weren't xfer'd
@@ -469,7 +469,7 @@ fcb_block_rw:
 	 jz	fcb_block_rw10		; then we should truncate it
 	mov	ax,15			; AX = handy mask
 	cwd				; DX = 0
-	and	ax,ss:dma_offset	; get dma offset for para
+	and	ax,[ss:dma_offset]	; get dma offset for para
 	not	ax			; DX/AX = maximum bytes we can xfer
 	div	cx			; AX = maximum blocks we can xfer
 	mul	cx			; AX = bytes to xfer (now < 64K)
@@ -483,9 +483,9 @@ fcb_block_rw10:
 	 jc	fcb_block_rw20
 	push	bx			; save the error code
 	call	fcb_update_rr		; update FCB filepos, get records xferd
-	mov	bx,2[bp]		; BX -> parameter block
-	xchg	cx,6[bx]		; update amount xfered
-	sub	cx,6[bx]		; CX = # we didn't xfer (normally 0)
+	mov	bx,[2 + bp]		; BX -> parameter block
+	xchg	cx,[6 + bx]		; update amount xfered
+	sub	cx,[6 + bx]		; CX = # we didn't xfer (normally 0)
 	pop	bx			; recover (possible) error
 	 jcxz	fcb_block_rw20		; skip if we read all we wanted to
 	test	bx,bx			; did we have a partial read for
@@ -499,28 +499,28 @@ fcb_size:
 ;--------
 	call	fcb_path_prep
 	mov	ax,MS_X_CHMOD		; it's a get info
-	mov	fcb_pb+6,0
+	mov	word [fcb_pb+6],0
 	call	fcb_fdos
 	 jc	fcb_size40
 	call	fcb_point		; ES:BX = FCB
-	mov	cx,es:MSF_RECSIZE[bx]	; get the record size
+	mov	cx,[es:MSF_RECSIZE + bx]	; get the record size
 	test	cx,cx			; is it non-zero ?
 	 jnz	fcb_size10		;  if not
 	mov	cx,128			;  make it 128 bytes
 fcb_size10:
-	mov	ax,fcb_pb+10
-	mov	dx,fcb_pb+12		; DX:AX = file length in bytes
+	mov	ax,[fcb_pb+10]
+	mov	dx,[fcb_pb+12]		; DX:AX = file length in bytes
 	call	div_32			; DX:AX = file length in records
 	 jcxz	fcb_size20		; was there an overflow
 	add	ax,1
 	adc	dx,0			; include an extra record
 fcb_size20:
 	call	fcb_point		; ES:BX = FCB
-	mov	es:MSF_RR[bx],ax	; low word of size
-	mov	es:MSF_RR2[bx],dl	; hi byte of size
-	cmp	es:MSF_RECSIZE[bx],64	; if record size < 64 bytes
+	mov	[es:MSF_RR + bx],ax	; low word of size
+	mov	[es:MSF_RR2 + bx],dl	; hi byte of size
+	cmp	word [es:MSF_RECSIZE + bx],64	; if record size < 64 bytes
 	 jae	fcb_size30		;  then we use a 4 byte
-	mov	es:MSF_RR2+1[bx],dh	;  random record position
+	mov	[es:MSF_RR2+1 + bx],dh	;  random record position
 fcb_size30:
 	xor	bx,bx			; good return
 fcb_size40:
@@ -548,40 +548,40 @@ fcb_handle_vfy:
 ; same file
 	push	ax
 	call	fcb_point
-	cmp	es:MSF_RECSIZE[bx],0
+	cmp	word [es:MSF_RECSIZE + bx],0
 	 jne	fcb_handle_vfy10
-	mov	es:MSF_RECSIZE[bx],128
+	mov	word [es:MSF_RECSIZE + bx],128
 fcb_handle_vfy10:
-	mov	al,es:MSF_IFN[bx]	; get IFN
+	mov	al,[es:MSF_IFN + bx]	; get IFN
 	call	ifn2dhndl		; ES:BX -> DHNDL_
 	 jc	fcb_handle_vfy20	; it must be a valid IFN
-	test	es:DHNDL_MODE[bx],DHM_FCB
+	test	word [es:DHNDL_MODE + bx],DHM_FCB
 	 jz	fcb_handle_vfy20	; it must be an FCB..
-	cmp	es:DHNDL_COUNT[bx],0
+	cmp	word [es:DHNDL_COUNT + bx],0
 	 jne	fcb_handle_vfy30	; it must also be open..
 fcb_handle_vfy20:
 	call	fcb_point
-	push	es:MSF_RECSIZE[bx]	; save current record size
-	push	es:MSF_BLOCK[bx]	; save current block number
+	push	word [es:MSF_RECSIZE + bx]	; save current record size
+	push	word [es:MSF_BLOCK + bx]	; save current block number
 	push 	es
 	push 	bx
 	call	fcb_open		; try to re-open the file
 	pop 	bx
 	pop 	es			; point back at FCB
-	pop	es:MSF_BLOCK[bx]	; restore current block number
-	pop	es:MSF_RECSIZE[bx]	; restore record size
+	pop	word [es:MSF_BLOCK + bx]	; restore current block number
+	pop	word [es:MSF_RECSIZE + bx]	; restore record size
 	 jc	fcb_handle_err
-	mov	al,es:MSF_IFN[bx]	; get new IFN
+	mov	al,[es:MSF_IFN + bx]	; get new IFN
 fcb_handle_vfy30:
 	xor	ah,ah
-	mov	fcb_pb+2,ax		; set parameter block accordingly
+	mov	[fcb_pb+2],ax		; set parameter block accordingly
 	call	fcb_point		; ES:BX -> MSF_
 	pop	ax
 	clc
 	ret
 
 fcb_handle_err:
-	add	sp,2*WORD		; discard AX and near return address
+	add	sp,2*2		; discard AX and near return address
 	cmp	ax,ED_HANDLE		; if we have run out of handles then
 	 jne	fcb_handle_err10	;  say no FCB's, else return error
 	mov	ax,ED_NOFCBS
@@ -600,11 +600,11 @@ fcb_path2_prep:
 ;	fcb_pb+6/8 -> unparse name from FCB
 ;
 	call	fcb_point		; point at the FCB
-	mov	al,es:MSF_DRIVE[bx]	; get drive
+	mov	al,[es:MSF_DRIVE + bx]	; get drive
 	add	bx,16			; point at 2nd name in FCB
 	mov	di,offset fcb_path2
-	mov	fcb_pb+6,di
-	mov	fcb_pb+8,ds		; point at buffer we want
+	mov	[fcb_pb+6],di
+	mov	[fcb_pb+8],ds		; point at buffer we want
 	jmp	fcb_path_prep_common
 
 fcb_path_prep:
@@ -616,22 +616,22 @@ fcb_path_prep:
 ;	fcb_pb+2/4 -> unparse name from FCB
 ;
 	xor	ax,ax			; assume no attribute
-	mov	bx,2[bp]		; BX -> parameter block
-	les	bx,2[bx]		; ES:BX -> FCB
-	cmp	es:MSF_EXTFLG[bx],0ffh	; is it an extended FCB
+	mov	bx,[2 + bp]		; BX -> parameter block
+	les	bx,[2 + bx]		; ES:BX -> FCB
+	cmp	byte [es:MSF_EXTFLG + bx],0ffh	; is it an extended FCB
 	 jne	fcb_path_prep10
-	or	al,es:MSF_ATTRIB[bx]	; we can use file mode from XFCB
+	or	al,[es:MSF_ATTRIB + bx]	; we can use file mode from XFCB
 	add	bx,7			; skip EXT bit of FCB
 fcb_path_prep10:
-	mov	fcb_pb+8,ax		; remember the attribute
-	mov	al,es:MSF_DRIVE[bx]	; get drive
+	mov	[fcb_pb+8],ax		; remember the attribute
+	mov	al,[es:MSF_DRIVE + bx]	; get drive
 	mov	di,offset fcb_path
-	mov	fcb_pb+2,di
-	mov	fcb_pb+4,ds		; point at buffer we want
+	mov	[fcb_pb+2],di
+	mov	[fcb_pb+4],ds		; point at buffer we want
 fcb_path_prep_common:
 	dec	al			; 0 = default drive
 	 jns	fcb_path_prep20
-	mov	al,current_dsk		; use default drive
+	mov	al,[current_dsk]		; use default drive
 fcb_path_prep20:
 	push	ds
 	push 	ds
@@ -642,7 +642,7 @@ fcb_path_prep20:
 	stosb
 	mov	al,':'
 	stosb				; now we have 'd:'
-	lea	si,MSF_NAME[bx]		; DS:SI -> source name
+	lea	si,[MSF_NAME + bx]		; DS:SI -> source name
 	movsw
 	movsw
 	movsw
@@ -663,9 +663,9 @@ fcb_point:
 ;	ES:BX -> FCB (skipping EXT bit if present)
 ;	(All other regs preserved)
 ;
-	mov	bx,2[bp]		; BX -> parameter block
-	les	bx,2[bx]		; ES:BX -> FCB
-	cmp	es:MSF_EXTFLG[bx],0ffh	; is it an extended FCB
+	mov	bx,[2 + bp]		; BX -> parameter block
+	les	bx,[2 + bx]		; ES:BX -> FCB
+	cmp	byte [es:MSF_EXTFLG + bx],0ffh	; is it an extended FCB
 	 jne	fcb_point10
 	add	bx,7			; skip EXT bit of FCB
 fcb_point10:
@@ -681,9 +681,9 @@ fcb_get_count:
 ;	All regs fair game
 ;
 	call	fcb_point		; ES:BX -> FCB
-	mov	si,2[bp]		; SI -> parameter block
-	mov	cx,6[si]		; CX = count
-	mov	ax,es:MSF_RECSIZE[bx]	; get record size
+	mov	si,[2 + bp]		; SI -> parameter block
+	mov	cx,[6 + si]		; CX = count
+	mov	ax,[es:MSF_RECSIZE + bx]	; get record size
 	ret
 
 fcb_update_seq:
@@ -698,14 +698,14 @@ fcb_update_seq:
 	mov	ax,cx
 	xor	dx,dx			; DX:AX = byte count transfered
 	call	fcb_point		; ES:BX -> FCB
-	div	es:MSF_RECSIZE[bx]	; make records xfered
+	div	word [es:MSF_RECSIZE + bx]	; make records xfered
 	push	ax			; save records xfered
 	xchg	ax,cx			; also in CX for later
 	mov	ax,128
-	mul	es:MSF_BLOCK[bx]	; DX:AX = record of block
+	mul	word [es:MSF_BLOCK + bx]	; DX:AX = record of block
 	add	ax,cx
 	adc	dx,0			; add in amount just xfered
-	mov	cl,es:MSF_CR[bx]
+	mov	cl,[es:MSF_CR + bx]
 	xor	ch,ch			; now add in CR as a word
 	add	ax,cx
 	adc	dx,0			; DX:AX = record
@@ -725,19 +725,19 @@ fcb_update_rr:
 	xchg	ax,cx
 	xor	dx,dx			; DX:AX = byte count transfered
 	call	fcb_point		; ES:BX -> FCB
-	div	es:MSF_RECSIZE[bx]	; make records xfered
+	div	word [es:MSF_RECSIZE + bx]	; make records xfered
 	push	ax			; save records xfered
-	add	es:MSF_RR[bx],ax	; update the RR field
-	adc	es:MSF_RR2[bx],0	;  and the overflow
-	mov	ax,es:MSF_RR[bx]	; get low part of RR
-	mov	dh,es:MSF_RR2[bx]	;  and the hi part
+	add	[es:MSF_RR + bx],ax	; update the RR field
+	adc	byte [es:MSF_RR2 + bx],0	;  and the overflow
+	mov	ax,[es:MSF_RR + bx]	; get low part of RR
+	mov	dh,[es:MSF_RR2 + bx]	;  and the hi part
 fcb_update_common:
 	mov	dl,ah			; DX will be block number
 	shl	al,1			; get top bit of CR into CY
 	adc	dx,dx			; then into DX
 	shr	al,1			; AL = CR (remember mod 128)
-	mov	es:MSF_CR[bx],al	; set the CR field
-	mov	es:MSF_BLOCK[bx],dx	;  and the block field
+	mov	[es:MSF_CR + bx],al	; set the CR field
+	mov	[es:MSF_BLOCK + bx],dx	;  and the block field
 	pop	cx			; recover records xfered
 	ret
 
@@ -755,14 +755,14 @@ fcb_seek_seq:
 ;
 	call	fcb_point		; ES:BX -> FCB_
 	mov	ax,128
-	mul	es:MSF_BLOCK[bx]	; get record in DX:AX
-	mov	cl,es:MSF_CR[bx]
+	mul	word [es:MSF_BLOCK + bx]	; get record in DX:AX
+	mov	cl,[es:MSF_CR + bx]
 	xor	ch,ch
 	add	ax,cx			; add in CR
 	adc	dx,0			; so DX:AX is really the record
 	push	ax			; save low word of record
 	mov	ax,dx
-	mul	es:MSF_RECSIZE[bx]	; DX:AX = byte offset in file/10000h
+	mul	word [es:MSF_RECSIZE + bx]	; DX:AX = byte offset in file/10000h
 	mov	cx,ax			; save the important word
 	pop	ax			; recover low word of record
 	jmp	fcb_seek_common
@@ -779,20 +779,20 @@ fcb_seek_rr:
 ;	All other regs fair game
 ;
 	call	fcb_point		; ES:BX -> FCB_
-	mov	al,es:MSF_RR2[bx]
+	mov	al,[es:MSF_RR2 + bx]
 	xor	ah,ah
-	mul	es:MSF_RECSIZE[bx]	; DX:AX = byte offset in file/10000h
+	mul	word [es:MSF_RECSIZE + bx]	; DX:AX = byte offset in file/10000h
 	mov	cx,ax			; save the important word
-	mov	ax,es:MSF_RR[bx]
+	mov	ax,[es:MSF_RR + bx]
 fcb_seek_common:
-	mul	es:MSF_RECSIZE[bx]	; DX:AX = byte offset in file
+	mul	word [es:MSF_RECSIZE + bx]	; DX:AX = byte offset in file
 	add	dx,cx			; add the two bits together
-	mov	fcb_pb+4,ax
-	mov	fcb_pb+6,dx		; save position
-	mov	fcb_pb+8,0		; seek from start
+	mov	[fcb_pb+4],ax
+	mov	[fcb_pb+6],dx		; save position
+	mov	word [fcb_pb+8],0		; seek from start
 	xor	ax,ax
-	mov	al,es:MSF_IFN[bx]	; AX = IFN
-	mov	fcb_pb+2,ax		; save IFN
+	mov	al,[es:MSF_IFN + bx]	; AX = IFN
+	mov	[fcb_pb+2],ax		; save IFN
 	mov	ax,MS_X_LSEEK
 	jmp	fcb_fdos		; try and seek to this position
 
@@ -803,13 +803,13 @@ fcb_search:
 ;	AX = operation to perform
 ; On Exit:
 ;	AX = 0, or ED_ error code (CY set if error)
-	push	dma_offset
-	push	dma_segment
-	mov	dma_offset,offset fcb_search_buf
-	mov	dma_segment,ds
+	push	word [dma_offset]
+	push	word [dma_segment]
+	mov	word [dma_offset],offset fcb_search_buf
+	mov	[dma_segment],ds
 	call	fcb_fdos			; do the search
-	pop	dma_segment
-	pop	dma_offset
+	pop	word [dma_segment]
+	pop	word [dma_offset]
 	test	ax,ax				; was there an error
 	stc					; assume there was
 	 js	fcb_search10			; return the error
@@ -822,17 +822,17 @@ fcb_save_search_state:
 ; On entry DS=PCMODE
 	
 	call	fcb_point
-	lea	di,MSF_NAME[bx]		; ES:DI -> FCB name
+	lea	di,[MSF_NAME + bx]		; ES:DI -> FCB name
 	mov	si,offset fcb_search_buf
 	lodsb				; get 1st byte = drive info
-	mov	cx,20/WORD		; copy 20 bytes to FCB
+	mov	cx,20/2		; copy 20 bytes to FCB
 	rep	movsw			; (the rest of the search template)
 	stosb				; drive info byte follow them
 	
-	les	di,dword ptr dma_offset	; ES:DI -> search state in DMA address
-	mov	si,2[bp]		; SI -> parameter block
-	lds	si,2[si]		; DS:SI -> FCB_
-	cmp	ds:MSF_EXTFLG[si],0ffh	; extended FCB ?
+	les	di,[dma_offset]	; ES:DI -> search state in DMA address
+	mov	si,[2 + bp]		; SI -> parameter block
+	lds	si,[2 + si]		; DS:SI -> FCB_
+	cmp	byte [MSF_EXTFLG + si],0ffh	; extended FCB ?
 	 jne	fcb_sss10
 	mov	cx,7			; copy extended FCB portions too
 	rep	movsb			; we have copied up to name
@@ -874,13 +874,13 @@ fcb_sss50:
 	movsb				; copy the attribute field
 	xor	ax,ax
 ;	mov	cx,10/WORD
-	mov	cx,8/WORD
+	mov	cx,8/2
 	rep	stosw			; 10 bytes of zeros
-	mov	ax,word ptr srch_buf+21+DBLOCK1H
+	mov	ax,word ptr [srch_buf+21+DBLOCK1H]
 	stosw				; high word of 1st block
 	movsw				; copy time
 	movsw				; copy date
-	mov	ax,word ptr srch_buf+21+DBLOCK1
+	mov	ax,word ptr [srch_buf+21+DBLOCK1]
 	stosw				; 1st block
 	movsw
 	movsw				; copy filesize
@@ -897,11 +897,11 @@ fcb_restore_search_state:
 	pop 	ds			; swap DS/ES
 	mov	di,offset fcb_search_buf+1
 					; ES:DI -> internal state
-	lea	si,1[bx]		; DS:SI -> FCB+1
+	lea	si,[1 + bx]		; DS:SI -> FCB+1
 	mov	cx,10
 	rep	movsw			; copy info from FCB
 	lodsb				; get "drive" info
-	mov	es:fcb_search_buf,al	; it's the 1st byte in the srch state
+	mov	[es:fcb_search_buf],al	; it's the 1st byte in the srch state
 	pop	ds
 	ret
 
@@ -915,15 +915,15 @@ fcb_fdos:
 ; On Exit:
 ;	As FDOS call
 ;
-	mov	fcb_pb,ax		; save operation type
-	or	remote_call,DHM_FCB	; forget about PSP during FCB call
+	mov	[fcb_pb],ax		; save operation type
+	or	word [remote_call],DHM_FCB	; forget about PSP during FCB call
 	mov	dx,offset fcb_pb	; DS:DX -> parameter block
 	push	ds
 	push	bp
 	call	fdos_entry		; call the FDOS
 	pop	bp
 	pop	ds
-	and	remote_call,(not DHM_FCB) and 0ffffh	; FCB operation over
+	and	word [remote_call],(~ DHM_FCB) & 0ffffh	; FCB operation over
 	cmp	ax,ED_LASTERROR
 	cmc				; CY set if an error occurred
 	ret
@@ -966,7 +966,7 @@ div1:
 
 BDOS_CODE	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 extrn	fcb_pb:word
 extrn	fcb_path:byte
