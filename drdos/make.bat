@@ -67,7 +67,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj error.nas -l bin/error.lst -o bin/error.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\fcbs.lst -Fo.\BIN\fcbs fcbs.asm
+nasm -s -P nasm.mac -f obj fcbs.nas -l bin/fcbs.lst -o bin/fcbs.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -DPASSWORD -DJOIN -c -Fl.\BIN\fioctl.lst -Fo.\BIN\fioctl fioctl.asm
