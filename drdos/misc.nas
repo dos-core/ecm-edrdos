@@ -51,30 +51,30 @@
 ;    ENDLOG
 ;
 
-PCMDATA group PCMODE_DATA,FDOS_DSEG,GLOBAL_DATA,PCMODE_DSIZE,PCMODE_CODE
-PCMCODE group PCM_CODE,PCM_RODATA
+group PCMDATA PCMODE_DATA FDOS_DSEG GLOBAL_DATA PCMODE_DSIZE PCMODE_CODE
+group PCMCODE PCM_CODE PCM_RODATA
 
 ASSUME DS:PCMDATA
 
 VALID_SIG	equ	0EDC1h
 
-	.nolist
-	include	pcmode.equ
-	include	msdos.equ
-	include mserror.equ
-	include psp.def
-	include	driver.equ
-	include	char.def
-	include	country.def
-	include	doshndl.def
-	include	redir.equ
-	include	fdos.equ
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
+	%include "psp.mac"
+	%include "driver.mac"
+	%include "char.mac"
+	%include "country.mac"
+	%include "doshndl.mac"
+	%include "redir.mac"
+	%include "fdos.mac"
+	[list +]
 
 NLSFUNC	equ	TRUE
 
 ;
-GLOBAL_DATA	segment public word 'DATA'
+section GLOBAL_DATA public align=2 class=DATA
 	extrn	default_country:byte
 	extrn	Ucasetbl:word
 	extrn	FileUcasetbl:word
@@ -92,11 +92,11 @@ GLOBAL_DATA	segment public word 'DATA'
 	extrn	country_filename:byte
 GLOBAL_DATA	ends
 
-PCMODE_CODE	segment public word 'DATA'
+section PCMODE_CODE public align=2 class=DATA
 	extrn	xlat_xlat:word
 PCMODE_CODE	ends
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 	extrn	dbcs_lead:near
 	extrn	device_write:near	; Write to a Character Device
 	extrn	device_read:near	; Read from a Character Device
@@ -137,9 +137,9 @@ return_DSBX_as_ESBX:
 ; On Exit:
 ;	ES/DI trashed
 ;
-	les	di,ss:int21regs_ptr
-	mov	es:reg_ES[di],ds
-	mov	es:reg_BX[di],bx
+	les	di,[ss:int21regs_ptr]
+	mov	[es:reg_ES + di],ds
+	mov	[es:reg_BX + di],bx
 	ret
 
 
@@ -165,14 +165,15 @@ func52:
 	Public	func5D
 func5D:
 	cmp	al,7
+f5d_05 equ f5D_05	; NASM port label
 	 jae	f5d_05
 	mov	si,dx				; ES:SI -> callers structure
-	mov	bx,es:word ptr 20[si]
-	mov	ss:owning_psp,bx		; update PSP from there
-	cmp	WindowsHandleCheck,26h
+	mov	bx,word ptr [es:20 + si]
+	mov	[ss:owning_psp],bx		; update PSP from there
+	cmp	byte [WindowsHandleCheck],26h
 	 jne	f5D_05				; check if Windows is running
-	mov	bx,es:word ptr 18[si]
-	mov	ss:machine_id,bx		; no, update machine_id
+	mov	bx,word ptr [es:18 + si]
+	mov	[ss:machine_id],bx		; no, update machine_id
 f5D_05:
 	cbw					; zero AH for valid functions
 	xchg	ax,bx				; sub function in BX
@@ -182,7 +183,7 @@ f5D_05:
 	mov	bx,func5D_ftl			;  subfunction
 f5D_10:
 	shl	bx,1
-	push	func5D_ft[bx]			; save function address
+	push	word [func5D_ft + bx]			; save function address
 	shr	bx,1
 	xchg	ax,bx				; restore BX
 	ret					; go to function
@@ -195,17 +196,17 @@ f5D_msnet:
 ;	The registers for some of the following sub-functions are passed
 ;	in the following structure.
 ;
-RDC_AX		equ	es:word ptr 00[di]	; User AX
-RDC_BX		equ	es:word ptr 02[di]	; User BX
-RDC_CX		equ	es:word ptr 04[di]	; User CX
-RDC_DX		equ	es:word ptr 06[di]	; User DX
-RDC_SI		equ	es:word ptr 08[di]	; User SI
-RDC_DI		equ	es:word ptr 10[di]	; User DI
-RDC_DS		equ	es:word ptr 12[di]	; User DS
-RDC_ES		equ	es:word ptr 14[di]	; User ES
-RDC_RES		equ	es:word ptr 16[di]	; Remote Machine ID (High Word)
-RDC_UID		equ	es:word ptr 18[di]	; Remote Machine ID (Low Word)
-RDC_PID		equ	es:word ptr 20[di]	; Process ID
+labelsize RDC_AX, word, es:00 + di	; User AX
+labelsize RDC_BX, word, es:02 + di	; User BX
+labelsize RDC_CX, word, es:04 + di	; User CX
+labelsize RDC_DX, word, es:06 + di	; User DX
+labelsize RDC_SI, word, es:08 + di	; User SI
+labelsize RDC_DI, word, es:10 + di	; User DI
+labelsize RDC_DS, word, es:12 + di	; User DS
+labelsize RDC_ES, word, es:14 + di	; User ES
+labelsize RDC_RES, word, es:16 + di	; Remote Machine ID (High Word)
+labelsize RDC_UID, word, es:18 + di	; Remote Machine ID (Low Word)
+labelsize RDC_PID, word, es:20 + di	; Process ID
 ;
 ;	*****************************
 ;	***   DOS Function 5D00   ***
@@ -214,9 +215,9 @@ RDC_PID		equ	es:word ptr 20[di]	; Process ID
 ;
 ;
 f5D00:
-	mov	remote_call,0ffh	; set remote op flag
+	mov	word [remote_call],0ffh	; set remote op flag
 	push	es
-	les	di,int21regs_ptr	; stack image the copy registers
+	les	di,[int21regs_ptr]	; stack image the copy registers
 	pop	ds
 	mov	cx,6
 	rep	movsw			; Copy AX, BX, CX, DX, SI, DI
@@ -240,7 +241,7 @@ f5D01:
 ; By pretending to be FCB's we force use of IFN's, and we commit all possible
 ; files in the range 0-255, ignoring errors from unopened handles.
 ;
-	mov	remote_call,DHM_FCB	; pretend to be FCB, forces use of IFN
+	mov	word [remote_call],DHM_FCB	; pretend to be FCB, forces use of IFN
 	xor	bx,bx			; start with handle zero
 f5D01_10:
 	mov	ah,MS_X_COMMIT
@@ -263,33 +264,33 @@ f5D02:
 ; to close it if it's open.
 ;
 	mov	di,dx			; ES:DI -> register block
-	mov	dx,RDC_DX
-	mov	es,RDC_DS		; ES:DX -> filename to close
-	push	dma_offset
-	push	dma_segment
-	mov	dma_offset,offset fcb_search_buf
-	mov	dma_segment,ds
+	mov	dx,[RDC_DX]
+	mov	es,[RDC_DS]		; ES:DX -> filename to close
+	push	word [dma_offset]
+	push	word [dma_segment]
+	mov	word [dma_offset],offset fcb_search_buf
+	mov	[dma_segment],ds
 	mov	cx,DA_RO+DA_SYSTEM+DA_HIDDEN
 	mov	ah,MS_X_FIRST		; look for this file
 	call	dos_entry		;  to get dir entry info
-	pop	dma_segment
-	pop	dma_offset
+	pop	word [dma_segment]
+	pop	word [dma_offset]
 	 jc	f5Dret
-	mov	al,fcb_search_buf	; get drive #
+	mov	al,[fcb_search_buf]	; get drive #
 	test	al,al			; reject networked drives
 	 js	f5Dret
 	dec	ax			; make drive zero based
-	mov	cx,word ptr fcb_search_buf+0Dh
+	mov	cx,word ptr [fcb_search_buf+0Dh]
 					; CX = directory count
-	mov	dx,word ptr fcb_search_buf+0Eh
+	mov	dx,word ptr [fcb_search_buf+0Eh]
 					; DX = parent directory cluster
-	lea	bx,fcb_search_buf+1	; DS:BX -> name
+	lea	bx,[fcb_search_buf+1]	; DS:BX -> name
 	mov	di,S_CLOSE_IF_OPEN
 ;	jmp	f5D_common
 f5D_common:	
-	call	dword ptr lock_tables	; protect SHARE with a critical section
-	call	dword ptr share_stub[di]
-	call	dword ptr unlock_tables	; safe again
+	call	far [lock_tables]	; protect SHARE with a critical section
+	call	far [share_stub + di]
+	call	far [unlock_tables]	; safe again
 f5Dret:
 	ret
 
@@ -326,9 +327,9 @@ f5D05:
 ;	ES:DI -> buffer containing full pathname
 ;
 ;
-	call	dword ptr lock_tables	; protect SHARE with a critical section
-	call	dword ptr share_stub+S_GET_LIST_ENTRY
-	call	dword ptr unlock_tables	; safe again
+	call	far [lock_tables]	; protect SHARE with a critical section
+	call	far [share_stub+S_GET_LIST_ENTRY]
+	call	far [unlock_tables]	; safe again
 	 jnc	f5Dret			; just return if it went OK
 	jmp	error_ret		;  else return error code in AX
 
@@ -359,18 +360,18 @@ f5D06:
 ;
 f5D0A:
 	mov	si,dx			; ES:SI -> parameter block
-	lods	es:word ptr [si]
-	mov	error_code,ax		; copy the appropriate fields
-	lods	es:word ptr [si]
-	mov	error_class,ah
-	mov	error_action,al
-	lods	es:word ptr [si]
-	mov	error_locus,ah
-	add	si,2*WORD		; skip to device
-	lods	es:word ptr [si]
-	mov	error_dev,ax
-	lods	es:word ptr [si]
-	mov	error_dev+2,ax
+	es lodsw
+	mov	[error_code],ax		; copy the appropriate fields
+	es lodsw
+	mov	[error_class],ah
+	mov	[error_action],al
+	es lodsw
+	mov	[error_locus],ah
+	add	si,2*2		; skip to device
+	es lodsw
+	mov	[error_dev],ax
+	es lodsw
+	mov	[error_dev+2],ax
 	xor	ax,ax			; return AL=0
 	ret
 ;
@@ -393,12 +394,12 @@ f37_s03:
 	ret
 
 f37_getswitch:
-	mov	dl,switch_char
+	mov	dl,[switch_char]
 f37_return_DX:
 	jmp	return_DX		; return current setting in DX
 
 f37_setswitch:
-	mov	switch_char,dl
+	mov	[switch_char],dl
 	ret
 
 ;**************************************************
@@ -417,8 +418,8 @@ f37_setswitch:
 	Public	func30
 func30:
 	mov	cl,al			; save value of AL
-	mov	es,current_psp		; version is kept in the PSP
-	mov	ax,es:PSP_VERSION
+	mov	es,[current_psp]		; version is kept in the PSP
+	mov	ax,[es:PSP_VERSION]
 ReturnVersionNumber:
 	xor	bx,bx			; zero BX
 	cmp	cl,1			; version flag requested?
@@ -445,47 +446,47 @@ func33:
 	cmp	al, 0FFh		; is it function 33FFh ?
 	 jne	f33_XX			; no, jump -->
 	call	f33_FF			; yes
-	include version.inc
+	%include "version.mac"
 	db	0
 
-f33_FF:	pop	reg_AX[bp]		; dx:ax - hidden DOS string
-	mov	reg_DX[bp], cs
+f33_FF:	pop	word [reg_AX + bp]		; dx:ax - hidden DOS string
+	mov	[reg_DX + bp], cs
 	ret
 
 f33_XX:
 	cmp	al,2			; range check subfunction
 	 jbe	f33_10
-	mov	dl,bootDrv		; assume we want boot drive
+	mov	dl,[bootDrv]		; assume we want boot drive
 	cmp	al,5			; did we ?
 	 je	f33_30
 	cmp	al,6			; get true version ?
 	 je	f33_60
-	mov	reg_AL[bp],0FFh		; return AL = FF
+	mov	byte [reg_AL + bp],0FFh		; return AL = FF
 	ret				; Illegal function request
 f33_10:
 	and	dl,01h			; force a valid value
 	cmp	al,1			; check for get or set
 	 jae	f33_20
-	mov	dl,break_flag		; it's a get, so use existing setting
+	mov	dl,[break_flag]		; it's a get, so use existing setting
 f33_20:
-	xchg	dl,break_flag		; replace current setting
+	xchg	dl,[break_flag]		; replace current setting
 	 je	f33_40
 f33_30:
-	mov	reg_DL[bp],dl		; return setting in DL
+	mov	[reg_DL + bp],dl		; return setting in DL
 f33_40:
 	ret
 
 f33_60:
-	mov	es,current_psp
-	mov	ax,es:PSP_VERSION		; reported version for current program
-	cmp	ax,dos_version		; has this been faked with SETVER?
-	mov	reg_BX[bp],ax
+	mov	es,[current_psp]
+	mov	ax,[es:PSP_VERSION]		; reported version for current program
+	cmp	ax,[dos_version]		; has this been faked with SETVER?
+	mov	[reg_BX + bp],ax
 	 jne	f33_61			; yes, then fake the true version, too
-	mov	ax,dos_version-2	; if not, then honestly return true version number
-	mov	reg_BX[bp],ax
+	mov	ax,[dos_version-2]	; if not, then honestly return true version number
+	mov	[reg_BX + bp],ax
 f33_61:
-	mov	ax,patch_version
-	mov	reg_DX[bp],ax		; return revision+HMA
+	mov	ax,[patch_version]
+	mov	[reg_DX + bp],ax		; return revision+HMA
 	ret
 
 
@@ -531,10 +532,10 @@ func35:
 	mov	bl,al			; BX = the interrupt number
 	shl 	bx,1
 	shl 	bx,1			; 4 bytes per vector
-	lds	bx,ds:dword ptr [bx]	; DS:BX -> vector
-	les	di,ss:int21regs_ptr
-	mov	es:reg_BX[di],bx
-	mov	es:reg_ES[di],ds
+	lds	bx,[bx]	; DS:BX -> vector
+	les	di,[ss:int21regs_ptr]
+	mov	[es:reg_BX + di],bx
+	mov	[es:reg_ES + di],ds
 	jmp	get_dseg		; restore DS for return
 
 ;PC-DOS	Verify and Break Flags Support
@@ -546,7 +547,7 @@ func35:
 	Public	func2E
 func2E:
 	and	al,1			; only use bottom bit
-	mov	verify_flag,al		; store for use later
+	mov	[verify_flag],al		; store for use later
 	ret
 
 ;	*****************************
@@ -555,7 +556,7 @@ func2E:
 ;	*****************************
 	Public	func54
 func54:
-	mov	al,verify_flag		; return verify flag
+	mov	al,[verify_flag]		; return verify flag
 	ret
 
 ;	*****************************
@@ -584,16 +585,16 @@ f63_get_flg:
 ; characters. (In languages like Korean a given double byte character
 ; may be built by the user entering several keystrokes which form
 ; incomplete characters.)
-	mov	es, current_psp
-	mov	dl, es:PSP_RIC		; Return Interim Character flag
+	mov	es, [current_psp]
+	mov	dl, [es:PSP_RIC]		; Return Interim Character flag
 	jmp	return_DX		; flag returned in dl
 
 
 f63_set_flg:
 ; Set the current state of the DOS interim character console flag.
 ; dos_DL = 0 - clear flag, dos_DL = 1 - set flag
-	mov	es, current_psp
-	mov	es:PSP_RIC, dl		; record flag
+	mov	es, [current_psp]
+	mov	[es:PSP_RIC], dl		; record flag
 	ret
 
 
@@ -609,9 +610,9 @@ return_DSSI:
 ; On Exit:
 ;	AX preserved
 ;
-	les	di,ss:int21regs_ptr
-	mov	es:reg_DS[di],ds
-	mov	es:reg_SI[di],si
+	les	di,[ss:int21regs_ptr]
+	mov	[es:reg_DS + di],ds
+	mov	[es:reg_SI + di],si
 	ret
 
 ;
@@ -700,7 +701,7 @@ skip_delim_loop:
 
 parse_drive:
 	dec	si
-	cmp	byte ptr 1[si],':'	; is the drive specified?
+	cmp	byte ptr [1 + si],':'	; is the drive specified?
 	 jne	parse_name
 	lodsw				; get drive, junk colon
 	and	al,01011111b		; upper case it
@@ -714,7 +715,7 @@ parse_drive:
 	 jz	parse_d10
 	dec	dh			; flag drive error (0FFh)
 parse_d10:
-	mov	es:[di],al		; insert drive in fcb
+	mov	[es:di],al		; insert drive in fcb
 
 parse_name:
 	inc	di			; DI -> fname
@@ -838,10 +839,10 @@ not_lower:
 	push	cs
 	pop  	es			; ES = Code segment
 	mov	di,offset parse_separators
-	mov	cx,lengthof parse_separators
+	mov	cx,lengthof_parse_separators
 	repne	scasb			; is AL a separator?
 	je	cpd_pop_ret		;  Y: return ZF set
-	mov	cl,lengthof parse_terminators
+	mov	cl,lengthof_parse_terminators
 	repne	scasb			; is AL a terminator?
 	 stc				;  (set CF if true)
 	je	cpd_pop_ret		;  Y: return CF & ZF set
@@ -869,11 +870,11 @@ func2A:
 ;
 	call	ReadTimeAndDate		; Get the current Time and Date
 	mov	cx,1980
-	add	cx,yearsSince1980
+	add	cx,[yearsSince1980]
 ;	mov	dl,dayOfMonth
 ;	mov	ah,month
-	mov	dx,word ptr dayOfMonth
-	mov	al,dayOfWeek
+	mov	dx,word ptr [dayOfMonth]
+	mov	al,[dayOfWeek]
 	jmp	f2C_10			; exit via common routine
 
 ;	*****************************
@@ -892,8 +893,8 @@ func2C:
 ;		al = 0
 ;
 	call	ReadTimeAndDate		; Get the current Time and Date
-	mov	cx,biosDate+2		; Get the Hour and Minute
-	mov	dx,biosDate+4		; Get the Seconds and Hundredths
+	mov	cx,[biosDate+2]		; Get the Hour and Minute
+	mov	dx,[biosDate+4]		; Get the Seconds and Hundredths
 	xor	ax,ax			; return AL = 0
 f2C_10:
 	call	return_CX		; and return to caller
@@ -919,7 +920,7 @@ func2B:
 	 jc	f2B_20			; Abort on Error
 	push	cx			; save the converted date
 	call	ReadTimeAndDate		; Get the current Time and Date
-	pop	biosDate		; new date, existing time
+	pop	word [biosDate]		; new date, existing time
 f2B_10:					; Set the current Time and Date
 	call	rw_clock_common		; make sure clock is there/setup regs
 	call	device_write		; Update the Date and Time
@@ -956,8 +957,8 @@ func2D:
 	push	cx			; save hours/mins
 	push	dx			; save secs/hundredths
 	call	ReadTimeAndDate		; Get the current Time and Date
-	pop	biosDate+4		; leave the date alone
-	pop	biosDate+2		;  but update the time
+	pop	word [biosDate+4]		; leave the date alone
+	pop	word [biosDate+2]		;  but update the time
 	jmp	f2B_10			; Update the Date and Time	
 
 
@@ -966,20 +967,20 @@ func2D:
 ReadTimeAndDate:			; Get the current Time and Date
 	call	rw_clock_common		; make sure clock is there/setup regs
 	call	device_read		; read the Date and Time
-	mov	ax,biosDate		; get the BIOS date and convert
-	cmp	ax,daysSince1980	; (but only if necessary)
+	mov	ax,[biosDate]		; get the BIOS date and convert
+	cmp	ax,[daysSince1980]	; (but only if necessary)
 	 jne	NewDate
 	ret
 
 NewDate:
-	mov	daysSince1980,ax	; so we won't have to convert next time
+	mov	[daysSince1980],ax	; so we won't have to convert next time
 	inc	ax			; Day number starting 1 Jan 1980
 	mov	cx,ax			; save day count
 	inc	ax			; convert to a sunday as 1/1/80 is tues
 	xor	dx,dx
 	mov	bx,7
 	div	bx
-	mov	dayOfWeek,dl		; save day of week
+	mov	[dayOfWeek],dl		; save day of week
 
 	xor	dx,dx
 	mov	ax,cx			; recover day count
@@ -1004,24 +1005,24 @@ no_leap_days:
 	mov	dx,365			; set day count to last day of last year
 days_left:
 
-	mov	yearsSince1980,ax	; save the year
+	mov	[yearsSince1980],ax	; save the year
 	xchg	ax,si			; save in SI
 
 	xor	bx,bx
 	mov	cx,12
 get_month:				; find the appropriate month
-	cmp	dx,totaldays[bx]
+	cmp	dx,[totaldays + bx]
 	 jbe	got_month
 	inc 	bx
 	inc 	bx
 	loop	get_month
 got_month:
 	shr	bx,1			; BX = month
-	mov	month,bl
+	mov	[month],bl
 	
 	dec	bx
 	shl	bx,1			; BX = index to previous months
-	sub	dx,totaldays[bx]	; get days into this month
+	sub	dx,[totaldays + bx]	; get days into this month
 
 	cmp	bx,2			; if it's FEB 29th we've lost a day
 	 jne	not_leap_yr		; check it's FEB
@@ -1034,7 +1035,7 @@ got_month:
 	 jne	not_leap_yr
 	inc	dx			; put 29th feb back again
 not_leap_yr:
-	mov	dayOfMonth,dl		; save the day of the month
+	mov	[dayOfMonth],dl		; save the day of the month
 	ret
 
 
@@ -1060,13 +1061,13 @@ ConvertDate:
 
 not_leap_year:
 	dec	dx
-	cmp	dl,monthdays[bx]	; Day of month within range for non-leap
+	cmp	dl,[monthdays + bx]	; Day of month within range for non-leap
 					; year ?
 	jnc	xset_date_error
 
 day_valid:
 	shl	bx,1
-	add	ax,totaldays[bx]	; Get total days in current year
+	add	ax,[totaldays + bx]	; Get total days in current year
 
 	push	ax
 
@@ -1102,10 +1103,10 @@ xset_date_error:
 rw_clock_common:
 	mov	cx,6			; read/write 6 characters
 	mov	dx,offset biosDate	; DX -> 6 byte buffer
-	les	si,clk_device		; Get the address of the Clock Device
+	les	si,[clk_device]		; Get the address of the Clock Device
 	cmp	si,-1			; Has a valid device been selected
 	 jne	rw_clock_common10
-	add	sp,WORD			; discard near return address
+	add	sp,2			; discard near return address
 rw_clock_common10:
 	ret
 
@@ -1130,11 +1131,11 @@ f38_10:
 f38_get:
 	test	dx,dx			; Get current?
 	 jnz	f38_g10			; Yes
-	mov	dx,cur_country		; use current country
+	mov	dx,[cur_country]		; use current country
 f38_g10:
 ; look for (and if neccessary load) type 1 info into buffer
 	xchg	ax,di			; ES:DI -> buffer
-	mov	bx,cur_cp		; bx=codepage
+	mov	bx,[cur_cp]		; bx=codepage
 	call	f38_get_info		; get info in current codepage
 	 jnc	f38_g20
 	push 	ss
@@ -1143,16 +1144,16 @@ f38_g10:
 	call	f38_get_info		; if none for current codepage
 	 jc	f38_error		; No Match Found
 f38_g20:
-	lea	si,EXCI_CI_DATAOFF[si]	; point at CI_, not EXCI_ data
+	lea	si,[EXCI_CI_DATAOFF + si]	; point at CI_, not EXCI_ data
 	mov	bx,[si+CI_CODE]		; Return the selected country code
 	mov	cx,CI_STATICLEN/2
 	rep	movsw
 	
-if NLSFUNC
+%if NLSFUNC
 	push	ss
 	pop	ds
 ;	call	get_dseg		; DS back to PCMODE
-endif
+%endif
 	call	return_BX		; return country code in BX
 	xchg	ax,bx
 	jmp	return_AX_CLC		; and in AX
@@ -1169,23 +1170,23 @@ f38_get_info:
 	ret
 
 f38_set:
-	mov	bx,cur_cp		; bx=codepage
-	and	bx,f38_flag		; force CP to zero if 1st time here
+	mov	bx,[cur_cp]		; bx=codepage
+	and	bx,[f38_flag]		; force CP to zero if 1st time here
 	call	f38_set_country		; Update the Internal Data Structures
 	 jc	f38_error
 f38_s20:
-	mov	f38_flag,0FFFFh		; Country Code Set Successfully
-	mov	ax,cur_country		; and return the current country
+	mov	word [f38_flag],0FFFFh		; Country Code Set Successfully
+	mov	ax,[cur_country]		; and return the current country
 	jmp	return_AX_CLC		;  to the user
 
 
 f38_error:
 
-if NLSFUNC
+%if NLSFUNC
 	push	ss
 	pop	ds
 ;	call	get_dseg		; DS back to PCMODE
-endif
+%endif
 	mov	ax,ED_FILE		; This is the Error to return 
     jmp error_exit      
 
@@ -1340,11 +1341,11 @@ func6521:
 	mov	si,dx
 	mov	di,dx			; point SI & DI at string
 f6521_10:
-	lodsb	es:0			; read a character
+	es lodsb			; read a character
 	call	dbcs_lead		; is it 1st of a DBCS pair
 	 jne	f6521_20
 	stosb				; store 1st byte of this pair
-	movs	es:byte ptr [di],es:byte ptr [si]
+	es movsb
 					; copy 2nd byte
 	dec	cx			; 1st byte of pair
 	loopnz	f6521_10		; go around for another one
@@ -1377,18 +1378,18 @@ func65_read_table:
 	cbw				; Get the request sub-function
 	mov	si,ax			; into SI
 	shl	si,1
-	mov	si,func65_dt[si]
+	mov	si,[func65_dt + si]
 	inc	si			; is SI = 0FFFFh
 	 jz	f65_invalid		; if so it's an invalid function
 	dec	si
 
 	cmp	dx,0ffffh
 	 jne	f65_21			; FFFF means
-	mov	dx,cur_country		;  use default country
+	mov	dx,[cur_country]		;  use default country
 f65_21:
 	cmp	bx,0ffffh
 	 jne	f65_22			; FFFF means
-	mov	bx,cur_cp		;  use default codepage
+	mov	bx,[cur_cp]		;  use default codepage
 f65_22:
 	call	f65_get_info		; DS:SI -> extended info for this pair
 	mov	ax,ED_FILE		; On Error return File Not Found
@@ -1397,11 +1398,11 @@ f65_22:
 	pop 	ds
 	jmp	error_exit		; so Quit
 f65_23:
-	les	bx,ss:int21regs_ptr	; point to callers registers
-	mov	ax,es:reg_AX[bx]	; get the subfunction number
-	mov	cx,es:reg_CX[bx]	; this much data is requested
-	mov	di,es:reg_DI[bx]	; Get the Parameter Block Offset
-	mov	es,es:reg_ES[bx]	; and Segment
+	les	bx,[ss:int21regs_ptr]	; point to callers registers
+	mov	ax,[es:reg_AX + bx]	; get the subfunction number
+	mov	cx,[es:reg_CX + bx]	; this much data is requested
+	mov	di,[es:reg_DI + bx]	; Get the Parameter Block Offset
+	mov	es,[es:reg_ES + bx]	; and Segment
 	stosb				; fill in Info ID
 	cmp	al,1			; 1 is special - the rest
 	 jne	f65_30			;  want a DWORD ptr
@@ -1441,7 +1442,7 @@ f65_40:
 	push	ss
 	pop	ds
 ;	call	get_dseg		; back to PCMDSEG
-	mov	ax,cur_cp		; ##jc## Is the Requested or Current
+	mov	ax,[cur_cp]		; ##jc## Is the Requested or Current
 	jmp	return_AX_CLC		; Return the Code Page
 
 ;	*****************************
@@ -1459,7 +1460,7 @@ func66:
 	jmp	invalid_function	; Illegal Sub-Function return an Error
 
 f66_10:					; Get the Current Code Page Info
-	mov	bx,cur_cp		; Current CodePage
+	mov	bx,[cur_cp]		; Current CodePage
 	call	return_BX
 	mov	dx,SYS_CP		; System CodePage
 	call	return_DX
@@ -1467,13 +1468,13 @@ f66_10:					; Get the Current Code Page Info
 	jmp	return_AX_CLC
 
 f66_20:					; Set the Current CodePage
-	mov	dx,cur_country		; The Codepage has changed, so update
+	mov	dx,[cur_country]		; The Codepage has changed, so update
 	call	f38_set_country		; Country Info and tables
 	 jnc	f66_30			; Reset the Current CodePage if
 	mov	ax,ED_FILE		; and return the error
 	jmp	error_exit
 f66_30:
-	mov	bx,cur_cp		; select the new codepage
+	mov	bx,[cur_cp]		; select the new codepage
 	call	f66_select_cp		; Prepare CodePage Devices
 	 jnc	f66_40			; No Errors Skip Error Handler
 	mov	ax,-65			; Update Error Status do not generate
@@ -1494,17 +1495,17 @@ f65_get_info:
 ;
 ; NB. Remember to to Xlat fixups !
 ;
-	cmp	dx,cur_country		; is it default country ?
+	cmp	dx,[cur_country]		; is it default country ?
 	 jne	f65_p30			; have we already got correct country ?
 	test	bx,bx			; CP zero special case and we will
 	 jz	f65_p20			;  accept anything for this country
-	cmp	bx,cur_cp		; otherwise is the codepage
+	cmp	bx,[cur_cp]		; otherwise is the codepage
 	 jne	f65_p30			;  in the default system ?
 f65_p20:
 	cbw				; make info type a word
 	mov	si,ax			;  into index register
 	shl	si,1			; now a word offset
-	mov	si,func65_dt[si]	; pick up offset of correct table
+	mov	si,[func65_dt + si]	; pick up offset of correct table
 	jmp	f65_p90
 f65_p30:
 	push	ax
@@ -1514,8 +1515,8 @@ f65_p30:
 f65_p90:
 	cmp	al,1			; was it country info ?
 	 jne	f65_p95			; no, skip the fixup
-	mov	CI_CASEOFF+EXCI_CI_DATAOFF[si],offset xlat_xlat
-	mov	CI_CASESEG+EXCI_CI_DATAOFF[si],ss
+	mov	word [CI_CASEOFF+EXCI_CI_DATAOFF + si],offset xlat_xlat
+	mov	[CI_CASESEG+EXCI_CI_DATAOFF + si],ss
 f65_p95:
 	clc
 f65_p_exit:
@@ -1536,7 +1537,7 @@ f65_p_exit:
 
 f65_locate_and_read:
 ;	Locate and Read info AL for Country DX Codepage BX
-if NLSFUNC
+%if NLSFUNC
 	mov	di,offset country_filename
 					; point at pathname to country.sys 
 	xchg	ax,cx			; get info into CL
@@ -1545,7 +1546,7 @@ nlsfunc_int2f:
 	stc				; assume an error
 	int	2fh			; to do the hard work
 	ret
-else
+%else
 	push	ax
 	call	f65x_find_info		; Will need to load up the info 
 	pop	ax
@@ -1558,7 +1559,7 @@ else
 	pop	ax
 	 jc	f65_lr_exit
 	mov	ah,MS_X_CLOSE		; All done so 
-	mov	bx,c_handle 		; Close the file first
+	mov	bx,[c_handle] 		; Close the file first
 	call	dos_entry		; before leaving
 ;	 jc	f65_lr_exit
 	mov	si,offset f65xx_temp_area ; Tell subroutines where info is
@@ -1573,8 +1574,8 @@ f65x_find_info:
 	push	es			; Save es
 	push	ds
 	pop	es			; Make es=ds
-	mov	f65xx_country,dx
-	mov	f65xx_codepage,bx
+	mov	[f65xx_country],dx
+	mov	[f65xx_codepage],bx
 	mov	dx,offset country_filename
 	mov	ax,(MS_X_OPEN*256)+0	; Attempt to open country.sys 
 	test	dx,dx
@@ -1583,48 +1584,48 @@ f65x_find_info:
 	call	dos_entry		; Handle should come back in ax
 	 jc	f65x_40
 f65x_10:
-	mov	c_handle,ax		; Save handle
-	mov	dx,f65xx_country
-	cmp	f65xx_code,dx		; do we already have the information?
+	mov	[c_handle],ax		; Save handle
+	mov	dx,[f65xx_country]
+	cmp	[f65xx_code],dx		; do we already have the information?
 	 jne	f65x_30			; No - get it from country.sys
 f65x_20:
-	cmp	f65xx_cp,bx		; Does codepage agree too?
+	cmp	[f65xx_cp],bx		; Does codepage agree too?
 	 je	f65x_35			; Yes so exit with no more ado
 f65x_30:
 	mov	dx,007Eh	
 	xor	cx,cx			; Seek within country.sys
-	mov	bx,c_handle
+	mov	bx,[c_handle]
 	mov	ax,(MS_X_LSEEK*256)+0	; seek from begining
 	call	dos_entry
 	 jc	f65x_err
 	mov	ah,MS_X_READ		; Now read the signature bytes and
-	mov	bx,c_handle		; check them
+	mov	bx,[c_handle]		; check them
 	mov 	cx,2
 	mov 	dx,offset f65xx_sig
 	call	dos_entry
 	 jc	f65x_err
-	cmp	f65xx_sig,VALID_SIG
+	cmp	word [f65xx_sig],VALID_SIG
 	 jne	f65x_err		; If signature bad exit
 f65x_32:
 	mov	ah,MS_X_READ		; Read from country.sys header until
-	mov	bx,c_handle		; Country/codepage found or NULL
+	mov	bx,[c_handle]		; Country/codepage found or NULL
 	mov	cx,f65xx_ptable_len
 	mov	dx,offset f65xx_code
 	call	dos_entry
 	 jc	f65x_err	
-	cmp	f65xx_code,0		; Found NULL so reqd combination
+	cmp	word [f65xx_code],0		; Found NULL so reqd combination
 	 je	f65x_err		; was not found
-	mov	dx,f65xx_code		; Get the country/codepage values
-	mov	bx,f65xx_cp		; read from Country.SYS
-	cmp	dx,f65xx_country	; Check against the requested
+	mov	dx,[f65xx_code]		; Get the country/codepage values
+	mov	bx,[f65xx_cp]		; read from Country.SYS
+	cmp	dx,[f65xx_country]	; Check against the requested
 	 jne	f65x_32			; Country. 
-	cmp	f65xx_codepage,0	; If a codepage match is not
+	cmp	word [f65xx_codepage],0	; If a codepage match is not
 	 jz	f65x_35			; then return success
-	cmp	bx,f65xx_codepage	; Check against the requested
+	cmp	bx,[f65xx_codepage]	; Check against the requested
 	 jne	f65x_32			; Codepage
 f65x_35:
-	mov	f65xx_country,dx	; Force the Search Country and
-	mov	f65xx_codepage,bx	; CodePage to be Updated
+	mov	[f65xx_country],dx	; Force the Search Country and
+	mov	[f65xx_codepage],bx	; CodePage to be Updated
 f65x_40:
 	pop	es			; combination found so exit
 	ret
@@ -1632,7 +1633,7 @@ f65x_40:
 f65x_err:
 	pop	es
 	mov	ah,MS_X_CLOSE		; On error close country.sys
-	mov	bx,c_handle 		; and set the carry flag before
+	mov	bx,[c_handle] 		; and set the carry flag before
 	call	dos_entry		; leaving
 	stc
 	ret
@@ -1656,9 +1657,9 @@ f65x_load_info:
 	sub	bh,bh			; 5=filechars, 6=Collating table
 	mov	bl,al			; 7=DBCS table
 	shl	bx,1			; Retrieve relevant offset
-	mov	dx,f65xx_data[bx]	
+	mov	dx,[f65xx_data + bx]	
 	xor	cx,cx			; Seek within country.sys
-	mov	bx,c_handle
+	mov	bx,[c_handle]
 	mov	ax,(MS_X_LSEEK*256)+0	; seek from begining
 	call	dos_entry
 	pop	dx			; Get buffer address back
@@ -1667,12 +1668,12 @@ f65x_load_info:
 	test	ax,ax			; zero offset is a problem
 	 jz	f65x_err		; (probably DBCS with old COUNTRY.SYS)
 	mov	ah,MS_X_READ		; Now read that info into our data area
-	mov	bx,c_handle
+	mov	bx,[c_handle]
 	call	dos_entry		; Return when read is done
 	 jc	f65x_err
 	pop	es
 	ret
-endif
+%endif
 
 ;
 ;	This function scans the complete device list and prepares
@@ -1686,27 +1687,27 @@ endif
 DA_CODEPAGE	equ	DA_CHARDEV+DA_IOCTL+DA_GETSET
 
 f66_select_cp:
-if NLSFUNC
+%if NLSFUNC
 	mov	ax,14ffh		; then call magic backdoor
 	jmp	nlsfunc_int2f		;  to do the hard work
-else	
+%else	
 	push	ds
-	mov	f66_cp,bx		; Save requested CodePage
-	mov	preperr,0000		; Initialize Prepare Error
+	mov	[f66_cp],bx		; Save requested CodePage
+	mov	word [preperr],0000		; Initialize Prepare Error
 	push 	ds
 	pop 	es
 	mov	bx,offset dev_root	; Get the Root of the Device List
 f66_p10:				; Skip the NUL Device and check
-	lds	bx,ds:DH_NEXT[bx]	; each character device for CodePage
+	lds	bx,[DH_NEXT + bx]	; each character device for CodePage
 	cmp 	bx,0FFFFh
 	 jz 	f66_p50			; Support.
-	mov	ax,ds:DH_ATTRIB[bx]
+	mov	ax,[DH_ATTRIB + bx]
 	and	ax,DA_CODEPAGE		; Check for a Character Device which
 	cmp	ax,DA_CODEPAGE		; supports IOCTL strings and GETSET
 	 jne	f66_p10			; otherwise skip the device
 
 	push	bx
-	lea	si,DH_NAME[bx]		; Found a matching device so
+	lea	si,[DH_NAME + bx]		; Found a matching device so
 	mov	di,offset prepname	; open the device and select the 
 	mov	cx,8			; requested codepage
 
@@ -1726,24 +1727,24 @@ f66_p30:
 	 jc	f66_perr
 	mov	bx,ax			; Save Device Handle in BX
 
-	mov	si,es:f66_cp		; Get Requested CodePage in SI
+	mov	si,[es:f66_cp]		; Get Requested CodePage in SI
 	mov	dx,offset cp_packet	; Offset of CodePage Struct
 	mov	cx,006Ah		; Get Unknown CodePage
 	mov	ax,(MS_X_IOCTL*256)+0Ch	; Generic IOCTL function
 	call	dos_entry		; Make function Call
 	 jc	f66_p32			; Error so Select requested Code Page
 
-	cmp 	si,es:cp_cpid
+	cmp 	si,[es:cp_cpid]
 	jz 	f66_p35			; If this the currently selected
 f66_p32:				; skip the select CodePage
-	mov	es:cp_cpid,si
+	mov	[es:cp_cpid],si
 	mov	dx,offset cp_packet	; Offset of CodePage Struct
 	mov	cx,004Ah		; Select Unkown CodePage
 	mov	ax,(MS_X_IOCTL*256)+0Ch	; Generic IOCTL function
 	call	dos_entry		; Make function Call
 	 jnc	f66_p35			; No Error so skip the error
 f66_p33:
- 	mov	es:preperr,ax		; save
+ 	mov	[es:preperr],ax		; save
 
 f66_p35:	
 	mov	ah,MS_X_CLOSE		; Close the device and check
@@ -1751,25 +1752,25 @@ f66_p35:
 	jmp	f66_p40	
 
 f66_perr:
-	mov	es:preperr,ax		; Save the error code and try the
+	mov	[es:preperr],ax		; Save the error code and try the
 f66_p40:				; next device in the chain
 	pop	bx			; Restore the Device offset
 	jmp	f66_p10			; and continue
 
 f66_p50:				; All device have been prepared
 	pop	ds			; now return the last error code
-	mov	ax,preperr		; in AX
+	mov	ax,[preperr]		; in AX
 	or	ax,ax
 	ret
-endif
+%endif
 
 PCM_CODE	ends
 
-PCMODE_DSIZE	segment public para 'DATA'
+section PCMODE_DSIZE public align=16 class=DATA
 	extrn	swap_indos:word
 PCMODE_DSIZE	ends
 
-PCM_RODATA	segment public word 'CODE'
+section PCM_RODATA public align=2 class=CODE
 ;
 ;	Get Internal Data DOS function 5Dh
 ;
@@ -1796,11 +1797,13 @@ totaldays	dw	0,31,59,90,120,151,181,212,243,273,304,334,0ffffh
 monthdays	db	31,28,31,30,31,30,31,31,30,31,30,31
 
 parse_separators	db	TAB,'.,+:;='
+lengthof_parse_separators equ $ - parse_separators
 parse_terminators	db	'|"/\[]<>'
+lengthof_parse_terminators equ $ - parse_terminators
 
 PCM_RODATA	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 	extrn	internal_data:word
 	extrn	error_code:word
 	extrn	error_class:byte
@@ -1846,11 +1849,11 @@ PCMODE_DATA	segment public word 'DATA'
 SYS_CP		equ	437		; System CodePage
 PCMODE_DATA	ends
 
-GLOBAL_DATA	segment public word 'DATA'
+section GLOBAL_DATA public align=2 class=DATA
 
 f38_flag	dw	0		; Country Code Selected Successfully
 
-if NLSFUNC ne TRUE
+%if NLSFUNC ne TRUE
 	extrn	dev_root:dword
 
 f66_cp		dw	0		; INT21/66 Local Variable
@@ -1883,7 +1886,7 @@ f65xx_country	dw	0
 f65xx_sig	dw	0	; Signature
 c_handle	dw	0
 
-endif	;not NLSFUNC
+%endif	;not NLSFUNC
 
 GLOBAL_DATA	ends
 
