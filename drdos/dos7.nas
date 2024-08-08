@@ -4,19 +4,19 @@
 ; The DR-DOS/OpenDOS Enhancement Project - http://www.drdosprojects.de
 ; Copyright (c) 2002-2009 Udo Kuhnt
 
-PCMDATA group PCMODE_DATA,FDOS_DSEG
-PCMCODE group PCM_CODE
+group PCMDATA PCMODE_DATA FDOS_DSEG
+group PCMCODE PCM_CODE
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include	pcmode.equ
-	include	fdos.equ
-	include	fdosdef.def
-	include	dos7.equ
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "fdos.mac"
+	%include "fdosdef.mac"
+	%include "dos7.mac"
+	[list +]
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 
 	extrn	get_path_drive:near
 	extrn	fdos_diskinfo:near
@@ -62,6 +62,7 @@ func7302:
 	jmp	error_exit		; no, then exit with error
 f7302_10:
 	xor	dh,dh
+fdos_DISKINFO equ fdos_diskinfo	; NASM port label
 	call	fdos_DISKINFO		; get drive info, ES:BX -> DDSC
 	 jnc	f7302_20
 	mov	ax,-0fh			; return 0fh (invalid drive)
@@ -69,10 +70,10 @@ f7302_10:
 	jmp	error_exit		; error if invalid drive
 f7302_20:
 	push	ds
-	lds	bp,int21regs_ptr	; DS:DI -> Extended DPB structure
-	mov	di,ds:reg_DI[bp]
-	mov	si,ds:reg_SI[bp]	; SI = signature
-	mov	ds,ds:reg_ES[bp]
+	lds	bp,[int21regs_ptr]	; DS:DI -> Extended DPB structure
+	mov	di,[ds:reg_DI + bp]
+	mov	si,[ds:reg_SI + bp]	; SI = signature
+	mov	ds,[ds:reg_ES + bp]
 	mov	word ptr [di],EDPB_LEN	; length of data
 	inc	di			; skip to begin of EDPB
 	inc	di
@@ -88,19 +89,19 @@ f7302_20:
 	pop	di
 	pop	si
 	xor	dh,dh
-	mov	es:EDPB_DPBFLAGS[di],dh	; clear DBP flags
+	mov	[es:EDPB_DPBFLAGS + di],dh	; clear DBP flags
 	cmp	si,0f1a6h		; check signature
 	 je	f7302_25
 	xor	ax,ax			; wrong signature, clear driver header and link address fields
 	dec	ax
-	mov	es:word ptr EDPB_DEVHEAD[di],ax
-	mov	es:word ptr EDPB_DEVHEAD+2[di],ax
-	mov	es:word ptr EDPB_LINK[di],ax
-	mov	es:word ptr EDPB_LINK+2[di],ax
+	mov	word ptr [es:EDPB_DEVHEAD + di],ax
+	mov	word ptr [es:EDPB_DEVHEAD+2 + di],ax
+	mov	word ptr [es:EDPB_LINK + di],ax
+	mov	word ptr [es:EDPB_LINK+2 + di],ax
 f7302_25:
-	lea	si,ds:DDSC_BFREE[bx]
+	lea	si,[DDSC_BFREE + bx]
 	mov	cx,DDSC_FSVER-DDSC_BFREE
-	cmp	ds:DDSC_DIRENT[bx],0	; is this a FAT32 drive?
+	cmp	word [DDSC_DIRENT + bx],0	; is this a FAT32 drive?
 	 jnz	f7302_30		; no, then build the remaining portion from scratch
 	add	di,DDSC_FREE
 	rep	movsb			; else copy remaining EDPB portion from DDSC
@@ -113,16 +114,16 @@ f7302_30:
 	pop	di
 	xor	ax,ax			; AX=FFFFh
 	dec	ax
-	mov	es:EDPB_FSINFO[di],ax	; then fill in the 16-bit values
-	mov	es:EDPB_BOOTBAK[di],ax
-	mov	ax,word ptr DDSC_DATADDR[bx]
-	mov	es:word ptr EDPB_BDATADDR[di],ax
-	mov	ax,word ptr DDSC_NCLSTRS[bx]
-	mov	es:word ptr EDPB_BCLSTRS[di],ax
-	mov	ax,word ptr DDSC_NFATRECS[bx]
-	mov	es:word ptr EDPB_BFATRECS[di],ax
-	mov	ax,word ptr DDSC_BLOCK[bx]
-	mov	es:word ptr EDPB_BBLOCK[di],ax
+	mov	[es:EDPB_FSINFO + di],ax	; then fill in the 16-bit values
+	mov	[es:EDPB_BOOTBAK + di],ax
+	mov	ax,word ptr [DDSC_DATADDR + bx]
+	mov	word ptr [es:EDPB_BDATADDR + di],ax
+	mov	ax,word ptr [DDSC_NCLSTRS + bx]
+	mov	word ptr [es:EDPB_BCLSTRS + di],ax
+	mov	ax,word ptr [DDSC_NFATRECS + bx]
+	mov	word ptr [es:EDPB_BFATRECS + di],ax
+	mov	ax,word ptr [DDSC_BLOCK + bx]
+	mov	word ptr [es:EDPB_BBLOCK + di],ax
 f7302_40:
 	pop	ds
 	xor	ax,ax
@@ -145,9 +146,9 @@ f7302_exit:
 ;	AX	= error code
 
 func7303:
-	les	bp,int21regs_ptr	; ES:DI = pointer to drive path
-	mov	di,es:reg_DX[bp]
-	mov	es,es:reg_DS[bp]
+	les	bp,[int21regs_ptr]	; ES:DI = pointer to drive path
+	mov	di,[es:reg_DX + bp]
+	mov	es,[es:reg_DS + bp]
 	call	get_path_drive
 	 jnc	f7303_10
 	mov	ax,-0fh			; return 0fh (invalid drive)
@@ -170,73 +171,73 @@ f7303_20:
 	jmp	error_exit		; no, then exit with error
 f7303_30:
 	push	ds
-	lds	bp,int21regs_ptr	; DS:DI -> free space structure
-	mov	di,ds:reg_DI[bp]
-	mov	ds,ds:reg_ES[bp]
+	lds	bp,[int21regs_ptr]	; DS:DI -> free space structure
+	mov	di,[ds:reg_DI + bp]
+	mov	ds,[ds:reg_ES + bp]
 	xor	dx,dx
 	mov	ax,FREED_LEN		; length of data
-	mov	FREED_SIZE[di],ax
+	mov	[FREED_SIZE + di],ax
 	xor	ax,ax			; structure version
-	mov	FREED_VER[di],ax
+	mov	[FREED_VER + di],ax
 	xor	ah,ah			; sector per cluster
-	mov	al,es:DDSC_CLMSK[bx]	; this is minus one
+	mov	al,[es:DDSC_CLMSK + bx]	; this is minus one
 	inc	ax			; so add one again
-	mov	word ptr FREED_SECPCLUS[di],ax
-	mov	word ptr FREED_SECPCLUS+2[di],dx
-	mov	ax,es:DDSC_SECSIZE[bx]	; bytes per sector
-	mov	word ptr FREED_BYTEPSEC[di],ax
-	mov	word ptr FREED_BYTEPSEC+2[di],dx
-	cmp	es:DDSC_DIRENT[bx],0	; is this a FAT32 drive?
+	mov	word ptr [FREED_SECPCLUS + di],ax
+	mov	word ptr [FREED_SECPCLUS+2 + di],dx
+	mov	ax,[es:DDSC_SECSIZE + bx]	; bytes per sector
+	mov	word ptr [FREED_BYTEPSEC + di],ax
+	mov	word ptr [FREED_BYTEPSEC+2 + di],dx
+	cmp	word [es:DDSC_DIRENT + bx],0	; is this a FAT32 drive?
 	 je	f7303_40		; yes
-	mov	ax,es:DDSC_FREE[bx]	; free clusters on drive (16-bit)
-	mov	word ptr FREED_FREECL[di],ax
-	mov	word ptr FREED_FREEPCL[di],ax
-	mov	word ptr FREED_FREECL+2[di],dx
-	mov	word ptr FREED_FREEPCL+2[di],dx
-	mov	ax,es:DDSC_NCLSTRS[bx]	; highest cluster on drive (16-bit)
+	mov	ax,[es:DDSC_FREE + bx]	; free clusters on drive (16-bit)
+	mov	word ptr [FREED_FREECL + di],ax
+	mov	word ptr [FREED_FREEPCL + di],ax
+	mov	word ptr [FREED_FREECL+2 + di],dx
+	mov	word ptr [FREED_FREEPCL+2 + di],dx
+	mov	ax,[es:DDSC_NCLSTRS + bx]	; highest cluster on drive (16-bit)
 	dec	ax			; total clusters (16-bit)
-	mov	word ptr FREED_NCLUSTER[di],ax
-	mov	word ptr FREED_NPCLUS[di],ax
-	mov	word ptr FREED_NCLUSTER+2[di],dx
-	mov	word ptr FREED_NPCLUS+2[di],dx
+	mov	word ptr [FREED_NCLUSTER + di],ax
+	mov	word ptr [FREED_NPCLUS + di],ax
+	mov	word ptr [FREED_NCLUSTER+2 + di],dx
+	mov	word ptr [FREED_NPCLUS+2 + di],dx
 	jmp	f7303_50
 f7303_40:
-	mov	ax,es:word ptr DDSC_BFREE[bx]	; free clusters on drive (32-bit)
-	mov	word ptr FREED_FREECL[di],ax
-	mov	word ptr FREED_FREEPCL[di],ax
-	mov	ax,es:word ptr DDSC_BFREE+2[bx]
-	mov	word ptr FREED_FREECL+2[di],ax
-	mov	word ptr FREED_FREEPCL+2[di],ax
-	mov	ax,es:word ptr DDSC_BCLSTRS[bx]	; highest cluster on drive (32-bit)
-	mov	dx,es:word ptr DDSC_BCLSTRS+2[bx]
+	mov	ax,word ptr [es:DDSC_BFREE + bx]	; free clusters on drive (32-bit)
+	mov	word ptr [FREED_FREECL + di],ax
+	mov	word ptr [FREED_FREEPCL + di],ax
+	mov	ax,word ptr [es:DDSC_BFREE+2 + bx]
+	mov	word ptr [FREED_FREECL+2 + di],ax
+	mov	word ptr [FREED_FREEPCL+2 + di],ax
+	mov	ax,word ptr [es:DDSC_BCLSTRS + bx]	; highest cluster on drive (32-bit)
+	mov	dx,word ptr [es:DDSC_BCLSTRS+2 + bx]
 	sub	ax,1				; total clusters (32-bit)
 	sbb	dx,0
-	mov	word ptr FREED_NCLUSTER[di],ax
-	mov	word ptr FREED_NPCLUS[di],ax
-	mov	word ptr FREED_NCLUSTER+2[di],dx
-	mov	word ptr FREED_NPCLUS+2[di],dx
+	mov	word ptr [FREED_NCLUSTER + di],ax
+	mov	word ptr [FREED_NPCLUS + di],ax
+	mov	word ptr [FREED_NCLUSTER+2 + di],dx
+	mov	word ptr [FREED_NPCLUS+2 + di],dx
 f7303_50:
-	push	word ptr FREED_FREEPCL+2[di]	; number of free physical clusters
-	push	word ptr FREED_FREEPCL[di]
-	push	word ptr FREED_SECPCLUS+2[di]	; number of sectors per cluster
-	push	word ptr FREED_SECPCLUS[di]
+	push	word ptr [FREED_FREEPCL+2 + di]	; number of free physical clusters
+	push	word ptr [FREED_FREEPCL + di]
+	push	word ptr [FREED_SECPCLUS+2 + di]	; number of sectors per cluster
+	push	word ptr [FREED_SECPCLUS + di]
 	sub	sp,8			; reserve space on stack
 	call	mul32			; multiply these values
 	pop	ax			; to get free physical sectors
-	mov	word ptr FREED_FREESEC[di],ax
+	mov	word ptr [FREED_FREESEC + di],ax
 	pop	ax
-	mov	word ptr FREED_FREESEC+2[di],ax
+	mov	word ptr [FREED_FREESEC+2 + di],ax
 	add	sp,12			; clean up the stack again
-	push	word ptr FREED_NPCLUS+2[di]	; number of total physical clusters
-	push	word ptr FREED_NPCLUS[di]
-	push	word ptr FREED_SECPCLUS+2[di]	; number of sectors per cluster
-	push	word ptr FREED_SECPCLUS[di]
+	push	word ptr [FREED_NPCLUS+2 + di]	; number of total physical clusters
+	push	word ptr [FREED_NPCLUS + di]
+	push	word ptr [FREED_SECPCLUS+2 + di]	; number of sectors per cluster
+	push	word ptr [FREED_SECPCLUS + di]
 	sub	sp,8			; reserve space on stack
 	call	mul32			; multiply these values
 	pop	ax			; to get total physical sectors
-	mov	word ptr FREED_NSECS[di],ax
+	mov	word ptr [FREED_NSECS + di],ax
 	pop	ax
-	mov	word ptr FREED_NSECS+2[di],ax
+	mov	word ptr [FREED_NSECS+2 + di],ax
 	add	sp,12			; clean up the stack again
 	pop	ds
 	xor	ax,ax
@@ -266,29 +267,29 @@ func7305:
 	jmp	f7305_exit		; no, then exit with error
 f7305_10:
 	push	es
-	les	bp,int21regs_ptr	; ES:BX -> disk address structure
-	mov	si,es:reg_SI[bp]
-	mov	bx,es:reg_BX[bp]
-	mov	es,es:reg_DS[bp]
-	mov	FD_FUNC,FD_DDIO
+	les	bp,[int21regs_ptr]	; ES:BX -> disk address structure
+	mov	si,[es:reg_SI + bp]
+	mov	bx,[es:reg_BX + bp]
+	mov	es,[es:reg_DS + bp]
+	mov	word [FD_FUNC],FD_DDIO
 	dec	dl			; 0-based drive number
-	mov	byte ptr FD_DDIO_DRV_OP,dl
-	mov	ax,es:[bx]		; logical sector number
-	mov	FD_DDIO_STARTLOW,ax
-	mov	ax,es:2[bx]
-	mov	FD_DDIO_STARTHIGH,ax
-	mov	ax,es:4[bx]		; sectors to transfer
-	mov	FD_DDIO_NSECTORS,ax
-	mov	ax,es:6[bx]		; buffer address
-	mov	FD_DDIO_DMAOFF,ax
-	mov	ax,es:8[bx]
-	mov	FD_DDIO_DMASEG,ax
+	mov	byte ptr [FD_DDIO_DRV_OP],dl
+	mov	ax,[es:bx]		; logical sector number
+	mov	[FD_DDIO_STARTLOW],ax
+	mov	ax,[es:2 + bx]
+	mov	[FD_DDIO_STARTHIGH],ax
+	mov	ax,[es:4 + bx]		; sectors to transfer
+	mov	[FD_DDIO_NSECTORS],ax
+	mov	ax,[es:6 + bx]		; buffer address
+	mov	[FD_DDIO_DMAOFF],ax
+	mov	ax,[es:8 + bx]
+	mov	[FD_DDIO_DMASEG],ax
 	test	si,1			; test if read or write operation is requested
 	 jnz	f7305_20
-	mov	byte ptr FD_DDIO_DRV_OP+1,1
+	mov	byte [FD_DDIO_DRV_OP+1],1
 	jmp	f7305_30
 f7305_20:
-	mov	byte ptr FD_DDIO_DRV_OP+1,2
+	mov	byte [FD_DDIO_DRV_OP+1],2
 f7305_30:
 	pop	es
 	call	fdos_nocrit		; call fdos function
@@ -302,7 +303,7 @@ f7305_exit_NC:
 
 PCM_CODE	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 	extrn	int21regs_ptr:dword
 
