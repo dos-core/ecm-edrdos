@@ -73,7 +73,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -DPASSWORD -DJOIN -s -P nasm.mac -f obj fioctl.nas -l bin/fioctl.lst -o bin/fioctl.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -DPASSWORD -c -Fl.\BIN\ioctl.lst -Fo.\BIN\ioctl ioctl.asm
+nasm -DPASSWORD -s -P nasm.mac -f obj ioctl.nas -l bin/ioctl.lst -o bin/ioctl.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 nasm -s -P nasm.mac -f obj history.nas -l bin/history.lst -o bin/history.obj
