@@ -154,7 +154,7 @@ fdos_fcb:
 fdos_fcb10:
 	cmp	bx,FCB_MAX3		; check the range
 	 jae	fcb_error		; skip if invalid function
-	jmp	[fcb_table + bx]		; call the right function
+	jmp	[cs:fcb_table + bx]		; call the right function
 
 fcb_error:
 	mov	bx,ED_FUNCTION
