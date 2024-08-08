@@ -707,14 +707,14 @@ f4C_20:
 	mov	ss,[PSP_USERSS]	; Retrieve the entry SS and SP from
 	mov	sp,[PSP_USERSP]	;  the PSP and return with all
 	mov	bp,sp			;  registers as on user entry
-	mov	[ss:reg_AX + bp],ax	; Set AX to the Process RETCODE
+	mov	[reg_AX + bp],ax	; Set AX to the Process RETCODE
 	xor	ax,ax
 	mov	ds,ax
 	mov	ax,word ptr [INT22_OFFSET]
-	mov	[ss:reg_IP + bp],ax   	; PSP_TERM_IP
+	mov	[reg_IP + bp],ax   	; PSP_TERM_IP
 	mov	ax,word ptr [INT22_OFFSET+2]
-	mov	[ss:reg_CS + bp],ax   	; PSP_TERM_CS
-	mov	word [ss:reg_FLAGS + bp],0b202h	; force flags to 0F202h
+	mov	[reg_CS + bp],ax   	; PSP_TERM_CS
+	mov	word [reg_FLAGS + bp],0b202h	; force flags to 0F202h
 					;  ie Interrupts enabled and
 					;  NEC processor Mode Switch SET
 					; changed to B202 to have clear
