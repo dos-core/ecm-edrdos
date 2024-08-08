@@ -74,23 +74,23 @@
 ; 30 jul 92 HILOAD now uses official memory strategy calls
 ;
 
-PCMCODE	GROUP	PCM_CODE,PCM_RODATA
-PCMDATA	GROUP	PCMODE_DATA,FDOS_DSEG
+group PCMCODE PCM_CODE PCM_RODATA
+group PCMDATA PCMODE_DATA FDOS_DSEG
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include	pcmode.equ
-	include fdosdef.def
-	include	msdos.equ
-	include mserror.equ
-	include	cmdline.equ
-	include	driver.equ
-	include	request.equ
-	include	psp.def
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "fdosdef.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
+	%include "cmdline.mac"
+	%include "driver.mac"
+	%include "request.mac"
+	%include "psp.mac"
+	[list +]
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 	extrn	os_version:word
 	extrn	patch_version:word
 
@@ -114,7 +114,7 @@ PCM_CODE	segment public byte 'CODE'
 	Public	func69
 func69:
 	call	set_retry_RF			; Prepare for an FDOS function
-	mov	FD_FUNC,MS_X_IOCTL
+	mov	word [FD_FUNC],MS_X_IOCTL
 	mov	cx,866h				; assume a get serial num
 	cmp	al,1				; check for 0/1
 	mov	al,0Dh				; ready for ioctl 0D
@@ -133,18 +133,18 @@ func69:
 func44:
 	call	set_retry_RF			; Prepare for an FDOS function
 func44common:
-	mov	FD_IOCTLFUNC,ax			; save subfunction for FDOS
-	mov	ioctlRH,22			; assume RH will be wanted
-	mov	ioctlRH+13,0			;  init len and media byte
-	mov	word ptr ioctlRH+14,dx		; point at buffer segment
-	mov	word ptr ioctlRH+16,es
-	mov	word ptr ioctlRH+18,cx		; the Byte Count
+	mov	[FD_IOCTLFUNC],ax			; save subfunction for FDOS
+	mov	byte [ioctlRH],22			; assume RH will be wanted
+	mov	byte [ioctlRH+13],0			;  init len and media byte
+	mov	word ptr [ioctlRH+14],dx		; point at buffer segment
+	mov	word ptr [ioctlRH+16],es
+	mov	word ptr [ioctlRH+18],cx		; the Byte Count
 	cmp	ax,dosf44_ftl			; Check for a valid PC-DOS
 	 jae	f44_20				; sub-functions
 f44_10:
 	xchg	ax,si
 	shl	si,1
-	mov	si,func44_ft[si]
+	mov	si,[func44_ft + si]
 	xchg	ax,si
 	jmp	ax
 f44_20:
@@ -198,7 +198,7 @@ f4403:
 f4410:
 	mov	dx,DA_QUERY			; assume we will query support
 	mov	al,CMD_QUERY_IOCTL		;  and be ready to go
-	mov	cx,FD_IOCTLFUNC			; re-read the function number
+	mov	cx,[FD_IOCTLFUNC]			; re-read the function number
 	test	cl,10h				; is it function 10 of 11?
 	 jnz	f44ioctl			; yes, we are ready
 	mov	dx,DA_IOCTL			; no, we actually want to do it
@@ -207,10 +207,10 @@ f4410:
 	 jz	f44ioctl
 	mov	al,CMD_OUTPUT_IOCTL		; odd functions are output
 f44ioctl:
-	mov	FD_IOCTLSTAT,dx			; this device driver support is required
-	mov	ioctlRH+2,al			;  this is the function
+	mov	[FD_IOCTLSTAT],dx			; this device driver support is required
+	mov	[ioctlRH+2],al			;  this is the function
 	call	fdos_handle			; Execute the Function
-	mov	ax,word ptr ioctlRH+18		; return # xfered
+	mov	ax,word ptr [ioctlRH+18]		; return # xfered
 	jmp	return_AX_CLC
 
 ;	*****************************
@@ -246,10 +246,11 @@ f440A:
 ;
 ;
 f440B:
-	mov	net_delay,cx
+	mov	[net_delay],cx
 	test	dx,dx
+f440B_10 equ f440b_10	; NASM port label
 	 jz	f440B_10
-	mov	net_retry,dx
+	mov	[net_retry],dx
 f440b_10:
 	ret
 
@@ -268,16 +269,16 @@ f440D:
 ;	*****************************
 ;
 f440C:
-	mov	FD_IOCTLSTAT,DA_GETSET		; device driver support required
-	mov	FD_HANDLE,bx			; Save the Handle Number
-	mov	ioctlRH,23			; different RH length
-	mov	ioctlRH+2,CMD_GENERIC_IOCTL
+	mov	word [FD_IOCTLSTAT],DA_GETSET		; device driver support required
+	mov	[FD_HANDLE],bx			; Save the Handle Number
+	mov	byte [ioctlRH],23			; different RH length
+	mov	byte [ioctlRH+2],CMD_GENERIC_IOCTL
 	xchg	cl,ch				; swap minor/major functions
-	mov	word ptr ioctlRH+13,cx		;  and store in request header
-	mov	word ptr ioctlRH+15,si
-	mov	word ptr ioctlRH+17,di
-	mov	word ptr ioctlRH+19,dx		; point at buffer segment
-	mov	word ptr ioctlRH+21,es
+	mov	word ptr [ioctlRH+13],cx		;  and store in request header
+	mov	word ptr [ioctlRH+15],si
+	mov	word ptr [ioctlRH+17],di
+	mov	word ptr [ioctlRH+19],dx		; point at buffer segment
+	mov	word ptr [ioctlRH+21],es
 	call	fdos_ax_crit			; Execute the Function and
 	 jc	fdos_error			; return all error codes
 	ret
@@ -300,14 +301,14 @@ fdos_drive:
 	xor	bh,bh			; BX = the drive number
 fdos_handle:
 ;----------
-	mov	FD_HANDLE,bx
+	mov	[FD_HANDLE],bx
 	call	fdos_crit		; then execute the FDOS
 	 jnc	fdos_OK			; exit on Error
-	add	sp,WORD			; discard near return address
+	add	sp,2			; discard near return address
 fdos_error:
 	jmp	error_ret		; and return the error
 fdos_OK:
-	mov	ax,FD_IOCTLSTAT		; get the return information
+	mov	ax,[FD_IOCTLSTAT]		; get the return information
 	ret
 
 ;	*****************************
@@ -317,17 +318,17 @@ fdos_OK:
 ;	*****************************
 ;
 f4452:
-	mov	es,current_psp		; version is kept in the PSP
-	cmp	es:PSP_VERSION,0FF00h	; sub-version of 255 ?
+	mov	es,[current_psp]		; version is kept in the PSP
+	cmp	word [es:PSP_VERSION],0FF00h	; sub-version of 255 ?
 	 jae	f4452_10		; then say we ain't DRDOS
-	mov	ax,cs:os_version	; Get OS ver number
-	mov	dx,cs:patch_version
+	mov	ax,[cs:os_version]	; Get OS ver number
+	mov	dx,[cs:patch_version]
 	call	return_DX		; return in DX
 	jmp	return_AX_CLC		; return in AX
 f4452_10:
     jmp invalid_function    
 
-ifdef PASSWORD
+%ifdef PASSWORD
 
 ;	*****************************
 ;	***    CCP/M Extension    ***
@@ -336,10 +337,10 @@ ifdef PASSWORD
 ;	*****************************
 ;
 f4454:
-	mov	FD_IOCTLFUNC,0Bh		; save subfunction for FDOS
+	mov	word [FD_IOCTLFUNC],0Bh		; save subfunction for FDOS
 	jmp	fdos_nocrit			; Execute the Function
 
-endif
+%endif
 
 
 ;	*****************************
@@ -364,7 +365,7 @@ endif
 ;		Bit 7 -> set if command history buffer
 ;
 f4456:
-	mov	ax,cle_state		; Get the current History Status
+	mov	ax,[cle_state]		; Get the current History Status
 	cmp	dl,2			; are we disabling/enabling ?
 	 jb	f4456_10		; below, switch buffers
 	 je	f4456_05		; yes, try and do it
@@ -375,7 +376,7 @@ f4456:
 
 f4456_05:
 	mov	cl,RLF_ENHANCED		; we are interested in enhancements
-	test	@hist_flg,cl		;  only if history possible
+	test	[@hist_flg],cl		;  only if history possible
 	 jz	f4456_20		; just return existing state
 	xor	al,cl			; invert current setting
 					; and fall thru' to enable/disable
@@ -383,17 +384,17 @@ f4456_05:
 					; by COMMAND...)
 f4456_10:
 	or	al,RLF_INROOT		; assume we are in the root
-ifdef IDLE_DETECT
-	or	idle_flags,IDLE_COMMAND
-endif
+%if IDLE_DETECT
+	or	word [idle_flags],IDLE_COMMAND
+%endif
 	test	dl,1			; Get new state and mask bit
 	 jnz	f4456_20
-	and	al,not RLF_INROOT	; we are in application buffer
-ifdef IDLE_DETECT
-	and	idle_flags,not IDLE_COMMAND
-endif
+	and	al,~ RLF_INROOT	; we are in application buffer
+%if IDLE_DETECT
+	and	word [idle_flags],~ IDLE_COMMAND
+%endif
 f4456_20:
-	xchg	ax,cle_state		; set state, returning old state
+	xchg	ax,[cle_state]		; set state, returning old state
 	ret
 
 
@@ -415,7 +416,7 @@ f4458:
 PCM_CODE	ends
 
 
-PCM_RODATA	segment public word 'CODE'
+section PCM_RODATA public align=2 class=CODE
 ;
 ;		PCDOS Sub-Functions Only
 ;
@@ -443,11 +444,11 @@ dosf44_ftl	equ	(offset $ - offset func44_ft)/2
 ;
 		dw	f4452			; 4452 OS version no
 		dw	invalid_function	; 4453 Invalid Function
-ifdef PASSWORD
+%ifdef PASSWORD
 		dw	f4454			; 4454 set default password
-else
+%else
 		dw	invalid_function	; 4454 was set default password
-endif
+%endif
 		dw	invalid_function	; 4455 Invalid Function
 		dw	f4456			; 4456 history buffer support
 		dw	invalid_function	; 4457 was share enable/disable
@@ -458,15 +459,15 @@ ourf44_ftl	equ	(offset $ - offset func44_ft)/2
 PCM_RODATA	ends
 
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 	extrn	net_delay:word, net_retry:word
 	extrn	@hist_flg:byte
 	extrn	@private_data:byte
-ifdef IDLE_DETECT
+%if IDLE_DETECT
 	extrn	idle_data:word
 	extrn	idle_flags:word
-endif
+%endif
 	extrn	cle_state:word
 	extrn	ioctlRH:byte
 	extrn	dos_version:word
