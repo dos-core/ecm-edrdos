@@ -79,7 +79,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj history.nas -l bin/history.lst -o bin/history.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -DDELWATCH -c -Fl.\BIN\int2f.lst -Fo.\BIN\int2f int2f.asm
+nasm -DDELWATCH -s -P nasm.mac -f obj int2f.nas -l bin/int2f.lst -o bin/int2f.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -c -Fl.\BIN\network.lst -Fo.\BIN\network network.asm
