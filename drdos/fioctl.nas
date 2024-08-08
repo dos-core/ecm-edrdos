@@ -172,7 +172,7 @@ fdos_ioctl:
 	cmp	bx,NUM_IOCTL		; is it in the supported range?
 	 jae	device_ED_FUNCTION	; skip if value too large
 	shl	bx,1			; else make it word index
-	jmp	[ioctl_tbl + bx]		; call the right function
+	jmp	[cs:ioctl_tbl + bx]		; call the right function
 device_ED_FUNCTION:
 	mov	bx,ED_FUNCTION		; "invalid function"
 	ret
