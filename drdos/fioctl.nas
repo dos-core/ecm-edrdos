@@ -1,4 +1,4 @@
-title 'FDOS IOCTL - DOS file system input/output control'
+;title 'FDOS IOCTL - DOS file system input/output control'
 ;    File              : $FIOCTL.ASM$
 ;
 ;    Description       :
@@ -62,37 +62,37 @@ title 'FDOS IOCTL - DOS file system input/output control'
 ;    5 aug 92  substatial ioctl rework saves a few bytes - ioctl
 ;              request header now built by PCMODE
 
-PCMCODE	GROUP	BDOS_CODE
-PCMDATA	GROUP	BDOS_DATA,PCMODE_DATA
+group PCMCODE BDOS_CODE
+group PCMDATA BDOS_DATA PCMODE_DATA
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include fdos.equ
-	include request.equ
-	include msdos.equ
-	include mserror.equ
-	include doshndl.def	; DOS Handle Structures
-	include driver.equ
-	include f52data.def	; DRDOS Structures
-	.list
+	[list -]
+	%include "fdos.mac"
+	%include "request.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
+	%include "doshndl.mac"	; DOS Handle Structures
+	%include "driver.mac"
+	%include "f52data.mac"	; DRDOS Structures
+	[list +]
 
-PCMODE_DATA	segment public byte 'DATA'
+section PCMODE_DATA public align=1 class=DATA
 	extrn	ioctlRH:byte		; request header is build in PCMODE
 					;  data area
 PCMODE_DATA	ends
 
-BDOS_DATA	segment public word 'DATA'
+section BDOS_DATA public align=2 class=DATA
 	extrn	fdos_pb:word
 	extrn	fdos_ret:word
 	extrn	last_drv:byte
 	extrn	req_hdr:byte
-ifdef PASSWORD
+%ifdef PASSWORD
 	extrn	global_password:word
-endif
+%endif
 BDOS_DATA	ends
 
-BDOS_CODE	segment public byte 'CODE'
+section BDOS_CODE public align=1 class=CODE
 
 	extrn	local_disk:near
 	extrn	device_driver:near
@@ -109,12 +109,12 @@ BDOS_CODE	segment public byte 'CODE'
 	extrn	vfy_dhndl_ptr:near
 	extrn	verify_handle:near
 	extrn	reload_registers:near
-ifdef JOIN
+%ifdef JOIN
 	extrn	get_ldt:near
-endif
-ifdef PASSWORD
+%endif
+%ifdef PASSWORD
 	extrn	hash_pwd:near
-endif
+%endif
 
 	public	fdos_ioctl
 
@@ -149,11 +149,11 @@ ioctl_tbl	dw	ioctl0		; 0-get handle status
 		dw	ioctl8		; 8-removable media check
 		dw	ioctl9		; 9-networked drive check
 		dw	ioctlA		; A-networked handle check
-ifdef PASSWORD
+%ifdef PASSWORD
 		dw	ioctl54		; B-set global password
-else
+%else
 		dw	device_ED_FUNCTION
-endif
+%endif
 		dw	ioctlC		; C-code page support
 		dw	ioctlD		; D-generic IOCTL disk i/o
 		dw	ioctlE		; E-get logical drive
@@ -161,18 +161,18 @@ endif
 		dw	ioctl10		; 10-query IOCTL for char devs
 		dw	ioctl11		; 11-query IOCTL for disks
 
-NUM_IOCTL	equ	(offset $ - offset ioctl_tbl)/WORD
+NUM_IOCTL	equ	(offset $ - offset ioctl_tbl)/2
 
 
 
 fdos_ioctl:
 ;----------
-	mov	bx,2[bp]		; BX -> parameter block
-	mov	bx,4[bx]		; get I/O control subfunction
+	mov	bx,[2 + bp]		; BX -> parameter block
+	mov	bx,[4 + bx]		; get I/O control subfunction
 	cmp	bx,NUM_IOCTL		; is it in the supported range?
 	 jae	device_ED_FUNCTION	; skip if value too large
 	shl	bx,1			; else make it word index
-	jmp	ioctl_tbl[bx]		; call the right function
+	jmp	[ioctl_tbl + bx]		; call the right function
 device_ED_FUNCTION:
 	mov	bx,ED_FUNCTION		; "invalid function"
 	ret
@@ -186,34 +186,34 @@ ioctl0:		; get device status
 ;		as the handles are shared across all consoles...
 
 	call	vfy_dhndl_ptr		; check if good handle
-	mov	ax,es:DHNDL_WATTR[bx]	; get attrib from doshndl
+	mov	ax,[es:DHNDL_WATTR + bx]	; get attrib from doshndl
 	test	ah,DHAT_REMOTE/256
 	mov	ah,0			; files/networks return 0 in AH/DH
 	 jnz	device_OK		; return attrib if network device
 	test	al,DHAT_DEV		; or a file
 	 jz	device_OK
-	les	bx,es:DHNDL_DEVPTR[bx]	; get real device driver address
-	mov	ah,es:byte ptr 5[bx]	; get device driver attribute
+	les	bx,[es:DHNDL_DEVPTR + bx]	; get real device driver address
+	mov	ah,byte ptr [es:5 + bx]	; get device driver attribute
 ;	jmp	device_OK
 
 device_OK:
 ;---------
-	mov	bx,2[bp]		; get parameter block address
-	mov	6[bx],ax		; save returned status
+	mov	bx,[2 + bp]		; get parameter block address
+	mov	[6 + bx],ax		; save returned status
 	xor	bx,bx			; successful return code
 	ret
 
 ioctl1:		; set device status
 ;------
 	call	vfy_dhndl_ptr		; make sure this is an open handle
-	test	es:DHNDL_WATTR[bx],DHAT_DEV
+	test	word [es:DHNDL_WATTR + bx],DHAT_DEV
 	 jz	device_ED_FUNCTION	; can't set status of disk files
-	mov	ax,word ptr ioctlRH+14
+	mov	ax,word ptr [ioctlRH+14]
 					; pick up new device status
 	test	ah,ah			; test if high byte is zero
 	 jnz	device_ED_FUNCTION	; skip if O.K.
 	or	al,DHAT_DEV		; make sure it stays a device
-	mov	es:DHNDL_ATTR[bx],al	; store ioctl state in doshndl
+	mov	[es:DHNDL_ATTR + bx],al	; store ioctl state in doshndl
 	jmp	device_OK		; success
 
 
@@ -230,7 +230,7 @@ ioctl10:	; query ioctl support (device handle)
 	call	verify_handle		; make sure the handle is good
 	 jnc	short_fdos_ED_FUNCTION	;  and is for a DEVICE
 	xor	cx,cx			; device relative unit # always zero
-	les	si,es:DHNDL_DEVPTR[bx]	; ES:SI -> device driver
+	les	si,[es:DHNDL_DEVPTR + bx]	; ES:SI -> device driver
 	jmp	ioc2345CDcommon		;  now use common code
 
 ioctl4:		; receive control string (drive)
@@ -243,8 +243,8 @@ ioctl11:	; query ioctl support (drive)
 ;-------
 	call	local_disk		; get MXdisk, switch stack
 	call	get_pb2_ddsc		; get drives DDSC_
-	mov	cl,es:DDSC_RUNIT[bx]	; get relative unit #
-	les	si,es:DDSC_DEVHEAD[bx]	; ES:SI -> device header
+	mov	cl,[es:DDSC_RUNIT + bx]	; get relative unit #
+	les	si,[es:DDSC_DEVHEAD + bx]	; ES:SI -> device header
 ;	jmp	ioctl2345Common		;  now use common code
 
 ioc2345CDcommon:
@@ -257,8 +257,9 @@ ioc2345CDcommon:
 ; On Exit:
 ;	IOCTL performed
 ;
-	mov	ax,fdos_pb+6		; device driver support required
-	test	es:DEVHDR.ATTRIB[si],ax	; does device driver support function ?
+	mov	ax,[fdos_pb+6]		; device driver support required
+DEVHDR.ATTRIB equ ATTRIB	; NASM port label
+	test	[es:DEVHDR.ATTRIB + si],ax	; does device driver support function ?
 	 jz	short_fdos_ED_FUNCTION
 	push	ds
 	push 	es
@@ -266,7 +267,7 @@ ioc2345CDcommon:
 	push 	ss
 	pop 	es
 	mov	bx,offset ioctlRH	; ES:BX -> request header
-	mov	es:RH_UNIT[bx],cl	; set relative unit for block devices
+	mov	[es:RH_UNIT + bx],cl	; set relative unit for block devices
 	call	device_driver		; call the device driver
 	pop	ds			; check for errors on return
 ;	jmp	fdos_error_check
@@ -298,18 +299,18 @@ get_pb2_ddsc:
 ;	ES:BX -> DDSC_ for the drive
 ;
 	call	get_pb2_drive		; get specified drive
-	cmp	al,last_drv		; is it a valid drive
+	cmp	al,[last_drv]		; is it a valid drive
 	 ja	bad_drive
 	call	get_ldt			; ES:BX -> LDT for this drive
 	 jc	get_pb2_ddsc10		;  no LDT, physical=logical
-	mov	ax,es:LDT_FLAGS[bx]
+	mov	ax,[es:LDT_FLAGS + bx]
 	test	ah,LFLG_NETWRKD/256
 	 jnz	short_fdos_ED_FUNCTION	; reject network drives
 	test	ah,LFLG_PHYSICAL/256
 	 jz	bad_drive
 	test	ah,LFLG_JOINED/256
 	 jnz	bad_drive		; reject JOIN'd drives
-	mov	al,es:LDT_NAME[bx]	; get physical drive from LDT
+	mov	al,[es:LDT_NAME + bx]	; get physical drive from LDT
 	and	al,1Fh			; convert to 1 based drive
 	dec	ax			; make that zero based
 get_pb2_ddsc10:
@@ -329,18 +330,18 @@ ioctl8:		; removable media check
 	call	local_disk		; get MXdisk, switch stack
 	call	get_pb2_ddsc		; get drives DDSC_
 	push	ds
-	lds	si,es:DDSC_DEVHEAD[bx]	; DS:SI -> device driver
-	test	ds:DEVHDR.ATTRIB[si],DA_REMOVE
+	lds	si,[es:DDSC_DEVHEAD + bx]	; DS:SI -> device driver
+	test	word [DEVHDR.ATTRIB + si],DA_REMOVE
 	pop	ds			; do we support the check ?
 	 jz	short_fdos_ED_FUNCTION	; if we don't then don't ask
-	mov	req_hdr,RH15_LEN
-	mov	req_hdr+2,CMD_FIXED_MEDIA
+	mov	byte [req_hdr],RH15_LEN
+	mov	byte [req_hdr+2],CMD_FIXED_MEDIA
 	call	block_device_driver	; call the device driver
 	 js	short_fdos_ED_FUNCTION
 	and	ax,RHS_BUSY		; BUSY bit set if permanent - we just
 	xchg	ah,al			;  need to get bit in the right place
 	shr	ax,1			; now 1 if permanent media
-	mov	fdos_pb+6,ax		; return status removable (=0)
+	mov	[fdos_pb+6],ax		; return status removable (=0)
 ioctl8_10:
 	ret
 
@@ -349,7 +350,7 @@ ioctl8_10:
 ioctl6:		; file input status
 ;------
 	call	vfy_dhndl_ptr		; make sure this is an open handle
-	mov	ax,es:DHNDL_WATTR[bx]
+	mov	ax,[es:DHNDL_WATTR + bx]
 	test	ax,DHAT_REMOTE
 	 jnz	ioctl6_10		; always ask networked handles
 	test	ax,DHAT_DEV
@@ -357,20 +358,20 @@ ioctl6:		; file input status
 	jmp	ioc6_dev
 
 ioctl6_10:				; disk files/network devices
-	push	es:DHNDL_POSLO[bx]	; save current position in file
-	push	es:DHNDL_POSHI[bx]	;  so we can read ahead
-	push	es:DHNDL_POSXLO[bx]
-	push	es:DHNDL_POSXHI[bx]
+	push	word [es:DHNDL_POSLO + bx]	; save current position in file
+	push	word [es:DHNDL_POSHI + bx]	;  so we can read ahead
+	push	word [es:DHNDL_POSXLO + bx]
+	push	word [es:DHNDL_POSXHI + bx]
 	push	es
 	push	bx			; save DHNDL_ too..
 	push	bp			; save stack frame
-	mov	si,2[bp]		; SI -> parameter block
+	mov	si,[2 + bp]		; SI -> parameter block
 	mov	ax,1
 	push	ax			; read 1 byte ahead
 	push	ds			; use fdos_pb as read-ahead
-	lea	ax,6[si]		;  buffer
+	lea	ax,[6 + si]		;  buffer
 	push	ax			
-	push	ds:word ptr 2[si]	; user file number 
+	push	word ptr [2 + si]	; user file number 
 	mov	ax,MS_X_READ		; READ function #, so we create
 	push	ax			;  a dummy fdos_pb
 	mov	bx,sp			; SS:BX -> dummy fdos_pb
@@ -381,9 +382,9 @@ ioctl6_10:				; disk files/network devices
 	push	ax			; save sub-function
 	mov	bp,sp			; SS:BP -> working variables
 	call	fdos_read		; make FDOS_READ do the hard word
-	add	sp,4*WORD		; discard param's on stack
+	add	sp,4*2		; discard param's on stack
 ioctl6_20:
-	add	sp,4*WORD		; discard most of dummy fdos_pb
+	add	sp,4*2		; discard most of dummy fdos_pb
 	pop	cx			; return # read
 	cmp	bx,ED_LASTERROR		; did we succeed ?
 	 jb	ioctl6_30		; if so we can trust # read
@@ -392,15 +393,15 @@ ioctl6_30:
 	pop	bp			; recover stack frame
 	pop	bx			; rewind DHNDL_POS to where
 	pop	es
-	pop	es:DHNDL_POSXHI[bx]	;  it was before we started
-	pop	es:DHNDL_POSXLO[bx]
-	pop	es:DHNDL_POSHI[bx]
-	pop	es:DHNDL_POSLO[bx]
+	pop	word [es:DHNDL_POSXHI + bx]	;  it was before we started
+	pop	word [es:DHNDL_POSXLO + bx]
+	pop	word [es:DHNDL_POSHI + bx]
+	pop	word [es:DHNDL_POSLO + bx]
 	mov	ax,1a00h		; assume not ready
 	 jcxz	ioctl6_40
 	dec	ax			; AL = FF, ie. ready
-	mov	si,2[bp]		; SI -> parameter block
-	mov	ah,ds:byte ptr 6[si]	; get character we read
+	mov	si,[2 + bp]		; SI -> parameter block
+	mov	ah,byte ptr [6 + si]	; get character we read
 ioctl6_40:
 	jmp	device_OK
 
@@ -409,7 +410,7 @@ ioctl7:		; file output status
 ;------
 	call	vfy_dhndl_ptr		; make sure this is an open handle
 	mov	ax,0FFh			; assume it's networked/disk
-	mov	dx,es:DHNDL_WATTR[bx]
+	mov	dx,[es:DHNDL_WATTR + bx]
 	test	dx,DHAT_REMOTE
 	 jnz	ioctl6_40		; networked handles are always ready
 	test	dx,DHAT_DEV
@@ -424,16 +425,16 @@ ioctl9:		; networked drive check
 	call	get_pb2_drive		; get specified drive
 	call	get_ldt			; ES:BX -> LDT for this drive
 	 jc	ioctl940
-	mov	ax,es:LDT_FLAGS[bx]
+	mov	ax,[es:LDT_FLAGS + bx]
 	test	ah,LFLG_NETWRKD/256
 	 jz	ioctl910
-if 1
+%if 1
 	mov	ax,1000h		; return drive as remote
-else
-	les	di,es:LDT_PDT[bx]	; pick up network internal pointer
-	mov	ax,es:4[di]		; pick up garbage
+%else
+	les	di,[es:LDT_PDT + bx]	; pick up network internal pointer
+	mov	ax,[es:4 + di]		; pick up garbage
 	or	ah,10h			; return drive as remote
-endif
+%endif
 	jmp	ioctl930
 
 ioctl910:
@@ -451,10 +452,10 @@ ioctl920:
 	push	ax
 	call	get_pb2_ddsc		; get drives DDSC_
 	pop	ax
-	les	si,es:DDSC_DEVHEAD[bx]	; ES:SI -> device driver
-	or	ax,es:4[si]		; get device attributes
+	les	si,[es:DDSC_DEVHEAD + bx]	; ES:SI -> device driver
+	or	ax,[es:4 + si]		; get device attributes
 ioctl930:
-	mov	fdos_pb+6,ax		; return updated status
+	mov	[fdos_pb+6],ax		; return updated status
 	ret
 
 ioctl940:
@@ -464,7 +465,7 @@ ioctl940:
 ioctlA:		; networked handle check
 ;------
 	call	vfy_dhndl_ptr
-	mov	ax,es:DHNDL_WATTR[bx]
+	mov	ax,[es:DHNDL_WATTR + bx]
 	jmp	device_OK		; return attributes
 
 
@@ -479,38 +480,38 @@ ioctlF:
 	call	local_disk
 	mov	al,CMD_SET_DEVICE	; set logical device
 iocEFcommon:
-    mov req_hdr,RH24_LEN    
-	mov	req_hdr+2,al
+    mov byte [req_hdr],RH24_LEN    
+	mov	[req_hdr+2],al
 	call	get_pb2_ddsc		; get drives DDSC_
 	inc	ax			; make drive one-relative
-	mov	req_hdr+13,al		; set this as new drive
+	mov	[req_hdr+13],al		; set this as new drive
 	xor	ax,ax			; assume not supported
 	push	ds
-	lds	si,es:DDSC_DEVHEAD[bx]	; does device driver support function ?
-	test	ds:DEVHDR.ATTRIB[si],DA_GETSET
+	lds	si,[es:DDSC_DEVHEAD + bx]	; does device driver support function ?
+	test	word [DEVHDR.ATTRIB + si],DA_GETSET
 	pop	ds
 	 jz	iocF_single		; skip if not supported
 	call	block_device_driver	; call the device driver
 	call	fdos_error_check	; return any errors
-	mov	al,req_hdr+1		; get returned drive
+	mov	al,[req_hdr+1]		; get returned drive
 iocF_single:				; AX = return value
     mov ah,7            
-	mov	fdos_pb+6,ax		; return the drive
+	mov	[fdos_pb+6],ax		; return the drive
 	ret
 
-ifdef PASSWORD
+%ifdef PASSWORD
 
 ioctl54:	; set global password
 ;-------
 	call	local_disk		; get the MX disk
 	push	ds
-	lds	si,dword ptr ioctlRH+14
+	lds	si,[ioctlRH+14]
 	call	hash_pwd		; encrypt new default password
 	pop	ds
-	mov	global_password,ax
+	mov	[global_password],ax
 	ret
 
-endif
+%endif
 
 BDOS_CODE	ends
 
