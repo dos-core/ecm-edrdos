@@ -61,7 +61,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj cmdline.nas -l bin/cmdline.lst -o bin/cmdline.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\dos7.lst -Fo.\BIN\dos7 dos7.asm
+nasm -s -P nasm.mac -f obj dos7.nas -l bin/dos7.lst -o bin/dos7.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -c -Fl.\BIN\error.lst -Fo.\BIN\error error.asm
