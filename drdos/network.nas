@@ -33,19 +33,19 @@
 ;
 ;   DOS Network Function Calls
 
-PCMCODE	GROUP	PCM_CODE
-PCMDATA	GROUP	PCMODE_DATA,FDOS_DSEG
+group PCMCODE PCM_CODE
+group PCMDATA PCMODE_DATA FDOS_DSEG
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include	pcmode.equ
-	include	mserror.equ
-	include	redir.equ
-	include	doshndl.def
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "mserror.mac"
+	%include "redir.mac"
+	%include "doshndl.mac"
+	[list +]
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 
 	extrn	reload_ES:near
 	extrn	return_AX_CLC:near
@@ -75,7 +75,7 @@ f5E00:
 	rep	movsw
 ;	mov	ch,name_num		; 00 -> Undefined Name
 ;	mov	cl,netbios		; 00 -> Name Number
-	mov	cx,word ptr netbios
+	mov	cx,word ptr [netbios]
 	call	return_CX
 f5E_success:
 	xor	ax,ax			; return zero
@@ -87,8 +87,8 @@ f5E_success:
 f5E01:
 ;	mov	name_num,ch		; Get the Network and NetBios Nos.
 ;	mov	netbios,cl		; and save in local variables
-	mov	word ptr netbios,cx
-	inc	net_set_count
+	mov	word ptr [netbios],cx
+	inc	byte [net_set_count]
 	push 	ds
 	push 	es
 	pop 	ds
@@ -119,12 +119,12 @@ func5F_10:
 	call	get_ldt_raw
 	pop	ax
 	 jc	func5F_30
-	cmp	es:word ptr LDT_PDT[bx],1
+	cmp	word ptr [es:LDT_PDT + bx],1
 	 jb	func5F_30
-	or	es:byte ptr LDT_FLAGS+1[bx],(LFLG_PHYSICAL shr 8) and 0ffh
+	or	byte ptr [es:LDT_FLAGS+1 + bx],(LFLG_PHYSICAL >> 8) & 0ffh
 	cmp	al,07h
 	 je	func5F_30
-	and	es:byte ptr LDT_FLAGS+1[bx],((not LFLG_PHYSICAL) shr 8) and 0ffh
+	and	byte ptr [es:LDT_FLAGS+1 + bx],((~ LFLG_PHYSICAL) >> 8) & 0ffh
 func5F_30:
 	jnc	func5F_OK
 	mov	ax,ED_DRIVE
@@ -136,7 +136,7 @@ func5F_40:
 Public	func5F_common
 func5F_common:
 	push	ds
-	push	int21AX			; AX passed on the stack..
+	push	word [int21AX]			; AX passed on the stack..
 	push	es
 	call	reload_ES		; get the segment registers
 	pop	ds			;  back to entry state
@@ -153,7 +153,7 @@ func5F_error:
 
 PCM_CODE	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 
 	extrn	net_name:byte
 	extrn	net_set_count:byte
