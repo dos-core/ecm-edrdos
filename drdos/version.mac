@@ -1,0 +1,33 @@
+	%imacro comment 0-*.nolist
+	%endmacro
+
+%ifndef SHORTVERSION
+%define if comment
+%define ifdef comment
+%define else comment
+%define endif comment
+	%include "version.inc"
+%undef if
+%undef ifdef
+%undef else
+%undef endif
+%else
+	%macro if 1.nolist
+%define db comment
+	%endmacro
+	%macro ifdef 1.nolist
+%define db comment
+	%endmacro
+	%macro else 0.nolist
+%define db comment
+	%endmacro
+	%macro endif 0.nolist
+%undef db
+	%endmacro
+	%include "version.inc"
+%undef db
+	%unmacro if 1.nolist
+	%unmacro ifdef 1.nolist
+	%unmacro else 0.nolist
+	%unmacro endif 0.nolist
+%endif
