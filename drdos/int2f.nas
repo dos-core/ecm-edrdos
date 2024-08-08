@@ -52,22 +52,22 @@
 ;   DOS INT 2F Support
 ;
 
-PCMCODE	GROUP	PCM_CODE
-PCMDATA	GROUP	PCMODE_DATA,FDOS_DSEG,GLOBAL_DATA
+group PCMCODE PCM_CODE
+group PCMDATA PCMODE_DATA FDOS_DSEG GLOBAL_DATA
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include	pcmode.equ
-	include msdos.equ
-	include	mserror.equ
-	include	driver.equ
-	include	psp.def
-	include	doshndl.def
-	include	redir.equ
-	.list
+	[list -]
+	%include "pcmode.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
+	%include "driver.mac"
+	%include "psp.mac"
+	%include "doshndl.mac"
+	%include "redir.mac"
+	[list +]
 
-PCM_CODE	segment public byte 'CODE'
+section PCM_CODE public align=1 class=CODE
 
 	extrn	get_dseg:near		; in PCMIF.PCM
 	extrn	do_int24:near		; in PCMIF.PCM
@@ -91,13 +91,13 @@ PointHMA:
 	call	get_dseg		; DS = DOS data
 	mov	di,0FFFFh
 	mov	es,di			; ES:DI = FFFF:FFFF
-	mov	bx,hmaRoot
+	mov	bx,[hmaRoot]
 	test	bx,bx			; have we an HMA ?
 	 jz	PointHMA10
 	mov	di,bx			; ES:DI = start of HMA free area
-	mov	bx,es:2[bx]		; BX = length
+	mov	bx,[es:2 + bx]		; BX = length
 	sub	bx,4			; forget the header
-	and	bl,not 15		; make it complete para's
+	and	bl,~ 15		; make it complete para's
 PointHMA10:
 	ret	
 
@@ -125,7 +125,7 @@ AllocHMA:
 	push	ds
 	xchg	ax,bx			; AX = bytes required
 	add	ax,15
-	and	al,not 15		; round up to para's
+	and	al,~ 15		; round up to para's
 	call	PointHMA
 	xchg	ax,bx
 	cmp	ax,bx			; enough room up there ?
@@ -133,15 +133,15 @@ AllocHMA:
 	mov	di,es			; ES:DI = FFFF:FFFF
 	jmp	AllocHMA20
 AllocHMA10:
-	add	hmaRoot,bx		; set new start
-	mov	ax,es:2[di]		; get length
+	add	[hmaRoot],bx		; set new start
+	mov	ax,[es:2 + di]		; get length
 	sub	ax,bx			; subtract what we just allocated
-	mov	es:2[di+bx],ax		; set new length
+	mov	[es:2 + di+bx],ax		; set new length
 	cmp	ax,4			; have we shrunk to zero spare ?
-	mov	ax,es:[di]		; move link field to
-	mov	es:[di+bx],ax		;  new head
+	mov	ax,[es:di]		; move link field to
+	mov	[es:di+bx],ax		;  new head
 	 ja	AllocHMA20
-	mov	hmaRoot,ax		; set new hmaRoot
+	mov	[hmaRoot],ax		; set new hmaRoot
 AllocHMA20:
 	mov	ax,4A02h		; "restore" AX
 	pop	ds
@@ -208,7 +208,7 @@ int2F_exit:
 	push	ds			; pass onto BIOS now
 	call	get_dseg		; trying to remain ROMMABLE
 int2F_BIOS:
-	jmp	dword ptr ds:int2FNext	;  hence this complication
+	jmp	far [int2FNext]	;  hence this complication
 
 
 i2f_05:
@@ -235,7 +235,7 @@ i2f_10:
 	call	get_dseg		; get PCMode data seg
 	push 	ds
 	pop 	es
-	call	i2f_10tbl[bx]		; execute the function
+	call	[i2f_10tbl + bx]		; execute the function
 	pop	ds
 	retf	2			;  and return
 
@@ -261,7 +261,7 @@ i2f_12:
 	xor	ah,ah
 	add	ax,ax			; make sub-func a word
 	mov	bp,ax			; we need offset in pointer register
-	mov	ax,i2f_12tbl[bp]	; get address of service routine
+	mov	ax,[i2f_12tbl + bp]	; get address of service routine
 	mov	bp,sp			; BP points to stack frame
 	call	ax			; call the service routine
 	pop	bp
@@ -332,8 +332,8 @@ i2f_1200:
 
 i2f_1201:
 ; Close file ??? (at current_dhndl)
-	les	di,current_dhndl
-	mov	bx,es:DHNDL_WATTR[di]
+	les	di,[current_dhndl]
+	mov	bx,[es:DHNDL_WATTR + di]
 	test	bh,DHAT_REMOTE/100h
 	 jz	i2f_1201_10		; is it networked ?
 	mov	ax,I2F_CLOSE
@@ -345,7 +345,7 @@ i2f_1202:
 ; Get Interrupt Vector pointer
 	xor	bx,bx
 	mov	es,bx			; point at the vectors
-	mov	bl,8[bp]		; pick up which vector
+	mov	bl,[8 + bp]		; pick up which vector
 	add	bx,bx
 	add	bx,bx			; make it a DWORD offset
 	ret
@@ -356,7 +356,7 @@ i2f_1203:
 
 i2f_1204:
 ; Normalise path character
-	mov	ax,8[bp]		; the char is on the stack
+	mov	ax,[8 + bp]		; the char is on the stack
 tobslash:
 	cmp	al,'/'			; if it's a fslash
 	 jne	i2f_1204_10
@@ -369,7 +369,7 @@ i2f_1205:
 ; Output Character on the stack
 	push	dx
 	mov	ah,MS_C_WRITE
-	mov	dx,8[bp]		; get char from the stack
+	mov	dx,[8 + bp]		; get char from the stack
 	call	dos_entry		;  and output it
 	pop	dx
 	ret
@@ -377,12 +377,12 @@ i2f_1205:
 i2f_1206:
 ; Invoke critical error INT 24
 	push	ds
-	mov	ax,8[bp]		; action/drive on stack
-	mov	es,0[bp]		; seg was in BP
+	mov	ax,[8 + bp]		; action/drive on stack
+	mov	es,[0 + bp]		; seg was in BP
 	call	get_dseg		; get the segment right
 	call	do_int24		; invoke the critical error handler
 	push	ax
-    les ax,int24_esbp       
+    les ax,[int24_esbp]       
 	mov	[bp],ax			; really return new BP
 	pop	ax
 	pop	ds
@@ -390,20 +390,20 @@ i2f_1206:
 
 i2f_1208:
 ; Decrement word at ES:DI, skipping zero
-	mov	ax,es:word ptr [di]	; return the word in AX
+	mov	ax,word ptr [es:di]	; return the word in AX
 i2f_1208_10:
-	dec	es:word ptr [di]	; dec it
+	dec	word ptr [es:di]	; dec it
 	 jz	i2f_1208_10		;  dec again if it's zero
 	ret
 	
 i2f_120A:
 	push	ds
-	lds	si,current_ddsc		; point at current driver
+	lds	si,[current_ddsc]		; point at current driver
 	lodsb				; get the drive
 	cbw				; pretend dos area read
 	pop	ds
-	mov	err_drv,al
-	mov	rwmode,ah		; set error drive for Int 24h
+	mov	[err_drv],al
+	mov	[rwmode],ah		; set error drive for Int 24h
 	mov	ax,3			; return a Fail ?
 	stc				; return as error
 	ret
@@ -416,14 +416,14 @@ i2f_120B:
 	
 i2f_120C:
 ; Open file ??? (at current_dhndl)
-	les	di,current_dhndl
+	les	di,[current_dhndl]
 ; would need to call the device driver, but as we don't support this for
 ; block devices and as it is generally not supported for remote files (but
 ; only known to be called from redirectors) we leave this out for later
-	test	es:byte ptr DHNDL_MODE+1[di],DHM_FCB/100h
+	test	byte ptr [es:DHNDL_MODE+1 + di],DHM_FCB/100h
 	 jz	i2f_120C_10		; is it an FCB open ?
-	mov	ax,current_psp
-	mov	es:DHNDL_PSP[di],ax	; update owning PSP field
+	mov	ax,[current_psp]
+	mov	[es:DHNDL_PSP + di],ax	; update owning PSP field
 i2f_120C_10:				; else do nothing for now
 	ret
 
@@ -463,7 +463,7 @@ i2f_1211:
 	stosb				; plant it
 	test	al,al			; terminating zero ?
 	 jnz	i2f_1211
-	mov	ax,8[bp]		; AX from stack
+	mov	ax,[8 + bp]		; AX from stack
 	ret
 	
 i2f_1212:
@@ -480,7 +480,7 @@ i2f_1212:
 
 i2f_1213:
 ; Upperase character on stack
-	mov	ax,8[bp]		; get the character
+	mov	ax,[8 + bp]		; get the character
 	jmp	toupper			; use BDOS Intl routine
 	
 i2f_1214:
@@ -501,14 +501,14 @@ i2f_1216:
 ; Get address in ES:DI of DOSHNDL for file BX
 	push	ds
 	call	get_dseg		; we work with the PCMODE data
-	les	di,file_ptr		; get the address of the first entry
+	les	di,[file_ptr]		; get the address of the first entry
 	pop	ds
 	push	bx			; handle # in BX
 i2f_1216_10:
-	cmp	bx,es:DCNTRL_COUNT[di]	; handle in this block?
+	cmp	bx,[es:DCNTRL_COUNT + di]	; handle in this block?
 	 jb	i2f_1216_20		; skip if yes
-	sub	bx,es:DCNTRL_COUNT[di]	; update the internal file number
-	les	di,es:DCNTRL_DSADD[di]	; get the next entry and check
+	sub	bx,[es:DCNTRL_COUNT + di]	; update the internal file number
+	les	di,[es:DCNTRL_DSADD + di]	; get the next entry and check
 	cmp	di,0FFFFh		;   for the end of the list
 	 jnz	i2f_1216_10 
 	pop	ax			; handle # back in AX
@@ -531,18 +531,18 @@ i2f_1217:
 ; On Exit:
 ; AL = drive we have set to, DS:SI -> LDT structure
 	call	get_dseg		; DS -> PCMODE data
-	mov	ax,8[bp]		; get the drive
-	cmp	al,last_drv		; do we have an LDT for it ?
+	mov	ax,[8 + bp]		; get the drive
+	cmp	al,[last_drv]		; do we have an LDT for it ?
 	 jae	i2f_1217_10		; if not do no more
-	cmp	word ptr ldt_ptr+2,0	; valid LDT ?
+	cmp	word [ldt_ptr+2],0	; valid LDT ?
 	 je	i2f_1217_10
 	push	ax
 	mov	ah,LDT_LEN
 	mul	ah
-	lds	si,ldt_ptr
+	lds	si,[ldt_ptr]
 	add	si,ax			; DS:SI -> requested LDT, current_LDT
-	mov	ss:word ptr current_ldt,si
-	mov	ss:word ptr current_ldt+2,ds
+	mov	word ptr [ss:current_ldt],si
+	mov	word ptr [ss:current_ldt+2],ds
 	pop	ax
 	stc				; indicate NO error (CY inverted)
 i2f_1217_10:
@@ -553,28 +553,28 @@ i2f_1217_10:
 i2f_1218:
 ; DS:SI -> User register on DOS Call
 	call	get_dseg		; we save SS:SP after PUSH$DOS
-	lds	si,int21regs_ptr	;  in this location
+	lds	si,[int21regs_ptr]	;  in this location
 	ret
 
 i2f_1219:
 ; Stack = drive (0=default, 1 = A: etc)
 	push 	ds
 	push 	si
-	push 	word ptr 8[bp]
-	dec	byte ptr 8[bp]		; make drive zero based
-	cmp	byte ptr 8[bp],0ffh	; do we want the default ?
+	push 	word ptr [8 + bp]
+	dec	byte ptr [8 + bp]		; make drive zero based
+	cmp	byte ptr [8 + bp],0ffh	; do we want the default ?
 	 jne	i2f_1219_10
 	call	get_dseg
-	mov	al,current_dsk
-	mov	byte ptr 8[bp],al	; use the default drive
+	mov	al,[current_dsk]
+	mov	byte ptr [8 + bp],al	; use the default drive
 i2f_1219_10:
 	call	i2f_1217		; set's up current_ldt
 	 jc	i2f_1219_20
-	test	ds:byte ptr 44h[si],40h	; is it valid LDT ?
+	test	byte ptr [44h + si],40h	; is it valid LDT ?
 	 jnz	i2f_1219_20
 	stc				; indicate an error
 i2f_1219_20:
-	pop 	word ptr 8[bp]
+	pop 	word ptr [8 + bp]
 	pop 	si
 	pop 	ds
 	ret
@@ -582,9 +582,9 @@ i2f_1219_20:
 i2f_121A:
 ; Get files drive DS:SI -> drives, AL = drive
 	xor	ax,ax			; assume default drive
-	cmp	ds:byte ptr 1[si],':'
+	cmp	byte ptr [1 + si],':'
 	 jne	i2f_121A_10		; if no drive letter, then default
-	mov	al,ds:byte ptr [si]
+	mov	al,byte ptr [si]
 	test	al,al			; null string ?
 	 jz	i2f_121A_10		;  then it's the default drive
 	call	toupper
@@ -592,7 +592,7 @@ i2f_121A:
 	 jbe	i2f_121A_20		; it's invalid..
 	push	ds
 	call	get_dseg
-	cmp	al,last_drv		; is it a valid drive ?
+	cmp	al,[last_drv]		; is it a valid drive ?
 	pop	ds
 	 ja	i2f_121A_20		; yes, return it
 i2f_121A_10:
@@ -608,13 +608,13 @@ i2f_121B:
 ; On Exit AL = days in February
 	push	bx
 	mov	bx,offset days_in_month+1
-	mov	ds:byte ptr [bx],28	; assume 28 days in Feb
+	mov	byte ptr [bx],28	; assume 28 days in Feb
 	test	cl,3			; is it a leap year ?
 	 jnz	i2f_121B_10
-	inc	ds:byte ptr [bx]	; yes, we have 29
+	inc	byte ptr [bx]	; yes, we have 29
 i2f_121B_10:
-	mov	yearsSince1980,cl	; save the year
-	mov	al,ds:byte ptr [bx]	; return the days in Feb
+	mov	[yearsSince1980],cl	; save the year
+	mov	al,byte ptr [bx]	; return the days in Feb
 	pop	bx
 	ret
 
@@ -676,7 +676,7 @@ i2f_121E_10:
 	call	toupper
 	call	tobslash		; normalise slash characters
 	push	ax			; save it
-	mov	al,es:byte ptr [di]
+	mov	al,byte ptr [es:di]
 	inc	di
 	call	toupper
 	call	tobslash		; normalise slash again
@@ -688,7 +688,7 @@ i2f_121E_20:
 	pop 	cx
 	pop 	di
 	pop 	si
-	mov	ax,8[bp]		; return stack value in AX
+	mov	ax,[8 + bp]		; return stack value in AX
 	ret
 
 i2f_121F:
@@ -698,28 +698,28 @@ i2f_121F:
 	push 	si
 	push 	dx
 	call	get_dseg
-	les	di,current_ldt
+	les	di,[current_ldt]
 	push	di
-	mov	ax,8[bp]		; get the drive we want to do
+	mov	ax,[8 + bp]		; get the drive we want to do
 	stosb				; plant the ASCII
 	xchg	ax,dx			; save drive in DX
-	mov	ax,'\:'
-	stosw				; we have d:\
+	mov	ax,':\'	; NASM port swapped text literals
+	stosw				; we have d:\.
 	xor	ax,ax
 	mov	cx,LDT_FLAGS-3
 	rep	stosb			; zero rest of name and flags
 ;	lea	di,LDT_FLAGS
 	and	dl,1fh			; convert from ASCII
 	dec	dx			; into zero based drive number
-	cmp	dl,phys_drv		; valid physical drive ?
+	cmp	dl,[phys_drv]		; valid physical drive ?
 	 jae	i2f_121F_10		; mark it as such
 	mov	ax,LFLG_PHYSICAL
 i2f_121F_10:
 	stosw				; set flags
 ;	lea	di,LDT_PDT
-	lea	si,ddsc_ptr-18h
+	lea	si,[ddsc_ptr-18h]
 i2f_121F_20:
-	lds	si,18h[si]
+	lds	si,[18h + si]
 	cmp	si,-1
 	 je	i2f_121F_30
 	cmp	dl,[si]			; is this the DDSC for the drive
@@ -751,12 +751,12 @@ i2f_1220:
 ; Get pointer to system file table number for handle BX into ES:DI
 	push	ds
 	call	get_dseg
-	mov	es,current_psp
+	mov	es,[current_psp]
 	mov	ax,6			; assume illegal
-	cmp	bx,es:PSP_XFNMAX	; is it a legal handle
+	cmp	bx,[es:PSP_XFNMAX]	; is it a legal handle
 	cmc				; invert CY for error return
 	 jc	i2f_1220_10		;  no, forget it
-	les	di,es:PSP_XFTPTR	; get XFT from PSP
+	les	di,[es:PSP_XFTPTR]	; get XFT from PSP
 	add	di,bx			; add in the offset
 ;	clc
 i2f_1220_10:
@@ -776,7 +776,7 @@ i2f_1222:
 ; Store error class, locus, action from DS:SI
 i2f_1222_10:
 	lodsw
-	cmp	al,byte ptr error_code	; have we found the error ?
+	cmp	al,byte ptr [error_code]	; have we found the error ?
 	 je	i2f_1222_20
 	inc	al			; or hit the end of the list ?
 	 jz	i2f_1222_20
@@ -785,16 +785,16 @@ i2f_1222_10:
 i2f_1222_20:
 	cmp	ah,0ffh			; valid error class ?
 	 je	i2f_1222_30
-	mov	error_class,ah
+	mov	[error_class],ah
 i2f_1222_30:
 	lodsw
 	cmp	al,0ffh
 	 je	i2f_1222_40
-	mov	error_action,al
+	mov	[error_action],al
 i2f_1222_40:
 	cmp	ah,0ffh
 	 je	i2f_1222_50
-	mov	error_locus,ah	
+	mov	[error_locus],ah	
 i2f_1222_50:
 	ret
 
@@ -808,46 +808,49 @@ i2f_1223:
 ; Check if character device
 	push	ds
 	call	get_dseg
-if FALSE
-	push	word ptr name_buf	; save 1st char of name
+%if FALSE
+	push	word [name_buf]	; save 1st char of name
 	test	magic_byte,8		; magic location and number ??
 	 jnz	i2f_1223_40		; can we do the check ?
-	cmp	name_buf,5
+	cmp	byte [name_buf],5
 	 jne	i2f_1223_10		; if 1st char is 5, make it
-	mov	name_buf,0e5h		;  an E5
+	mov	byte [name_buf],0e5h		;  an E5
 i2f_1223_10:
-endif
+%endif
 	mov	si,offset nul_device	; start from NUL
 i2f_1223_20:
-	test	ds:DEVHDR.ATTRIB[si],DA_CHARDEV
+DEVHDR.ATTRIB equ ATTRIB	; NASM port label
+	test	word [DEVHDR.ATTRIB + si],DA_CHARDEV
 	 jz	i2f_1223_30		; skip unless character device
 	mov	cx,8
-	lea	di,name_buf		; point at name we are looking for
+	lea	di,[name_buf]		; point at name we are looking for
 	push	si
-	lea	si,ds:DEVHDR.NAM[si]	; point a device name
+DEVHDR.NAM equ NAM	; NASM port label
+	lea	si,[DEVHDR.NAM + si]	; point a device name
 	repe	cmpsb			; compare the names
 	pop	si
 	 jne	i2f_1223_30		; if we found it, save info
-	mov	es:word ptr current_device,si
-	mov	es:word ptr current_device+2,ds
-	mov	bh,ds:byte ptr DEVHDR.ATTRIB[si]
+	mov	word ptr [es:current_device],si
+	mov	word ptr [es:current_device+2],ds
+	mov	bh,byte ptr [DEVHDR.ATTRIB + si]
 	or	bh,0e0h
 	xor	bh,20h			; clear this bit
 	clc				; we found it
 	jmp	i2f_1223_50
 i2f_1223_30:
-	lds	si,ds:DEVHDR.NEXT[si]
+DEVHDR.NEXT equ NEXT	; NASM port label
+	lds	si,[DEVHDR.NEXT + si]
 	cmp	si,0ffffh		; any more entries ?
 	 jne	i2f_1223_20		; yes, do them
 i2f_1223_40:
 	stc
 i2f_1223_50:
-if FALSE
+%if FALSE
 	pushf
 	call	get_dseg		; we may have scambled DS
 	popf
-	pop	word ptr name_buf	; restore 1st character
-endif
+	pop	word [name_buf]	; restore 1st character
+%endif
 	pop	ds
 	ret
 
@@ -856,7 +859,7 @@ i2f_1225:
 ; Get length of ASCIIZ string DS:SI
 	call	strlen
 	inc	cx			; include the terminating zero
-	mov	ax,8[bp]		; restore AX from stack
+	mov	ax,[8 + bp]		; restore AX from stack
 	ret
 
 ; The following are NOT required for MSNET - they are used by NLSFUNC
@@ -914,21 +917,21 @@ i2f_122C:
 ; Get 2nd device driver header address
 	push	ds
 	call	get_dseg
-	lds	ax,ds:dword ptr nul_device
+	lds	ax,[nul_device]
 	mov	bx,ds			; BX:AX -> 2nd device header
 	pop	ds
 	ret
 
 i2f_122D:
 ; Get extended error code
-	mov	ax,error_code
+	mov	ax,[error_code]
 	ret
 
 
 ;
 ; Our FDOS extentions live here
 ;
-ifdef DELWATCH
+%ifdef DELWATCH
 	extrn	locate_buffer:near
 	extrn	flush_drive:near
 	extrn	delfat:near
@@ -938,12 +941,12 @@ ifdef DELWATCH
 	extrn	fixup_hashing:near
 	
 ; for speed/code size we just call directly in BLACK.A86
-endif
+%endif
 
 i2f_10tbl	dw	i2f_10nyi	; never gets here...
 		dw	i2f_1001	; install fdos hook
-ifdef DELWATCH
-if FALSE
+%ifdef DELWATCH
+%if FALSE
 		dw	i2f_1002	; read buffer
 		dw	i2f_1003	; flush buffers
 		dw	i2f_1004	; free fat chain
@@ -951,7 +954,7 @@ if FALSE
 		dw	i2f_1006	; next cluster
 		dw	i2f_1007	; update fat entry
 		dw	i2f_1008	; fixup checksums
-else
+%else
 		dw	locate_buffer	; ask BLACK to find that buffer
 		dw	flush_drive	; ask BLACK to flush buffers
 		dw	delfat		; ask BLACK to release FAT chain
@@ -959,9 +962,9 @@ else
 		dw	getblk		; ask DEBLOCK to return next block
 		dw	change_fat_entry; ask DEBLOCK to update fat entry
 		dw	fixup_hashing	; ask BLACK to fixup hashing/checksums
-endif
+%endif
 		dw	i2f_1009	; directory buffer info
-endif
+%endif
 i2f_10size	equ	(offset $ - offset i2f_10tbl)/2
 
 i2f_1001:
@@ -974,13 +977,13 @@ i2f_1001:
 ;	None
 ;
 	call	get_dseg		; get PCMode data seg
-	mov	word ptr fdos_stub,ax	; fixup our share stubs
-	mov	word ptr fdos_stub+WORD,dx
+	mov	word ptr [fdos_stub],ax	; fixup our share stubs
+	mov	word ptr [fdos_stub+2],dx
 i2f_10nyi:
 	ret
 
-ifdef DELWATCH
-if FALSE
+%ifdef DELWATCH
+%if FALSE
 
 i2f_1002:
 ;--------
@@ -1070,7 +1073,7 @@ i2f_1008:
 	xor	dx,dx
 	jmp	fixup_hashing
 
-endif
+%endif
 
 i2f_1009:
 ;--------
@@ -1093,7 +1096,7 @@ i2f_1009:
 invalid_dir_bcb	db	0ffh		; drive is invalid
 ;		db	?,?,?		; don't bother about record number
 
-endif	;DELWATCH
+%endif	;DELWATCH
 
 
 WindowsHooks:
@@ -1121,14 +1124,14 @@ WindowsStartup:
 ;--------------
 	push	ds
 	call	get_dseg		; DS -> our data
-	inc	criticalSectionEnable	; enable Int 2Ah for Windows
-	inc	WindowsHandleCheck
+	inc	byte [criticalSectionEnable]	; enable Int 2Ah for Windows
+	inc	byte [WindowsHandleCheck]
 
 ;;if 0		Put this back in, as instance data still required
 ;;		Removed pointer to vxd in HEADER.A86   BAP
 
-	mov	SwStartupInfo+2,bx	; Commented out, as NWDOS.386
-	mov	SwStartupInfo+4,es	; no longer needed.
+	mov	[SwStartupInfo+2],bx	; Commented out, as NWDOS.386
+	mov	[SwStartupInfo+4],es	; no longer needed.
 	push	ds
 	pop	es			; ES -> pcmode data
 	mov	bx,offset SwStartupInfo
@@ -1140,8 +1143,8 @@ WindowsShutdown:
 ;---------------
 	push	ds
 	call	get_dseg		; DS -> our data
-	dec	criticalSectionEnable	; enable Int 2Ah for Windows
-	dec	WindowsHandleCheck
+	dec	byte [criticalSectionEnable]	; enable Int 2Ah for Windows
+	dec	byte [WindowsHandleCheck]
 	pop	ds
 	sub	dx,dx			; return success
 	iret
@@ -1171,7 +1174,7 @@ WindowsCX0:
 	push	ds
 	pop	es			; ES = DOS data segment
 	pop	ds
-	lea	bx,windowsData		; ES:BX -> secret variables
+	lea	bx,[windowsData]		; ES:BX -> secret variables
 	inc	cx			; tell them we've responded
 	iret
 
@@ -1201,13 +1204,13 @@ WindowsCX5:
 	dec	ax			; DMD is one paragraph lower down
 	mov	ds,ax			; DS:DI -> device DMD
 	inc	ax			; AX = device driver segment
-	cmp	ds:byte ptr 0[di],'D'	; see if 'D'device=
+	cmp	byte ptr [0 + di],'D'	; see if 'D'device=
 	 jne	WindowsCX5NoDev		; skip if not
-	cmp	ax,ds:word ptr 1[di]	; owned by the driver ?
+	cmp	ax,word ptr [1 + di]	; owned by the driver ?
 	 jne	WindowsCX5NoDev		; skip if not
 
 	mov	ax,10h			; bytes per paragraph
-	mul	ds:word ptr 3[di]	; bytes in device driver
+	mul	word ptr [3 + di]	; bytes in device driver
 	pop	ds
 	mov	bx,dx			; BX = high word
 	xchg	ax,cx			; CX = low word
@@ -1225,7 +1228,7 @@ WindowsCX5NoDev:
 
 PCM_CODE	ends
 
-PCMODE_DATA	segment public word 'DATA'
+section PCMODE_DATA public align=2 class=DATA
 	extrn	hmaRoot:word
 	extrn	last_drv:byte
 	extrn	phys_drv:byte
@@ -1262,7 +1265,7 @@ PCMODE_DATA	segment public word 'DATA'
 
 PCMODE_DATA	ends
 
-GLOBAL_DATA	segment public word 'DATA'
+section GLOBAL_DATA public align=2 class=DATA
 	
 windowsData	dw	5		; version number ?
 		dw	$-offset windowsData	; dummy
