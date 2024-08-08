@@ -88,7 +88,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj misc.nas -l bin/misc.lst -o bin/misc.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Fl.\BIN\process.lst -Fo.\BIN\process process.asm
+nasm -s -P nasm.mac -f obj process.nas -l bin/process.lst -o bin/process.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 %JWASMEXE% -DDELWATCH -DKANJI -DPASSWORD -DJOIN -DUNDELETE -c -Fl.\BIN\fdos.lst -Fo.\BIN\fdos fdos.asm
