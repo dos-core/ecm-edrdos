@@ -235,7 +235,7 @@ i2f_10:
 	call	get_dseg		; get PCMode data seg
 	push 	ds
 	pop 	es
-	call	[i2f_10tbl + bx]		; execute the function
+	call	[cs:i2f_10tbl + bx]		; execute the function
 	pop	ds
 	retf	2			;  and return
 
@@ -261,7 +261,7 @@ i2f_12:
 	xor	ah,ah
 	add	ax,ax			; make sub-func a word
 	mov	bp,ax			; we need offset in pointer register
-	mov	ax,[i2f_12tbl + bp]	; get address of service routine
+	mov	ax,[cs:i2f_12tbl + bp]	; get address of service routine
 	mov	bp,sp			; BP points to stack frame
 	call	ax			; call the service routine
 	pop	bp
