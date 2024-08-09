@@ -1,4 +1,4 @@
-TITLE 'National Data'
+;TITLE 'National Data'
 ;    File              : $COUNTRY.A86$
 ;
 ;    Description       :
@@ -76,10 +76,10 @@ VALID_SIG	equ	0EDC1h
 COMPATIBLE	equ	1
 TURKCP		equ	857		; Turkish Code Page (853 or 857)
 ;
-include country.def
+%include "country.mac"
 ;
-DGROUP	group	_DATA
-_DATA	segment	word 'DATA'
+group DGROUP _DATA
+section _DATA align=2 class=DATA
 ;
 ; File structure:   List of country information pointers
 ;			country code     dw	; Header words
@@ -623,6 +623,7 @@ Poland437:
 	dw	0
 	dw	offset Ucasetbl		; Uppercase table
 	dw	offset FileCharstbl	; File character table
+CollatingTbl equ Collatingtbl	; NASM port label
 	dw	offset CollatingTbl	; Collating table
 	dw	offset DBCS_tbl		; double byte char set range table
 
@@ -2068,21 +2069,21 @@ IsraelData:
 
 	dw	0		; End of Country Data Marker
 
-if COMPATIBLE
+%if COMPATIBLE
 Ucasetbl:
-else
+%else
 Ucasetbl:
 NetherlandsUcase:
 SwedenUcase:
 SwitzerlandUcase:
-endif
+%endif
 		dw  128	; Table Size
 standard_table	db	080h, 09ah
-if COMPATIBLE
+%if COMPATIBLE
 		db	'E'
-else	
+%else	
 		db	090h
-endif
+%endif
 	db  			   'A', 08eh,  'A', 08fh, 080h
 	db	 'E',  'E',  'E',  'I',  'I',  'I', 08eh, 08fh
 	db	090h, 092h, 092h,  'O', 099h,  'O',  'U',  'U'
@@ -2100,14 +2101,14 @@ endif
 	db	0e8h, 0e9h, 0eah, 0ebh, 0ech, 0edh, 0eeh, 0efh
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-info2_len	equ	word ptr (offset $ - offset Ucasetbl)
+info2_len equ (offset $ - offset Ucasetbl)
 
 FileCharstbl:
 		dw  22	; Table Size
 	db	 001h, 000h, 0ffh, 000h, 000h, 020h, 002h, 00eh
 	db	 02eh, 022h, 02fh, 05ch, 05bh, 05dh, 03ah, 07ch
 	db	 03ch, 03eh, 02bh, 03dh, 03bh, 02ch
-info5_len	equ	word ptr (offset $ - offset FileCharstbl)
+info5_len equ (offset $ - offset FileCharstbl)
 
 Collatingtbl:
 		dw  256	; Table Size
@@ -2143,13 +2144,13 @@ Collatingtbl:
 	db	 0e8h, 0e9h, 0eah, 0ebh, 0ech, 0edh, 0eeh, 0efh
 	db	 0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	 0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-info6_len	equ	word ptr (offset $ - offset Collatingtbl)
+info6_len equ (offset $ - offset Collatingtbl)
 
 DBCS_tbl:
 		dw	0	; Table Size
 	db	 000h, 000h, 000h, 000h, 000h, 000h, 000h, 000h
 	db	 000h, 000h, 000h, 000h, 000h, 000h, 000h, 000h
-info7_len	equ	word ptr (offset $ - offset DBCS_tbl)
+info7_len equ (offset $ - offset DBCS_tbl)
 
 
 Collating850:
@@ -2737,7 +2738,7 @@ RussianCollating:
 	db	 0f8h, 0f9h, 0fah, 0fbh, 023h, 024h, 0feh, 0ffh
 
 
-if COMPATIBLE
+%if COMPATIBLE
 NetherlandsUcase:
 		dw  128	; Table Size
 
@@ -2757,7 +2758,7 @@ NetherlandsUcase:
 	db	0e8h, 0e9h, 0eah, 0ebh, 0ech, 0edh, 0eeh, 0efh
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-endif
+%endif
 
 NetherlandsCollating:
 		dw  256	; Table Size
@@ -2922,7 +2923,7 @@ HungaryCollating:
 	db	 0f8h, 0f9h, 0fah, 055h, 052h, 052h, 0feh, 0ffh
 
 
-if COMPATIBLE
+%if COMPATIBLE
 SwitzerlandUcase:
 		dw  128	; Table Size
 
@@ -2942,7 +2943,7 @@ SwitzerlandUcase:
 	db	0e8h, 0e9h, 0eah, 0ebh, 0ech, 0edh, 0eeh, 0efh
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-endif
+%endif
 SwitzerlandCollating:
 		dw  256	; Table Size
 	db	 001h, 0c8h, 0c9h, 0cah, 0cbh, 0cch, 0cdh, 0ceh
@@ -3326,7 +3327,7 @@ DenmarkCollating:
 	db	 0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
 
 
-if COMPATIBLE
+%if COMPATIBLE
 SwedenUcase:
 		dw  128	; Table Size
 
@@ -3346,7 +3347,7 @@ SwedenUcase:
 	db	0e8h, 0e9h, 0eah, 0ebh, 0ech, 0edh, 0eeh, 0efh
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-endif
+%endif
 SwedenCollating:
 		dw  256	; Table Size
 	db	 000h, 001h, 002h, 003h, 004h, 005h, 006h, 007h
@@ -3419,7 +3420,7 @@ NorwayCollating:
 	db	 0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	 0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
 
-if TURKCP EQ 853
+%if TURKCP EQ 853
 ;
 ;	UpperCase Table for Turkish CodePage 853 
 ;
@@ -3478,9 +3479,9 @@ TurkishCollating:
 	db	 048h, 055h, 055h, 055h, 055h, 055h, 020h, 0efh
 	db	 0f0h, 020h, 0f2h, 04eh, 0f4h, 0f5h, 0f6h, 0f7h
 	db	 0f8h, 0f9h, 0fah, 020h, 0fch, 0fdh, 0feh, 0ffh
-endif
+%endif
 
-if TURKCP EQ 857
+%if TURKCP EQ 857
 ;
 ;	Turkish UpperCase Table codepage 857  ????
 ;
@@ -3540,7 +3541,7 @@ TurkishCollating:
 	db	 0e8h, 055h, 055h, 055h, 049h, 059h, 0eeh, 0efh
 	db	 0f0h, 0f1h, 020h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	 0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-endif
+%endif
 
 ;;
 PortugalUcase:
@@ -3693,7 +3694,7 @@ IsraelCollating:
 	db	 0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	 0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
 
-if COMPATIBLE
+%if COMPATIBLE
 Ucasetbl850:
 		dw	128	; Table Size
 	db	043h, 055h, 045h, 041h, 041h, 041h, 041h, 043h 
@@ -3712,12 +3713,12 @@ Ucasetbl850:
 	db	0e8h, 055h, 055h, 055h, 059h, 059h, 0eeh, 0efh
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-else
+%else
 
 Ucasetbl850:
 Nethcase850:
 Germcase850:
-endif
+%endif
 
 LatiCase850:
 		dw	128	; Table Size
@@ -3738,7 +3739,7 @@ LatiCase850:
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h 
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
 
-if COMPATIBLE
+%if COMPATIBLE
 NethCase850:
 		dw	128	; Table Size
 
@@ -3777,7 +3778,7 @@ GermCase850:
 	db	0e8h, 055h, 055h, 055h, 059h, 059h, 0eeh, 0efh
 	db	0f0h, 0f1h, 0f2h, 0f3h, 0f4h, 0f5h, 0f6h, 0f7h
 	db	0f8h, 0f9h, 0fah, 0fbh, 0fch, 0fdh, 0feh, 0ffh
-endif
+%endif
 
 GermCase858:
 		dw	128	; Table Size
