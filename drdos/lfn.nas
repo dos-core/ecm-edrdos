@@ -637,9 +637,9 @@ f71a701:				; Convert DOS time to Windows time
 
 f71a701_entry:
 	les	bp,[int21regs_ptr]	; ES:DI -> 64-bit time
-REG_DI equ reg_DI	; NASM port label
+REG_DI equ reg_DI	; NASM port equate
 	mov	di,[es:REG_DI + bp]
-REG_ES equ reg_ES	; NASM port label
+REG_ES equ reg_ES	; NASM port equate
 	mov	es,[es:REG_ES + bp]
 f71a701_entry2:
 	mov	bp,sp
