@@ -76,10 +76,13 @@ VALID_SIG	equ	0EDC1h
 COMPATIBLE	equ	1
 TURKCP		equ	857		; Turkish Code Page (853 or 857)
 ;
+%define uppercase
+%include "nasm.mac"
+%include "nasmorg.mac"
+%undef uppercase
 %include "country.mac"
 ;
-group DGROUP _DATA
-section _DATA align=2 class=DATA
+section _DATA align=2
 ;
 ; File structure:   List of country information pointers
 ;			country code     dw	; Header words
