@@ -94,7 +94,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -DDELWATCH -DKANJI -DPASSWORD -DJOIN -DUNDELETE -DSHORTVERSION -s -P nasm.mac -f obj fdos.nas -l bin/fdos.lst -o bin/fdos.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-%JWASMEXE% -c -Zm -Zg -Fl.\BIN\dosgrps.lst -Fo.\BIN\dosgrps dosgrps.asm
+nasm -s -P nasm.mac -f obj dosgrps.nas -l bin/dosgrps.lst -o bin/dosgrps.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 
