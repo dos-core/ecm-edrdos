@@ -1,4 +1,4 @@
-title 'F_DOS - DOS file system'
+;title 'F_DOS - DOS file system'
 ;    File              : $FDOS.ASM$
 ;
 ;    Description       :
@@ -154,27 +154,27 @@ title 'F_DOS - DOS file system'
 ;   29-Jun-89  Split off IOCTL into seperate module
 ;   11-Sep-89  Split off MSNET into seperate module
 
-PCMCODE	GROUP	BDOS_CODE
-PCMDATA	GROUP	BDOS_DATA,PCMODE_DATA
+group PCMCODE BDOS_CODE
+group PCMDATA BDOS_DATA PCMODE_DATA
 
 ASSUME DS:PCMDATA
 
-	.nolist
-	include psp.def
-	include modfunc.def
-	include fdos.equ
-	include request.equ
-	include msdos.equ
-	include mserror.equ
-	include doshndl.def	; DOS Handle Structures
-	include driver.equ
-	include f52data.def	; DRDOS Structures
-	include bdos.equ
-	.list
+	[list -]
+	%include "psp.mac"
+	%include "modfunc.mac"
+	%include "fdos.mac"
+	%include "request.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
+	%include "doshndl.mac"	; DOS Handle Structures
+	%include "driver.mac"
+	%include "f52data.mac"	; DRDOS Structures
+	%include "bdos.mac"
+	[list +]
 
 FD_EXPAND equ 55h
 
-PCMODE_DATA	segment public byte 'DATA'
+section PCMODE_DATA public align=1 class=DATA
 
 	extrn	current_ddsc:dword
 	extrn	current_device:dword
@@ -209,13 +209,13 @@ PCMODE_DATA	segment public byte 'DATA'
 	extrn   WindowsHandleCheck:byte
 	extrn	net_delay:word
 
-ifdef KANJI
+%ifdef KANJI
 	extrn	DBCS_tbl:word		; Double Byte Character Table
-endif
+%endif
 
 PCMODE_DATA	ends
 
-BDOS_DATA	segment public word 'DATA'
+section BDOS_DATA public align=2 class=DATA
 
 	extrn lfnpathflag:byte
 
@@ -303,7 +303,7 @@ fdos_info	dw	3 dup (0)	; off, seg, size of parameter block
 fdos_pb		dw	7 dup (0)	; copy of parameter block
 fdos_ret	dw	0		; return value for function
 
-ifdef PASSWORD
+%ifdef PASSWORD
 ; Password support uses the following data stuctures:
 ;
 ; The global_password field is set by an IOCTL call and remains constant.
@@ -322,11 +322,11 @@ global_password	dw	0
 local_password	dw	0
 password_buffer	db	8 dup (0)
 
-endif
+%endif
 
 BDOS_DATA	ends
 
-BDOS_CODE	segment public byte 'CODE'
+section BDOS_CODE public align=1 class=CODE
 
 
 	extrn	pcmode_dseg:word	; Pointer to System Data Page
@@ -430,20 +430,20 @@ BDOS_CODE	segment public byte 'CODE'
 	public	fdos_mkddsc	; 29-build DDSC from BPB
 	public	fdos_select	; 30-select drive
 
-ifdef JOIN
+%ifdef JOIN
 	Public	check_join
 	Public	mv_join_root
-endif
+%endif
 
 BDOS_CODE	ends
 
-include	funcs.fdo
-include	utils.fdo
+%include "funcs.nas"
+%include "utils.nas"
 
-BDOS_DATA	segment public word 'DATA'
+section BDOS_DATA public align=2 class=DATA
 
 shortversion equ 1
-		include version.inc
+		%include "version.mac"
 		db	' Patches to original OpenDOS source code '
 		db	'Copyright (c) 2002-2011 Udo Kuhnt'
 		db	0
