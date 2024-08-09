@@ -437,8 +437,12 @@ section BDOS_CODE public align=1 class=CODE
 
 BDOS_CODE	ends
 
+;=== Push trace listing source: drdos/funcs.nas
 %include "funcs.nas"
+;=== Pop trace listing source
+;=== Push trace listing source: drdos/utils.nas
 %include "utils.nas"
+;=== Pop trace listing source
 
 section BDOS_DATA public align=2 class=DATA
 
