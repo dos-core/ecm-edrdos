@@ -63,7 +63,7 @@ fdos_entry:			; FDOS module entry point
 	mov	bx,ax
 	add	bx,ax
 	add	bx,ax
-	call	[fdos_tbl + bx]
+	call	[cs:fdos_tbl + bx]
 	add	sp,3*2		; clean up stack
 	mov	ax,bx
 	ret
@@ -167,7 +167,7 @@ fdos_reenter:
 	mov	bx,ax
 	add	bx,ax
 	add	bx,ax			; BX = function # * 3
-	mov	cl,byte ptr [bx+fdos_tbl-(39h*(2+1))+2]
+	mov	cl,byte ptr [cs:bx+fdos_tbl-(39h*(2+1))+2]
 	mov	ch,0
 					; get table of # of parameters
 	mov	[es:fdos_info+2*2],cx	; save the parameter count
