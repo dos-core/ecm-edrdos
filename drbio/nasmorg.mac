@@ -6,6 +6,6 @@ NASM macros to replace JWasm org directive
 
 %endif
 
-	%imacro org 1.nolist
-times (%1) - ($ - $$) db 0
+	%imacro org 1-2.nolist db 0
+times (%1) - ($ - $$) %2
 	%endmacro
