@@ -37,44 +37,46 @@ FALSE	equ	0
 TRUE	equ	(~ FALSE)
 
 
-jmps	macro	l
-	jmp	short l
-	endm
+%macro jmps 1.nolist
+	jmp	short %1
+%endmacro
 
-pushx	macro	regs
-	irp	r,<regs>
-	push	r
-	endm
-	endm
+%macro pushx 0-*.nolist
+ %rep %0
+	push %1
+	%rotate 1
+ %endrep
+%endmacro
 
-popx	macro	regs
-	irp	r,<regs>
-	pop	r
-	endm
-	endm
+%macro popx 0-*.nolist
+ %rep %0
+	pop %1
+	%rotate 1
+ %endrep
+%endmacro
 
-incx	macro	regs
-	irp	r,<regs>
-	inc	r
-	endm
-	endm
+%macro incx 0-*.nolist
+ %rep %0
+	inc %1
+	%rotate 1
+ %endrep
+%endmacro
 
-decx	macro	regs
-	irp	r,<regs>
-	dec	r
-	endm
-	endm
+%macro decx 0-*.nolist
+ %rep %0
+	dec %1
+	%rotate 1
+ %endrep
+%endmacro
 
-rb	macro	count
-count equ COUNT	; NASM port label
-	db	count dup (?)
-	endm
+%macro rb 1.nolist
+	db %1 dup (?)
+%endmacro
 
-rw	macro	count
-	dw	count dup (?)
-	endm
+%macro rw 1.nolist
+	dw %1 dup (?)
+%endmacro
 
-rd	macro	count
-	dd	count dup (?)
-	endm
-
+%macro rd 1.nolist
+	dd %1 dup (?)
+%endmacro
