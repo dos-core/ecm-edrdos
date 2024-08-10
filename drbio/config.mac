@@ -35,16 +35,16 @@
 
 DOS5		equ	0FFFFh
 
-if DOS5
+%if DOS5
 MOVE_DOWN	equ	1800h		; start relocated code 96K down
-else
+%else
 MOVE_DOWN	equ	2500h		; start relocated code 148K down
-endif
+%endif
 
 NUM_BUFFS	equ	4
 SIZEOF_BUFFS	equ	1024+32		; allow for large sectors during init
 
-CONFIG_BUF	equ	byte ptr 0
+labelsize CONFIG_BUF, byte, 0
 CONFIG_BUF_SIZE	equ	 8*1024		; CONFIG.SYS read in this size chunks
 INIT_BUFFERS	equ	CONFIG_BUF+CONFIG_BUF_SIZE
 
@@ -129,10 +129,10 @@ ALLOC_IN_UMB	equ	00000010b
 MOVE_XBDA_LOW	equ	00000001b
 MOVE_XBDA_HIGH	equ	00000010b
 
-DMD_ID          equ     byte ptr 0	; id code ('M' or 'Z')
-DMD_PSP         equ     word ptr 1	; owner of memory block
-DMD_LEN         equ     word ptr 3	; length of memory block
-DMD_NAME	equ	byte ptr 8	; ASCIIZ name field
+labelsize DMD_ID, byte, 0	; id code ('M' or 'Z')
+labelsize DMD_PSP, word, 1	; owner of memory block
+labelsize DMD_LEN, word, 3	; length of memory block
+labelsize DMD_NAME, byte, 8	; ASCIIZ name field
 DMD_NAME_LEN	equ	8		;  8 Bytes long
 IDM             equ     'M'		; not last id code
 IDZ             equ     'Z'		; last id code

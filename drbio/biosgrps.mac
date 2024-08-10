@@ -31,45 +31,45 @@
 ;    $Log$
 ;
 ;    ENDLOG
-CODE		segment public word 'CODE'
+section CODE public align=2 class=CODE
 CODE		ends
 
-ENDCODE		segment public byte 'ENDCODE'
+section ENDCODE public align=1 class=ENDCODE
 ENDCODE		ends
 
-RCODE_ALIGN	segment public para 'RCODE'
+section RCODE_ALIGN public align=16 class=RCODE
 RCODE_ALIGN	ends
 
-RCODE		segment public word 'RCODE'
+section RCODE public align=2 class=RCODE
 RCODE		ends
 
-RESUMECODE	segment public para 'RESUME'
+section RESUMECODE public align=16 class=RESUME
 RESUMECODE	ends
 
-RESBIOS		segment public para 'RESBIOS'
+section RESBIOS public align=16 class=RESBIOS
 RESBIOS		ends
 
-ICODE		segment public word 'ICODE'
+section ICODE public align=2 class=ICODE
 ICODE		ends
 
-IDATA		segment public para 'IDATA'
+section IDATA public align=16 class=IDATA
 IDATA		ends
 
-INITCODE	segment public para 'INITCODE'
+section INITCODE public align=16 class=INITCODE
 INITCODE	ends
 
-STACKS		segment	public para 'STACKS'
+section STACKS public align=16 class=STACKS
 STACKS		ends
 
-INITDATA	segment public para 'INITDATA'
+section INITDATA public align=16 class=INITDATA
 INITDATA	ends
 
-INITPSP		segment public para 'INITDATA'
+section INITPSP public align=16 class=INITDATA
 INITPSP		ends
 
-INITENV		segment public para 'INITDATA'
+section INITENV public align=16 class=INITDATA
 INITENV		ends
 
-DATAEND		segment public para 'INITDATA'
+section DATAEND public align=16 class=INITDATA
 DATAEND		ends
 

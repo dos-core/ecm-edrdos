@@ -81,10 +81,10 @@ CMD_QUERY_IOCTL		equ	25	; query ioctl support
 
 ;	Generic Request Header Format
 
-RH_LEN		equ	byte ptr 0
-RH_UNIT		equ	byte ptr 1
-RH_CMD		equ	byte ptr 2
-RH_STATUS	equ	word ptr 3
+labelsize RH_LEN, byte, 0
+labelsize RH_UNIT, byte, 1
+labelsize RH_CMD, byte, 2
+labelsize RH_STATUS, word, 3
   RHS_DONE	equ	0100h
   RHS_BUSY	equ	0200h
   RHS_IC	equ	0400h			; Interim Character
@@ -104,49 +104,49 @@ RH_STATUS	equ	word ptr 3
 
 ;	Request header for initialization
 
-RH0_NUNITS	equ	byte ptr 13
-RH0_RESIDENT	equ	word ptr 14
-RH0_BPBOFF	equ	word ptr 18
-RH0_BPBSEG	equ	word ptr 20
-RH0_DRIVE	equ	byte ptr 22
+labelsize RH0_NUNITS, byte, 13
+labelsize RH0_RESIDENT, word, 14
+labelsize RH0_BPBOFF, word, 18
+labelsize RH0_BPBSEG, word, 20
+labelsize RH0_DRIVE, byte, 22
 RH0_LEN		equ	22
 
 ;	Request header for media check
 
-RH1_MEDIA	equ	byte ptr 13	; BDOS: current media byte
-RH1_RETURN	equ	byte ptr 14	; driver: return code (00, 01, FF)
-RH1_VOLID	equ	dword ptr 15	; driver: volume label address
+labelsize RH1_MEDIA, byte, 13	; BDOS: current media byte
+labelsize RH1_RETURN, byte, 14	; driver: return code (00, 01, FF)
+labelsize RH1_VOLID, dword, 15	; driver: volume label address
 RH1_LEN		equ	15
 
 ;	Request header for "build BPB"
 
-RH2_MEDIA	equ	byte ptr 13	; BDOS or driver?
-RH2_BUFFER	equ	dword ptr 14	; BDOS: scratch buffer for driver use
-RH2_BPB		equ	dword ptr 18	; same as the following:
-RH2_BPBOFF	equ	word ptr 18	; driver: address of new BPB
-RH2_BPBSEG	equ	word ptr 20
+labelsize RH2_MEDIA, byte, 13	; BDOS or driver?
+labelsize RH2_BUFFER, dword, 14	; BDOS: scratch buffer for driver use
+labelsize RH2_BPB, dword, 18	; same as the following:
+labelsize RH2_BPBOFF, word, 18	; driver: address of new BPB
+labelsize RH2_BPBSEG, word, 20
 RH2_LEN		equ	24
 
 ;	Request header for input/output
 
-RH4_MEDIA	equ	byte ptr 13	; BDOS: current media byte
-RH4_RIC		equ	byte ptr 13	; BDOS: Return Interim Char flg
-RH4_BUFFER	equ	dword ptr 14	; BDOS: disk transfer address
-RH4_BUFOFF	equ	word ptr 14	; BDOS: Buffer Offset
-RH4_BUFSEG	equ	word ptr 16	; BDOS: Buffer Segment
-RH4_COUNT	equ	word ptr 18	; BDOS: sector count
-RH4_SECTOR	equ	word ptr 20	; BDOS: starting sector
-RH4_VOLID	equ	dword ptr 22	; driver: volume if illegal disk change
-RH4_BIGSECTOR   equ dword ptr 26   
-RH4_BIGSECTORLO	equ	word ptr 26
-RH4_BIGSECTORHI	equ	word ptr 28
+labelsize RH4_MEDIA, byte, 13	; BDOS: current media byte
+labelsize RH4_RIC, byte, 13	; BDOS: Return Interim Char flg
+labelsize RH4_BUFFER, dword, 14	; BDOS: disk transfer address
+labelsize RH4_BUFOFF, word, 14	; BDOS: Buffer Offset
+labelsize RH4_BUFSEG, word, 16	; BDOS: Buffer Segment
+labelsize RH4_COUNT, word, 18	; BDOS: sector count
+labelsize RH4_SECTOR, word, 20	; BDOS: starting sector
+labelsize RH4_VOLID, dword, 22	; driver: volume if illegal disk change
+labelsize RH4_BIGSECTOR, dword, 26   
+labelsize RH4_BIGSECTORLO, word, 26
+labelsize RH4_BIGSECTORHI, word, 28
 
 RH4_LEN		equ	30
 
 ;	Request Header for Non-Destructive Input
 
-RH5_CHAR	equ	byte ptr 13	; Character Read from Device
-RH5_RIC		equ	byte ptr 13	; BDOS: Return Interim Char flg
+labelsize RH5_CHAR, byte, 13	; Character Read from Device
+labelsize RH5_RIC, byte, 13	; BDOS: Return Interim Char flg
 RH5_LEN		equ	14
 
 ;	Request Header for Device Open
@@ -159,12 +159,12 @@ RH14_LEN	equ	13
 
 ;	Request header for generic IOCTL
 
-RH19_CATEGORY	equ	word ptr 13	; BDOS: major/minor function number
-RH19_MAJOR	equ	byte ptr 13	; BDOS: Major Function Number
-RH19_MINOR	equ	byte ptr 14	; BDOS: Minor Function Number
-RH19_SI		equ	word ptr 15	; BDOS: User SI	
-RH19_DI		equ	word ptr 17	; BDOS: User DI	
-RH19_GENPB	equ	dword ptr 19	; BDOS: extra parameters
+labelsize RH19_CATEGORY, word, 13	; BDOS: major/minor function number
+labelsize RH19_MAJOR, byte, 13	; BDOS: Major Function Number
+labelsize RH19_MINOR, byte, 14	; BDOS: Minor Function Number
+labelsize RH19_SI, word, 15	; BDOS: User SI	
+labelsize RH19_DI, word, 17	; BDOS: User DI	
+labelsize RH19_GENPB, dword, 19	; BDOS: extra parameters
 RH19_LEN	equ	23
 
 RQ19_SET	equ	40h		; set device parameters
@@ -190,9 +190,9 @@ RQ19_DSP_GET	equ	7Fh		; get display information
 
 ;	Request header for get/set drive
 
-RH24_CMD	equ	byte ptr 14	; BDOS: Command Code
-RH24_STATUS	equ	word ptr 15	; BDOS: Status
-RH24_RESVD	equ	dword ptr 17	; BDOS: Reserved
+labelsize RH24_CMD, byte, 14	; BDOS: Command Code
+labelsize RH24_STATUS, word, 15	; BDOS: Status
+labelsize RH24_RESVD, dword, 17	; BDOS: Reserved
 RH24_LEN	equ	21
 
 RH_SIZE		equ	30		; maximum size of request header

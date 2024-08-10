@@ -34,14 +34,14 @@
 ;   09-Nov-88 made RETF conditional for MASM 5.1/TASM 1.0
 
 FALSE	equ	0
-TRUE	equ	(not FALSE)
+TRUE	equ	(~ FALSE)
 
-ifndef	@filename			;; Turbo Assembler always knows RETF
+%ifndef	@filename			;; Turbo Assembler always knows RETF
                             ;; some versions of MASM do as well
 retf	macro				;; define far return macro for others
 	db	0cbh
 	endm
-endif
+%endif
 
 jmps	macro	l
 	jmp	short l
@@ -72,6 +72,7 @@ decx	macro	regs
 	endm
 
 rb	macro	count
+count equ COUNT	; NASM port label
 	db	count dup (?)
 	endm
 
