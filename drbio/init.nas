@@ -590,8 +590,8 @@ local_buffer	db	512 dup (?)	; local deblocking buffer
 SECSIZE		equ	512
 IDOFF		equ	SECSIZE-2	; last word in boot sector is ID
 PTOFF		equ	IDOFF-40h	; 4*16 bytes for partition def's
-labelsize local_id, word, local_buffer + IDOFF
-labelsize local_pt, word, local_buffer + PTOFF
+local_id equ local_buffer + IDOFF
+local_pt equ local_buffer + PTOFF
 
 	even
 	Public	diskaddrpack
