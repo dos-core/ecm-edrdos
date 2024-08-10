@@ -50,6 +50,21 @@
 	%include "driver.mac"
 	%include "keys.mac"		; common key definitions
 
+
+section ENDCODE
+ENDCODE_start:
+section IDATA
+IDATA_start:
+section INITDATA
+INITDATA_start:
+section RCODE
+RCODE_start:
+section RESBIOS
+RESBIOS_start:
+section RESUMECODE
+RESUMECODE_start:
+
+
 ; IBM AT Hardware equates
 
 ;COMPRESSED	equ	FALSE		; enables compressed changes.
@@ -191,13 +206,13 @@ compflg	label	word
 %ifdef COPYPROT
 	dw	'  '			; stops any compression working
 %else
-	dw	offset INITDATA wrt CGROUP	; compresses from INITDATA onwards
+	dw	offset INITDATA_start wrt CGROUP	; compresses from INITDATA onwards
 %endif					; this word set to 0 when compressed
 
 	org	06h
     db  'COMPAQCompatible'  
 
-	dw	offset RCODE wrt CGROUP	; lets find offset of RCODE
+	dw	offset RCODE_start wrt CGROUP	; lets find offset of RCODE
 MemFixup dw	0			;  and its relocated segment	
 
 
@@ -886,7 +901,7 @@ local_flag	db	0		;** fixed location **
 
 	even
 	public	endbios
-endbios		dw	offset RESBIOS wrt CGROUP	; pointer to last resident byte
+endbios		dw	offset RESBIOS_start wrt CGROUP	; pointer to last resident byte
 
 CODE	ends
 
@@ -986,7 +1001,7 @@ init0	proc	near
 	mov	si, [compflg]		; Get Compresed BIOS Flag
 	or	si, si			; Set to Zero if the BIOS has
 	jnz	not_compressed		; been compressed
-	mov	si, offset INITDATA wrt CGROUP
+	mov	si, offset INITDATA_start wrt CGROUP
 	push	di			; bios_seg
 	push	ax			; bdos_seg
 	push	bx			; initial drives
@@ -1147,12 +1162,12 @@ bios_exit:
 	mov	ax,cs			; check if we are on a rommed system
 	cmp	ax,[rcode_seg]
 	 jne	keep_rcode		; if so no relocation required
-	mov	ax,offset RCODE wrt CGROUP
+	mov	ax,offset RCODE_start wrt CGROUP
 	mov	[rcode_offset],ax		; fixup variable need
-	mov	bx,offset IDATA wrt CGROUP
+	mov	bx,offset IDATA_start wrt CGROUP
 	sub	bx,ax
 	mov	[icode_len],bx		; during init we need RCODE and ICODE
-	mov	bx,offset RESUMECODE wrt CGROUP
+	mov	bx,offset RESUMECODE_start wrt CGROUP
 	sub	bx,ax
 	mov	[rcode_header],bx
 	mov	[rcode_len],bx		; afterwards we just need RCODE
@@ -1178,12 +1193,12 @@ Assume DS:CGROUP
 	mov	ax,cs			; check if we are on a rommed system
 	cmp	ax,[rcode_seg]
 	 jne	resume_exit		; if so nothing extra to keep
-	mov	ax,offset RESBIOS wrt CGROUP
-	sub	ax,offset RCODE wrt CGROUP
+	mov	ax,offset RESBIOS_start wrt CGROUP
+	sub	ax,offset RCODE_start wrt CGROUP
 	mov	[rcode_header],ax		; keep Resume code as well...
 	mov	[rcode_len],ax		; afterwards we just need RCODE
 resume_exit:
-	mov	ax,offset ENDCODE wrt CGROUP	; discard RCODE (we will relocate it)
+	mov	ax,offset ENDCODE_start wrt CGROUP	; discard RCODE (we will relocate it)
 	mov	[endbios],ax
 	mov	word [rcode_fixups],offset bios_fixup_tbl
 
