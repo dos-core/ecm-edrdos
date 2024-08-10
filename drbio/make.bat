@@ -34,7 +34,7 @@ REM *************************************
 REM Build .ASM files first, get the obj's
 REM *************************************
 
-%JWASMEXE% -c -Fl.\BIN\initmsgs.lst -Fo.\BIN\initmsgs initmsgs.asm
+nasm -s -P nasm.mac -f obj initmsgs.nas -l bin/initmsgs.lst -o bin/initmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -DLDOS -Fl.\BIN\biosmsgs.lst -Fo.\BIN\biosmsgs biosmsgs.asm
 IF ERRORLEVEL 1 GOTO FAILED
