@@ -984,8 +984,8 @@ init0	proc	near
 
 	Assume	DS:Nothing
 
-	mov	[i1Eoff],di
-	mov	[i1Eseg],es		; setup new location
+	mov	[es:i1Eoff],di
+	mov	[es:i1Eseg],es		; setup new location
 	mov	cx,11
 	rep	movsb
 	mov	byte ptr [es:di-7],36	; enable read/writing of 36 sectors/track
@@ -1054,13 +1054,13 @@ not_compressed:
 ;	contains the current location of the BDOS and CX the memory Size.
 ;	Bx is the current code segment
 
-	mov	[rcode_seg],dx		; rom segment of bios
-	mov	[current_dos],ax		; current location of the BDOS
-	mov	[mem_size],cx		; total memory size
-	mov	[init_drv],bl		; initial drive
-	mov	[comspec_drv],bh		;
-	mov	byte [init_buf],3		; assume default # of buffers
-	mov	word [init_flags],3	
+	mov	[cs:rcode_seg],dx		; rom segment of bios
+	mov	[cs:current_dos],ax		; current location of the BDOS
+	mov	[cs:mem_size],cx		; total memory size
+	mov	[cs:init_drv],bl		; initial drive
+	mov	[cs:comspec_drv],bh		;
+	mov	byte [cs:init_buf],3		; assume default # of buffers
+	mov	word [cs:init_flags],3	
 	jmp	bios_exit
 	
 rom_boot:				; BIOS is copied from ROM:
@@ -1068,25 +1068,25 @@ rom_boot:				; BIOS is copied from ROM:
 					;	AX = segment address of DRBDOS
 					;	BH = COMSPEC drive
 					;	BL = INIT_DRV
-	mov	[rcode_seg],di		;	DI = BIOS ROM SEG
-	mov	[current_dos],ax		; current location of the BDOS
-	mov	[init_drv],bl		; initial drive C:
-	mov	[comspec_drv],bh		; commspec drive C:
-	mov	word [init_flags],3		; it is a ROM system, use comspec drive
+	mov	[cs:rcode_seg],di		;	DI = BIOS ROM SEG
+	mov	[cs:current_dos],ax		; current location of the BDOS
+	mov	[cs:init_drv],bl		; initial drive C:
+	mov	[cs:comspec_drv],bh		; commspec drive C:
+	mov	word [cs:init_flags],3		; it is a ROM system, use comspec drive
 	jmps	rom_boot10		; common code
 
 disk_boot:
-	mov	[rcode_seg],cs
+	mov	[cs:rcode_seg],cs
 	sub	ax,ax
-	mov	[current_dos],ax		; current BDOS location to disk load
+	mov	[cs:current_dos],ax		; current BDOS location to disk load
 	xchg	ax,dx			; AL = boot drive
-	mov	[init_runit],al		; save the ROS unit
-	mov	[init_int13_unit],al	; save the ROS unit
+	mov	[cs:init_runit],al		; save the ROS unit
+	mov	[cs:init_int13_unit],al	; save the ROS unit
 	test	al,al			; test the boot drive
 	 jz	floppy_boot		; skip if floppy boot
 	mov	al,2			; it's drive C:
 floppy_boot:
-	mov	[init_drv],al		; set boot drive
+	mov	[cs:init_drv],al		; set boot drive
 
 rom_boot10:
 	pushx	<ds, es>		; save registers
