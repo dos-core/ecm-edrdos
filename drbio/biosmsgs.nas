@@ -4,12 +4,12 @@ TAB	equ	9
 LF	equ	10
 CR	equ	13
 
-include biosgrps.equ
+%include "biosgrps.mac"
 
-CGROUP	group	RCODE
+group CGROUP RCODE
 
 
-RCODE	segment	word public 'RCODE'
+section RCODE align=2 public class=RCODE
 
 ;		Source .TFT file: 'TMP1.$$$'
 	public	_disk_msgA
@@ -28,7 +28,7 @@ _div_by_zero_msg	db	CR, LF, "Divide Error", CR, LF, NUL
 	public	drdosprojects_msg
 
 drdosprojects_msg		label	byte
-ifdef LDOS
+%ifdef LDOS
 	_drdosprojects_msg	db	CR, LF
 db "lDOS Enhanced DR-DOS kernel fork               https://hg.pushbx.org/ecm/edrdos"
 				db CR, LF, NUL
@@ -36,17 +36,17 @@ db "lDOS Enhanced DR-DOS kernel fork               https://hg.pushbx.org/ecm/edr
 ;Enhanced DR-DOS continuation                  https://github.com/svardos/edrdos
 ;The DR-DOS/OpenDOS Enhancement Project              http://www.drdosprojects.de
 ;12345678901234567890123456789012345678901234567890123456789012345678901234567890
-elseifdef SVARDOS
+%elifdef SVARDOS
 	_drdosprojects_msg	db	CR, LF, "Enhanced DR-DOS continuation                  https://github.com/svardos/edrdos", CR, LF, NUL
-else
+%else
 	_drdosprojects_msg	db	CR, LF, "The DR-DOS/OpenDOS Enhancement Project              http://www.drdosprojects.de", CR, LF, NUL
-endif
+%endif
 	public	_starting_dos_msg
 	public	starting_dos_msg
 starting_dos_msg	label	byte
 _starting_dos_msg	db	CR, LF, "Starting "
 shortversion equ 1
-			include version.inc
+			%include "version.mac"
 			db	CR, LF, NUL
 	public	_lba_supp_msg
 	public	lba_supp_msg
