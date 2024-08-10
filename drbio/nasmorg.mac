@@ -1,0 +1,11 @@
+
+%if 0
+
+NASM macros to replace JWasm org directive
+ 2024 by E. C. Masloch, Public Domain
+
+%endif
+
+	%imacro org 1.nolist
+times (%1) - ($ - $$) db 0
+	%endmacro
