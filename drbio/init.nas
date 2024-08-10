@@ -40,15 +40,15 @@
 ;    ENDLOG
 
 
-	include biosgrps.equ
-	include	drmacros.equ
-	include	ibmros.equ
-	include msdos.equ
-	include	request.equ		; request header equates
-	include	bpb.equ
-	include	udsc.equ
-	include	driver.equ
-	include keys.equ		; common key definitions
+	%include "biosgrps.mac"
+	%include "drmacros.mac"
+	%include "ibmros.mac"
+	%include "msdos.mac"
+	%include "request.mac"		; request header equates
+	%include "bpb.mac"
+	%include "udsc.mac"
+	%include "driver.mac"
+	%include "keys.mac"		; common key definitions
 
 ; IBM AT Hardware equates
 
@@ -58,24 +58,24 @@
 ; it warns us when the ORG get trampled on
 orgabs	MACRO	address, name
 	local	was,is
-	was = offset $
+	was equ offset $
 	org address
-	is = offset $
-	if was GT is
+	is equ offset $
+	%if was GT is
 	%OUT WARNING - absolute data overwritten !! moving it: name
 	org	was
-endif
+%endif
 ENDM
 
 jmpfar	MACRO	address, fixup
 	db	0EAh		; jmpf opcode
-	dw	offset CGROUP:address	; offset of destination
+	dw	offset address wrt CGROUP	; offset of destination
 fixup	dw	0EDCh		; segment of destination
 ENDM
 
 callfar	MACRO	address, fixup
 	db	09Ah		; callf opcode
-	dw	offset CGROUP:address	; offset of destination
+	dw	offset address wrt CGROUP	; offset of destination
 fixup	dw	0EDCh		; segment of destination
 ENDM
 
@@ -84,7 +84,7 @@ F8KEY		equ	4200h
 
 SWITCH_F	equ	01h
 	
-IVECT	segment	at 0000h
+section IVECT
 
 		org	0000h*4
 i0off		dw	?
@@ -127,9 +127,9 @@ i6Cseg		dw	?
 
 IVECT	ends
 
-CGROUP	group	CODE, RCODE, ICODE, INITDATA
+group CGROUP CODE RCODE ICODE INITDATA
 
-CODE	segment 'CODE'
+section CODE class=CODE
 
 	Assume	CS:CGROUP, DS:Nothing, ES:Nothing, SS:Nothing
 
@@ -166,7 +166,7 @@ CODE	segment 'CODE'
 	extrn	boot_switches:byte
 
 
-include	biosmsgs.def			; Include TFT Header File
+%include "biosmsgs.mac"			; Include TFT Header File
 
 	Public	A20Enable
 A20Enable proc near
@@ -180,25 +180,25 @@ A20Enable proc near
 A20Enable endp
 
 init	proc	near			; this is at BIOSCODE:0000h
-ifndef COPYPROT
+%ifndef COPYPROT
 	jmp	init0			; jump to reusable init space
-else
+%else
 	extrn	protect:near		; Jump to Copy protection code
 	jmp	protect			; which will return control to
-endif					; INIT0 on completion
+%endif					; INIT0 on completion
 init	endp
 
 compflg	label	word
-ifdef COPYPROT
+%ifdef COPYPROT
 	dw	'  '			; stops any compression working
-else
-	dw	offset CGROUP:INITDATA	; compresses from INITDATA onwards
-endif					; this word set to 0 when compressed
+%else
+	dw	offset INITDATA wrt CGROUP	; compresses from INITDATA onwards
+%endif					; this word set to 0 when compressed
 
 	org	06h
     db  'COMPAQCompatible'  
 
-	dw	offset CGROUP:RCODE	; lets find offset of RCODE
+	dw	offset RCODE wrt CGROUP	; lets find offset of RCODE
 MemFixup dw	0			;  and its relocated segment	
 
 
@@ -247,12 +247,12 @@ com3_drvr	dw	offset com4_drvr, 0		; link to next device driver
 		dw	offset strat, offset IntCOM3
 		db	'COM3    '
 
-IFDEF EMBEDDED
+%IFDEF EMBEDDED
 	extrn	rdisk_drvr:near
 com4_drvr	dw	offset rdisk_drvr, 0	; link to next device driver
-ELSE		
+%ELSE		
 com4_drvr	dw	-1, -1			; link to next device driver
-ENDIF	
+%ENDIF	
 		dw	DA_CHARDEV
 		dw	offset strat, offset IntCOM4
 		db	'COM4    '
@@ -317,8 +317,8 @@ orgInt13	dw	0,0
 NUM_SAVED_VECS	equ	($ - vecSave) / 5
 
 strat	proc	far
-	mov	cs:req_off,bx
-	mov	cs:req_seg,es
+	mov	[cs:req_off],bx
+	mov	[cs:req_seg],es
 	ret
 strat	endp
 
@@ -339,19 +339,19 @@ Int19Trap10:
 	movsw
 	movsw				; restore this vector
 	loop	Int19Trap10		; go and do another
-	cmp	word ptr ds:[oldxbda],0	; has the XBDA been moved?
+	cmp	word ptr [oldxbda],0	; has the XBDA been moved?
 	 je	Int19Trap20		; no
-	mov	ax,word ptr ds:[oldmemtop]; also restore old conventional
+	mov	ax,word ptr [oldmemtop]; also restore old conventional
 					; memory top
-	mov	es,word ptr ds:[oldxbda]; yes, move it back
-	mov	cx,word ptr ds:[xbdalen]
-	mov	ds,word ptr ds:[newxbda]
+	mov	es,word ptr [oldxbda]; yes, move it back
+	mov	cx,word ptr [xbdalen]
+	mov	ds,word ptr [newxbda]
 	xor	si,si
 	xor	di,di
 	rep	movsw
 	mov	ds, cx			; => segment 0
-	mov	word ptr ds:[40Eh], es
-	mov	word ptr ds:[413h], ax
+	mov	word ptr [40Eh], es
+	mov	word ptr [413h], ax
 					; update BIOS data
 Int19Trap20:
 	int	19h			; and go to original int 19...
@@ -437,7 +437,7 @@ Int13Trap	proc	far
 	cmp	ah,ROS_FORMAT		; ROS format function?
 	 je	Int13TrapFormat
 Int13Trap10:
-	mov	cs:i13_AX,ax		; save Op/Count in case of error
+	mov	[cs:i13_AX],ax		; save Op/Count in case of error
 	clc
 	pushf				; fake an Int
 	call	cs:i13pointer		; call the ROM BIOS
@@ -503,7 +503,7 @@ Fastcon10:
 	push	cx
 	mov	cx,40h
 	mov	es,cx
-	mov	bx,cs:word ptr col_mode	; get colour mode
+	mov	bx,word ptr [cs:col_mode]	; get colour mode
 	xchg	bh,bl
 	cmp	bh,0			; check if COLOUR is active
 	 je	Fastcon15		; no, continue normally
@@ -521,26 +521,26 @@ Fastcon10:
 	mov	ah,3
 	int	10h
 	inc	dl
-	cmp	dl,es:4ah
+	cmp	dl,[es:4ah]
 	 jb	Fastcon12
 	mov	dl,0
 Fastcon11:
 	inc	dh
-	cmp	dh,es:84h
+	cmp	dh,[es:84h]
 	 jbe	Fastcon12
 	dec	dh
 	push	dx
 	mov	ax,601h
 	xor	cx,cx
-	mov	dl,es:4ah
+	mov	dl,[es:4ah]
 	dec	dl
-	mov	dh,es:84h
-	mov	bh,cs:byte ptr col_mode+1
+	mov	dh,[es:84h]
+	mov	bh,byte ptr [cs:col_mode+1]
 	int	10h
 	pop	dx
 Fastcon12:
 	mov	ah,2
-	mov	bh,es:62h
+	mov	bh,[es:62h]
 	int	10h
 	jmps	Fastcon20
 Fastcon13:
@@ -568,7 +568,7 @@ FastConsole endp
 ControlBreak:
 
 ;-----------
-	mov	cs:word ptr local_char,'C'-40h + (256*TRUE)
+	mov	word [cs:local_char],'C'-40h + (256*TRUE)
 ;;	mov	local_char,'C'-40h	; force ^C into local buffer
 ;;	mov	local_flag,TRUE		; indicate buffer not empty
 Int1Trap:
@@ -591,8 +591,8 @@ local_buffer	db	512 dup (?)	; local deblocking buffer
 SECSIZE		equ	512
 IDOFF		equ	SECSIZE-2	; last word in boot sector is ID
 PTOFF		equ	IDOFF-40h	; 4*16 bytes for partition def's
-local_id	equ	word ptr local_buffer + IDOFF
-local_pt	equ	word ptr local_buffer + PTOFF
+labelsize local_id, word, local_buffer + IDOFF
+labelsize local_pt, word, local_buffer + PTOFF
 
 	even
 	Public	diskaddrpack
@@ -607,14 +607,238 @@ diskaddrpack:				; disk address packet structure for LBA access
 
 ;	List of BPBs that we usually support
 
-bpb160		OLDBPB	<512,1,1,2, 64, 40*1*8,0FEh,1, 8,1,0,0>
-bpb180		OLDBPB	<512,1,1,2, 64, 40*1*9,0FCh,2, 9,1,0,0>
-bpb320		OLDBPB	<512,2,1,2,112, 40*2*8,0FFh,1, 8,2,0,0>
-bpb360		OLDBPB	<512,2,1,2,112, 40*2*9,0FDh,2, 9,2,0,0>
-bpb1200		OLDBPB	<512,1,1,2,224,80*2*15,0F9h,7,15,2,0,0>
-bpb720		OLDBPB	<512,2,1,2,112, 80*2*9,0F9h,3, 9,2,0,0>
-bpb1440		OLDBPB	<512,1,1,2,224,80*2*18,0F0h,9,18,2,0,0>
-bpb2880		OLDBPB	<512,2,1,2,240,80*2*36,0F0h,9,36,2,0,0>
+bpb160:
+istruc OLDBPB
+at OLDBPB_SECSIZ
+bpb160.OLDBPB_SECSIZ:	dw 512
+at OLDBPB_ALLOCSIZ
+bpb160.OLDBPB_ALLOCSIZ:	db 1
+at OLDBPB_FATADD
+bpb160.OLDBPB_FATADD:	dw 1
+at OLDBPB_NFATS
+bpb160.OLDBPB_NFATS:	db 2
+at OLDBPB_DIRMAX
+bpb160.OLDBPB_DIRMAX:	dw 64
+at OLDBPB_TOTSEC
+bpb160.OLDBPB_TOTSEC:	dw 40*1*8
+at OLDBPB_FATID
+bpb160.OLDBPB_FATID:	db 0FEh
+at OLDBPB_FATSEC
+bpb160.OLDBPB_FATSEC:	dw 1
+at OLDBPB_SPT
+bpb160.OLDBPB_SPT:	dw 8
+at OLDBPB_HEADS
+bpb160.OLDBPB_HEADS:	dw 1
+at OLDBPB_HIDDEN
+bpb160.OLDBPB_HIDDEN:	dd 0
+at OLDBPB_SIZE
+bpb160.OLDBPB_SIZE:	dd 0
+at OLDBPB_RESRVD2
+bpb160.OLDBPB_RESRVD2:
+iend
+bpb180:
+istruc OLDBPB
+at OLDBPB_SECSIZ
+bpb180.OLDBPB_SECSIZ:	dw 512
+at OLDBPB_ALLOCSIZ
+bpb180.OLDBPB_ALLOCSIZ:	db 1
+at OLDBPB_FATADD
+bpb180.OLDBPB_FATADD:	dw 1
+at OLDBPB_NFATS
+bpb180.OLDBPB_NFATS:	db 2
+at OLDBPB_DIRMAX
+bpb180.OLDBPB_DIRMAX:	dw 64
+at OLDBPB_TOTSEC
+bpb180.OLDBPB_TOTSEC:	dw 40*1*9
+at OLDBPB_FATID
+bpb180.OLDBPB_FATID:	db 0FCh
+at OLDBPB_FATSEC
+bpb180.OLDBPB_FATSEC:	dw 2
+at OLDBPB_SPT
+bpb180.OLDBPB_SPT:	dw 9
+at OLDBPB_HEADS
+bpb180.OLDBPB_HEADS:	dw 1
+at OLDBPB_HIDDEN
+bpb180.OLDBPB_HIDDEN:	dd 0
+at OLDBPB_SIZE
+bpb180.OLDBPB_SIZE:	dd 0
+at OLDBPB_RESRVD2
+bpb180.OLDBPB_RESRVD2:
+iend
+bpb320:
+istruc OLDBPB
+at OLDBPB_SECSIZ
+bpb320.OLDBPB_SECSIZ:	dw 512
+at OLDBPB_ALLOCSIZ
+bpb320.OLDBPB_ALLOCSIZ:	db 2
+at OLDBPB_FATADD
+bpb320.OLDBPB_FATADD:	dw 1
+at OLDBPB_NFATS
+bpb320.OLDBPB_NFATS:	db 2
+at OLDBPB_DIRMAX
+bpb320.OLDBPB_DIRMAX:	dw 112
+at OLDBPB_TOTSEC
+bpb320.OLDBPB_TOTSEC:	dw 40*2*8
+at OLDBPB_FATID
+bpb320.OLDBPB_FATID:	db 0FFh
+at OLDBPB_FATSEC
+bpb320.OLDBPB_FATSEC:	dw 1
+at OLDBPB_SPT
+bpb320.OLDBPB_SPT:	dw 8
+at OLDBPB_HEADS
+bpb320.OLDBPB_HEADS:	dw 2
+at OLDBPB_HIDDEN
+bpb320.OLDBPB_HIDDEN:	dd 0
+at OLDBPB_SIZE
+bpb320.OLDBPB_SIZE:	dd 0
+at OLDBPB_RESRVD2
+bpb320.OLDBPB_RESRVD2:
+iend
+bpb360:
+istruc OLDBPB
+at OLDBPB_SECSIZ
+bpb360.OLDBPB_SECSIZ:	dw 512
+at OLDBPB_ALLOCSIZ
+bpb360.OLDBPB_ALLOCSIZ:	db 2
+at OLDBPB_FATADD
+bpb360.OLDBPB_FATADD:	dw 1
+at OLDBPB_NFATS
+bpb360.OLDBPB_NFATS:	db 2
+at OLDBPB_DIRMAX
+bpb360.OLDBPB_DIRMAX:	dw 112
+at OLDBPB_TOTSEC
+bpb360.OLDBPB_TOTSEC:	dw 40*2*9
+at OLDBPB_FATID
+bpb360.OLDBPB_FATID:	db 0FDh
+at OLDBPB_FATSEC
+bpb360.OLDBPB_FATSEC:	dw 2
+at OLDBPB_SPT
+bpb360.OLDBPB_SPT:	dw 9
+at OLDBPB_HEADS
+bpb360.OLDBPB_HEADS:	dw 2
+at OLDBPB_HIDDEN
+bpb360.OLDBPB_HIDDEN:	dd 0
+at OLDBPB_SIZE
+bpb360.OLDBPB_SIZE:	dd 0
+at OLDBPB_RESRVD2
+bpb360.OLDBPB_RESRVD2:
+iend
+bpb1200:
+istruc OLDBPB
+at OLDBPB_SECSIZ
+bpb1200.OLDBPB_SECSIZ:	dw 512
+at OLDBPB_ALLOCSIZ
+bpb1200.OLDBPB_ALLOCSIZ:	db 1
+at OLDBPB_FATADD
+bpb1200.OLDBPB_FATADD:	dw 1
+at OLDBPB_NFATS
+bpb1200.OLDBPB_NFATS:	db 2
+at OLDBPB_DIRMAX
+bpb1200.OLDBPB_DIRMAX:	dw 224
+at OLDBPB_TOTSEC
+bpb1200.OLDBPB_TOTSEC:	dw 80*2*15
+at OLDBPB_FATID
+bpb1200.OLDBPB_FATID:	db 0F9h
+at OLDBPB_FATSEC
+bpb1200.OLDBPB_FATSEC:	dw 7
+at OLDBPB_SPT
+bpb1200.OLDBPB_SPT:	dw 15
+at OLDBPB_HEADS
+bpb1200.OLDBPB_HEADS:	dw 2
+at OLDBPB_HIDDEN
+bpb1200.OLDBPB_HIDDEN:	dd 0
+at OLDBPB_SIZE
+bpb1200.OLDBPB_SIZE:	dd 0
+at OLDBPB_RESRVD2
+bpb1200.OLDBPB_RESRVD2:
+iend
+bpb720:
+istruc OLDBPB
+at OLDBPB_SECSIZ
+bpb720.OLDBPB_SECSIZ:	dw 512
+at OLDBPB_ALLOCSIZ
+bpb720.OLDBPB_ALLOCSIZ:	db 2
+at OLDBPB_FATADD
+bpb720.OLDBPB_FATADD:	dw 1
+at OLDBPB_NFATS
+bpb720.OLDBPB_NFATS:	db 2
+at OLDBPB_DIRMAX
+bpb720.OLDBPB_DIRMAX:	dw 112
+at OLDBPB_TOTSEC
+bpb720.OLDBPB_TOTSEC:	dw 80*2*9
+at OLDBPB_FATID
+bpb720.OLDBPB_FATID:	db 0F9h
+at OLDBPB_FATSEC
+bpb720.OLDBPB_FATSEC:	dw 3
+at OLDBPB_SPT
+bpb720.OLDBPB_SPT:	dw 9
+at OLDBPB_HEADS
+bpb720.OLDBPB_HEADS:	dw 2
+at OLDBPB_HIDDEN
+bpb720.OLDBPB_HIDDEN:	dd 0
+at OLDBPB_SIZE
+bpb720.OLDBPB_SIZE:	dd 0
+at OLDBPB_RESRVD2
+bpb720.OLDBPB_RESRVD2:
+iend
+bpb1440:
+istruc OLDBPB
+at OLDBPB_SECSIZ
+bpb1440.OLDBPB_SECSIZ:	dw 512
+at OLDBPB_ALLOCSIZ
+bpb1440.OLDBPB_ALLOCSIZ:	db 1
+at OLDBPB_FATADD
+bpb1440.OLDBPB_FATADD:	dw 1
+at OLDBPB_NFATS
+bpb1440.OLDBPB_NFATS:	db 2
+at OLDBPB_DIRMAX
+bpb1440.OLDBPB_DIRMAX:	dw 224
+at OLDBPB_TOTSEC
+bpb1440.OLDBPB_TOTSEC:	dw 80*2*18
+at OLDBPB_FATID
+bpb1440.OLDBPB_FATID:	db 0F0h
+at OLDBPB_FATSEC
+bpb1440.OLDBPB_FATSEC:	dw 9
+at OLDBPB_SPT
+bpb1440.OLDBPB_SPT:	dw 18
+at OLDBPB_HEADS
+bpb1440.OLDBPB_HEADS:	dw 2
+at OLDBPB_HIDDEN
+bpb1440.OLDBPB_HIDDEN:	dd 0
+at OLDBPB_SIZE
+bpb1440.OLDBPB_SIZE:	dd 0
+at OLDBPB_RESRVD2
+bpb1440.OLDBPB_RESRVD2:
+iend
+bpb2880:
+istruc OLDBPB
+at OLDBPB_SECSIZ
+bpb2880.OLDBPB_SECSIZ:	dw 512
+at OLDBPB_ALLOCSIZ
+bpb2880.OLDBPB_ALLOCSIZ:	db 2
+at OLDBPB_FATADD
+bpb2880.OLDBPB_FATADD:	dw 1
+at OLDBPB_NFATS
+bpb2880.OLDBPB_NFATS:	db 2
+at OLDBPB_DIRMAX
+bpb2880.OLDBPB_DIRMAX:	dw 240
+at OLDBPB_TOTSEC
+bpb2880.OLDBPB_TOTSEC:	dw 80*2*36
+at OLDBPB_FATID
+bpb2880.OLDBPB_FATID:	db 0F0h
+at OLDBPB_FATSEC
+bpb2880.OLDBPB_FATSEC:	dw 9
+at OLDBPB_SPT
+bpb2880.OLDBPB_SPT:	dw 36
+at OLDBPB_HEADS
+bpb2880.OLDBPB_HEADS:	dw 2
+at OLDBPB_HIDDEN
+bpb2880.OLDBPB_HIDDEN:	dd 0
+at OLDBPB_SIZE
+bpb2880.OLDBPB_SIZE:	dd 0
+at OLDBPB_RESRVD2
+bpb2880.OLDBPB_RESRVD2:
+iend
 NBPBS		equ	8
 
 ;	The following is a template, that gets overwritten
@@ -643,13 +867,13 @@ bpbtbl		label	word
 	
 layout_table	label word		; current # of sectors/track
 
-S	= 	1
+S	equ 	1
 
 rept	MAX_SPT
 		;	C  H  S  N
 		;	-  -  -  -
 		db	0, 0, S, 2
-S	=	S + 1
+S	equ	S + 1
 endm
 
 	orgabs	600h, local_char	; CON: one character look-ahead buffer
@@ -662,11 +886,11 @@ local_flag	db	0		;** fixed location **
 
 	even
 	public	endbios
-endbios		dw	offset CGROUP:RESBIOS	; pointer to last resident byte
+endbios		dw	offset RESBIOS wrt CGROUP	; pointer to last resident byte
 
 CODE	ends
 
-ICODE	segment 'ICODE'			; reusable initialization code
+section ICODE class=ICODE			; reusable initialization code
 
 	Assume	CS:CGROUP, DS:CGROUP, ES:CGROUP, SS:Nothing
 
@@ -693,7 +917,7 @@ init0	proc	near
 ; The floppy parameters also MAY live at 7C00, so we have to relocate these
 ; before we expand.
 
-	mov	cs:byte ptr A20Enable,0C3h
+	mov	byte [cs:A20Enable],0C3h
 					; fixup the RET
 
 	mov	sp, 0C000h		; switch to magic stack
@@ -703,15 +927,15 @@ init0	proc	near
 
 	; the following expects ds:bp to point to the boot sector, in
 	; particular the BPB, to push its hidden sectors field to stack
-	push	ds:1eh[bp]		; push BPB hidden sectors
-	push	ds:1ch[bp]		; ..popped at biosinit to part_off
+	push	word [ds:1eh + bp]		; push BPB hidden sectors
+	push	word [ds:1ch + bp]		; ..popped at biosinit to part_off
 
 	push	si			; drdoslen
 	push	ax			; drdosseg
 	push	cx			; save entry registers
 	push	di			; (important in ROM systems)
 
-if COMPRESSED
+%if COMPRESSED
 	mov ds, ax
 	mov cx, si
 	mov ax, 1070h
@@ -727,7 +951,7 @@ if COMPRESSED
 	push ax
 	push cx
 	push di
-endif
+%endif
 
 	xor	si,si
 	mov	ds,si
@@ -741,34 +965,34 @@ endif
 ; 	After copying, set INT1E to point to the new location.
 
 	mov	di,522h			; ES:DI -> save area for parameters
-	lds	si,i1Eptr		; DS:SI -> FD parameters for ROS
+	lds	si,[i1Eptr]		; DS:SI -> FD parameters for ROS
 
 	Assume	DS:Nothing
 
-	mov	i1Eoff,di
-	mov	i1Eseg,es		; setup new location
+	mov	[i1Eoff],di
+	mov	[i1Eseg],es		; setup new location
 	mov	cx,11
 	rep	movsb
-	mov	es:byte ptr [di-7],36	; enable read/writing of 36 sectors/track
+	mov	byte ptr [es:di-7],36	; enable read/writing of 36 sectors/track
 
 	pop	di
 	pop	cx
 
-if COMPRESSED
+%if COMPRESSED
 	mov	si, cs			; preserve entry registers
 	mov	ds, si			; other than si, ds and es
 	mov	es, si
 	xor	si, si
-	mov	si, compflg		; Get Compresed BIOS Flag
+	mov	si, [compflg]		; Get Compresed BIOS Flag
 	or	si, si			; Set to Zero if the BIOS has
 	jnz	not_compressed		; been compressed
-	mov	si, offset CGROUP:INITDATA
+	mov	si, offset INITDATA wrt CGROUP
 	push	di			; bios_seg
 	push	ax			; bdos_seg
 	push	bx			; initial drives
 	push	cx			; memory size
 	push	dx			; initial flags
-	lea	cx, biosinit_end
+	lea	cx, [biosinit_end]
 	sub	cx, si
 	inc	cx			; length of compressed part plus one
 	mov	di, cx
@@ -802,7 +1026,7 @@ bios_r40:
 	pop	ax
 	pop	di
 not_compressed:
-endif
+%endif
 	mov	si,cs
 	mov	ds,si			; DS -> local data segment
 	cmp	dl,0ffh			; booting from ROM?
@@ -815,13 +1039,13 @@ endif
 ;	contains the current location of the BDOS and CX the memory Size.
 ;	Bx is the current code segment
 
-	mov	rcode_seg,dx		; rom segment of bios
-	mov	current_dos,ax		; current location of the BDOS
-	mov	mem_size,cx		; total memory size
-	mov	init_drv,bl		; initial drive
-	mov	comspec_drv,bh		;
-	mov	init_buf,3		; assume default # of buffers
-	mov	init_flags,3	
+	mov	[rcode_seg],dx		; rom segment of bios
+	mov	[current_dos],ax		; current location of the BDOS
+	mov	[mem_size],cx		; total memory size
+	mov	[init_drv],bl		; initial drive
+	mov	[comspec_drv],bh		;
+	mov	byte [init_buf],3		; assume default # of buffers
+	mov	word [init_flags],3	
 	jmp	bios_exit
 	
 rom_boot:				; BIOS is copied from ROM:
@@ -829,25 +1053,25 @@ rom_boot:				; BIOS is copied from ROM:
 					;	AX = segment address of DRBDOS
 					;	BH = COMSPEC drive
 					;	BL = INIT_DRV
-	mov	rcode_seg,di		;	DI = BIOS ROM SEG
-	mov	current_dos,ax		; current location of the BDOS
-	mov	init_drv,bl		; initial drive C:
-	mov	comspec_drv,bh		; commspec drive C:
-	mov	init_flags,3		; it is a ROM system, use comspec drive
+	mov	[rcode_seg],di		;	DI = BIOS ROM SEG
+	mov	[current_dos],ax		; current location of the BDOS
+	mov	[init_drv],bl		; initial drive C:
+	mov	[comspec_drv],bh		; commspec drive C:
+	mov	word [init_flags],3		; it is a ROM system, use comspec drive
 	jmps	rom_boot10		; common code
 
 disk_boot:
-	mov	rcode_seg,cs
+	mov	[rcode_seg],cs
 	sub	ax,ax
-	mov	current_dos,ax		; current BDOS location to disk load
+	mov	[current_dos],ax		; current BDOS location to disk load
 	xchg	ax,dx			; AL = boot drive
-	mov	init_runit,al		; save the ROS unit
-	mov	init_int13_unit,al	; save the ROS unit
+	mov	[init_runit],al		; save the ROS unit
+	mov	[init_int13_unit],al	; save the ROS unit
 	test	al,al			; test the boot drive
 	 jz	floppy_boot		; skip if floppy boot
 	mov	al,2			; it's drive C:
 floppy_boot:
-	mov	init_drv,al		; set boot drive
+	mov	[init_drv],al		; set boot drive
 
 rom_boot10:
 	pushx	<ds, es>		; save registers
@@ -859,11 +1083,11 @@ rom_boot10:
 	push	cs			; we want to save vectors some
 	pop	es			;  locally
 
-	lea	di,vecSave
+	lea	di,[vecSave]
 	mov	cx,NUM_SAVED_VECS	; restore this many vectors
 SaveVectors:
 	xor	ax,ax			; zero AH
-	mov	al,es:[di]		; AX = vector to save
+	mov	al,[es:di]		; AX = vector to save
 	inc	di			; skip to save position
 	shl	ax,1
 	shl	ax,1			; point at address
@@ -876,18 +1100,18 @@ SaveVectors:
 	int 3
 	jc debugger_detected
 
-	mov	i0off,offset Int0Trap
-	mov	i0seg,cs		; now grab int0 vector
-	mov	i1off,offset Int1Trap
-	mov	i1seg,cs		; now grab int1 vector
-	mov	i3off,offset Int1Trap
-	mov	i3seg,cs		; now grab int3 vector
+	mov	word [i0off],offset Int0Trap
+	mov	[i0seg],cs		; now grab int0 vector
+	mov	word [i1off],offset Int1Trap
+	mov	[i1seg],cs		; now grab int1 vector
+	mov	word [i3off],offset Int1Trap
+	mov	[i3seg],cs		; now grab int3 vector
 
 debugger_detected:
-	mov	i4off,offset Int1Trap
-	mov	i4seg,cs		; now grab int4 vector
-	mov	i19off,offset Int19Trap
-	mov	i19seg,cs		; now grab int19 vector
+	mov	word [i4off],offset Int1Trap
+	mov	[i4seg],cs		; now grab int4 vector
+	mov	word [i19off],offset Int19Trap
+	mov	[i19seg],cs		; now grab int19 vector
 
 	popx	<es, ds>
 
@@ -905,33 +1129,33 @@ debugger_detected:
 	 jnc	bios_extmem
 	xor	ax,ax			; say we have no memory
 bios_extmem:
-	mov	ext_mem_size,ax		;  we have and store for reference
+	mov	[ext_mem_size],ax		;  we have and store for reference
 	
-	mov	init_buf,3		; assume default of 3 buffers
+	mov	byte [init_buf],3		; assume default of 3 buffers
 	int	MEMORY_INT		; get amount of conventional memory
 	cmp	ax,128
 	 jbe	bios_mem
-	mov	init_buf,5		; use 5 buffers if > 128K of memory
+	mov	byte [init_buf],5		; use 5 buffers if > 128K of memory
 bios_mem:				; get amount of conventional memory
 	mov	cl,6			;    in kilobytes (AX)
 	shl	ax,cl			; convert Kb's to paragraphs
-	mov	mem_size,ax		; set end of TPA
+	mov	[mem_size],ax		; set end of TPA
 
 bios_exit:
 ; The following code performs the fixups necessary for ROM executable
 ; internal device drivers.
 	mov	ax,cs			; check if we are on a rommed system
-	cmp	ax,rcode_seg
+	cmp	ax,[rcode_seg]
 	 jne	keep_rcode		; if so no relocation required
-	mov	ax,offset CGROUP:RCODE
-	mov	rcode_offset,ax		; fixup variable need
-	mov	bx,offset CGROUP:IDATA
+	mov	ax,offset RCODE wrt CGROUP
+	mov	[rcode_offset],ax		; fixup variable need
+	mov	bx,offset IDATA wrt CGROUP
 	sub	bx,ax
-	mov	icode_len,bx		; during init we need RCODE and ICODE
-	mov	bx,offset CGROUP:RESUMECODE
+	mov	[icode_len],bx		; during init we need RCODE and ICODE
+	mov	bx,offset RESUMECODE wrt CGROUP
 	sub	bx,ax
-	mov	rcode_header,bx
-	mov	rcode_len,bx		; afterwards we just need RCODE
+	mov	[rcode_header],bx
+	mov	[rcode_len],bx		; afterwards we just need RCODE
 keep_rcode:
 
 ; If the system ROM BIOS supports RESUME mode then it will call Int 6C
@@ -947,30 +1171,30 @@ keep_rcode:
 	xor	ax,ax
 	mov	ds,ax			; DS = vectors
 Assume DS:IVECT
-	mov	i6Coff,offset Resume
-	mov	i6Cseg,cs		; point Int 6C at resume code
+	mov	word [i6Coff],offset Resume
+	mov	[i6Cseg],cs		; point Int 6C at resume code
 Assume DS:CGROUP
 	pop	ds
 	mov	ax,cs			; check if we are on a rommed system
-	cmp	ax,rcode_seg
+	cmp	ax,[rcode_seg]
 	 jne	resume_exit		; if so nothing extra to keep
-	mov	ax,offset CGROUP:RESBIOS
-	sub	ax,offset CGROUP:RCODE
-	mov	rcode_header,ax		; keep Resume code as well...
-	mov	rcode_len,ax		; afterwards we just need RCODE
+	mov	ax,offset RESBIOS wrt CGROUP
+	sub	ax,offset RCODE wrt CGROUP
+	mov	[rcode_header],ax		; keep Resume code as well...
+	mov	[rcode_len],ax		; afterwards we just need RCODE
 resume_exit:
-	mov	ax,offset CGROUP:ENDCODE	; discard RCODE (we will relocate it)
-	mov	endbios,ax
-	mov	rcode_fixups,offset bios_fixup_tbl
+	mov	ax,offset ENDCODE wrt CGROUP	; discard RCODE (we will relocate it)
+	mov	[endbios],ax
+	mov	word [rcode_fixups],offset bios_fixup_tbl
 
 	mov	bx,offset con_drvr		; get first device driver in chain
-	mov	word ptr device_root+0,bx
-	mov	word ptr device_root+2,ds
+	mov	word ptr [device_root+0],bx
+	mov	word ptr [device_root+2],ds
 
 init1:
 	cmp	word ptr [bx],0FFFFh	; last driver in BIOS?
 	 je	init3
-	mov	2[bx],ds		; fix up segments in driver chain
+	mov	[2 + bx],ds		; fix up segments in driver chain
 	mov	bx,[bx]
 	jmps	init1
 init3:
@@ -1038,7 +1262,7 @@ output_hex40	db	20h,NUL		; end of string
 
 ICODE	ends
 
-INITDATA	segment public 'INITDATA'
+section INITDATA public class=INITDATA
 
 ; This is a zero terminated list of locations to be fixed up with the
 ; segment of the relocated BIOS RCODE
@@ -1051,28 +1275,28 @@ bios_fixup_tbl	dw	offset MemFixup
 		dw	offset Int13UnsureFixup
 		dw	offset Int2FFixup
 		dw	offset ResumeFixup
-IFDEF EMBEDDED
+%IFDEF EMBEDDED
 		dw	offset RdiskFixup
-endif
+%endif
 		dw	0
 
 INITDATA	ends
 
-CODE	segment	'CODE'
-IFDEF EMBEDDED
+section CODE class=CODE
+%IFDEF EMBEDDED
 	extrn	RdiskFixup:word
-endif
+%endif
 CODE	ends
 
 
-RCODE_ALIGN	segment public para 'RCODE'
-ifndef ROMSYS
+section RCODE_ALIGN public align=16 class=RCODE
+%ifndef ROMSYS
 ;	db	1100h dup(0)		; reserve space for command.com
 	db	1A00h dup(0)		; reserve space for command.com
-endif
+%endif
 RCODE_ALIGN	ends
 
-RCODE		segment public word 'RCODE'
+section RCODE public align=2 class=RCODE
 
 rcode_header	dw	0
 
@@ -1098,13 +1322,13 @@ FunctionTable	ends
 
 DriverFunction	proc	far
 	cld
-	sub	sp,(size P_STRUC)-4	; make space for stack variables
+	sub	sp,(P_STRUC_size)-4	; make space for stack variables
 	push	bp			; (BP and RET are included)
 	mov	bp,sp			; set up stack frame
 	pushx	<ds,es>
 	pushx	<ax,bx,cx,dx,si,di>	; save all registers
-	mov	ds,cs:DataSegment
-	mov	si,[bp+(size P_STRUC)-2]	; get return address = command table
+	mov	ds,[cs:DataSegment]
+	mov	si,[bp+(P_STRUC_size)-2]	; get return address = command table
 	lodsw				; AX = following word
 	xchg	ax,dx			; DX = device number (0-6)
 	mov	si,offset SerParCommonTable
@@ -1112,24 +1336,29 @@ DriverFunction	proc	far
 	 jbe	DriverFunction10
 	mov	si,dx			; DS:SI -> table
 DriverFunction10:
-	les	bx,req_ptr		; ES:BX -> request header
-	mov	P_STRUC.REQUEST_OFF[bp],bx
-	mov	P_STRUC.REQUEST_SEG[bp],es
-	mov	al,es:RH_CMD[bx]	; check if legal command
-	cmp	al,cs:FunctionTable.Max[si]
+	les	bx,[req_ptr]		; ES:BX -> request header
+P_STRUC.REQUEST_OFF equ REQUEST_OFF	; NASM port label
+	mov	[P_STRUC.REQUEST_OFF + bp],bx
+P_STRUC.REQUEST_SEG equ REQUEST_SEG	; NASM port label
+	mov	[P_STRUC.REQUEST_SEG + bp],es
+	mov	al,[es:RH_CMD + bx]	; check if legal command
+FunctionTable.Max equ Max	; NASM port label
+	cmp	al,[cs:FunctionTable.Max + si]
 	 ja	cmderr			; skip if out of range
 	cbw				; convert to word
 	add	ax,ax			;  make it a word offset
 	add	si,ax			; add index to function table
-	call	cs:FunctionTable.Entry[si]
-	les	bx,P_DSTRUC.REQUEST[bp]
+FunctionTable.Entry equ Entry	; NASM port label
+	call	[cs:FunctionTable.Entry + si]
+P_DSTRUC.REQUEST equ REQUEST	; NASM port label
+	les	bx,[P_DSTRUC.REQUEST + bp]
 cmddone:
 	or	ax,RHS_DONE		; indicate request is "done"
-	mov	es:RH_STATUS[bx],ax	; update the status for BDOS
+	mov	[es:RH_STATUS + bx],ax	; update the status for BDOS
 	popx	<di,si,dx,cx,bx,ax>	; restore all registers
 	popx	<es,ds>
 	pop	bp
-	add	sp,(size P_STRUC)-2	; discard stack variables 
+	add	sp,(P_STRUC_size)-2	; discard stack variables 
 	ret
 
 cmderr:
@@ -1155,7 +1384,7 @@ OutputBS proc far
 	push	ds
 	xor	ax,ax
 	mov	ds,ax
-	mov	dl,ds:byte ptr [44ah]	; DL = # of columns
+	mov	dl,byte ptr [44ah]	; DL = # of columns
 	dec	dx			; DL = last column
 	pop	ds
 	mov	ah,2			; set cursor, DH/DL = cursor, BH = page
