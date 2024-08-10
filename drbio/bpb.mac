@@ -1,0 +1,76 @@
+;    File              : $BPB.EQU$
+;
+;    Description       :
+;
+;    Original Author   : DIGITAL RESEARCH
+;
+;    Last Edited By    : $CALDERA$
+;
+;-----------------------------------------------------------------------;
+;    Copyright Work of Caldera, Inc. All Rights Reserved.
+;      
+;    THIS WORK IS A COPYRIGHT WORK AND CONTAINS CONFIDENTIAL,
+;    PROPRIETARY AND TRADE SECRET INFORMATION OF CALDERA, INC.
+;    ACCESS TO THIS WORK IS RESTRICTED TO (I) CALDERA, INC. EMPLOYEES
+;    WHO HAVE A NEED TO KNOW TO PERFORM TASKS WITHIN THE SCOPE OF
+;    THEIR ASSIGNMENTS AND (II) ENTITIES OTHER THAN CALDERA, INC. WHO
+;    HAVE ACCEPTED THE CALDERA OPENDOS SOURCE LICENSE OR OTHER CALDERA LICENSE
+;    AGREEMENTS. EXCEPT UNDER THE EXPRESS TERMS OF THE CALDERA LICENSE
+;    AGREEMENT NO PART OF THIS WORK MAY BE USED, PRACTICED, PERFORMED,
+;    COPIED, DISTRIBUTED, REVISED, MODIFIED, TRANSLATED, ABRIDGED,
+;    CONDENSED, EXPANDED, COLLECTED, COMPILED, LINKED, RECAST,
+;    TRANSFORMED OR ADAPTED WITHOUT THE PRIOR WRITTEN CONSENT OF
+;    CALDERA, INC. ANY USE OR EXPLOITATION OF THIS WORK WITHOUT
+;    AUTHORIZATION COULD SUBJECT THE PERPETRATOR TO CRIMINAL AND
+;    CIVIL LIABILITY.
+;-----------------------------------------------------------------------;
+;
+;    *** Current Edit History ***
+;    *** End of Current Edit History ***
+;
+;    $Log$
+;    ENDLOG
+
+BPB		struc
+SECSIZ		dw	?	; # of bytes per sector 
+ALLOCSIZ	db	?	; # of sectors per allocation unit
+FATADD		dw	?	; # of reserved sectors (1)
+NFATS		db	?	; # of fats
+DIRMAX		dw	?	; # of directory entries
+TOTSEC		dw	?	; # of sectors total in image
+FATID		db	?	;  holds a copy of the fat id byte
+FATSEC		dw	?	; # of sectors in a fat
+SPT		dw	?	; # of sectors per track
+HEADS		dw	?	; # of heads
+HIDDEN		dd	?	; disk offset (32 bit)
+SIZ		dd	?	; disk size (32 bit)
+BFATSEC		dd	?	; # of sectors per FAT
+FATFLAG		dw	?	; flags for FAT mirroring
+FSVER		dw	?	; version of file system
+FSROOT		dd	?	; starting cluster of root directory
+FSINFO		dw	?	; sector number of file system info block
+BOOTBAK		dw	?	; sector number of backup boot block
+RESRVD2		dw	6 dup (?)
+BPB		ends
+
+BPB_LENGTH	equ	size BPB
+
+BPB_SECTOR_OFFSET equ 0bh
+
+OLDBPB		struc
+OLDBPB_SECSIZ	dw	?	; # of bytes per sector 
+OLDBPB_ALLOCSIZ	db	?	; # of sectors per allocation unit
+OLDBPB_FATADD	dw	?	; # of reserved sectors (1)
+OLDBPB_NFATS	db	?	; # of fats
+OLDBPB_DIRMAX	dw	?	; # of directory entries
+OLDBPB_TOTSEC	dw	?	; # of sectors total in image
+OLDBPB_FATID	db	?	;  holds a copy of the fat id byte
+OLDBPB_FATSEC	dw	?	; # of sectors in a fat
+OLDBPB_SPT	dw	?	; # of sectors per track
+OLDBPB_HEADS	dw	?	; # of heads
+OLDBPB_HIDDEN	dd	?	; disk offset (32 bit)
+OLDBPB_SIZE	dd	?	; disk size (32 bit)
+OLDBPB_RESRVD2	db	6 dup (?)
+OLDBPB		ends
+
+OLDBPB_LENGTH	equ	size OLDBPB
