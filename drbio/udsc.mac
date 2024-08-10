@@ -40,7 +40,7 @@ NEXT	dd	?		; link to next UDSC_
 RUNIT	db	?		; ROS drive number (0/1/80/81)
 DRIVE	db	?		; logical drive
 BPB	db	UDSC_BPB_LENGTH dup (?)	; current BPB
-FATFLAG	db	?
+UDSCFATFLAG	db	?
 OPNCNT	dw	?		; # of files open on drive
 TYP	db	?		; floppy drive type (0/1/2/7)
 FLAGS	dw	?		; various flags for drive
