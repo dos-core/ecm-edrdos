@@ -36,12 +36,6 @@
 FALSE	equ	0
 TRUE	equ	(~ FALSE)
 
-%ifndef	@filename			;; Turbo Assembler always knows RETF
-                            ;; some versions of MASM do as well
-retf	macro				;; define far return macro for others
-	db	0cbh
-	endm
-%endif
 
 jmps	macro	l
 	jmp	short l
