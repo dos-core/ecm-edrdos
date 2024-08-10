@@ -4,9 +4,9 @@ TAB	equ	9
 LF	equ	10
 CR	equ	13
 
-CGROUP	group	INITDATA
+group CGROUP INITDATA
 
-INITDATA	segment	word public 'INITDATA'
+section INITDATA align=2 public class=INITDATA
 	assume ds:CGROUP, cs:CGROUP
 
 ;		Source .TFT file: 'TMP1.$$$'
