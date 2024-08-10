@@ -33,14 +33,14 @@
 ;    switch over to REQUEST.EQU
 ;    ENDLOG
 
-	include biosgrps.equ
-	include	drmacros.equ		; standard DR macros
-	include	ibmros.equ		; ROM BIOS equates
-	include	request.equ		; request header equates
-	include	driver.equ		; device driver equates
+	%include "biosgrps.mac"
+	%include "drmacros.mac"		; standard DR macros
+	%include "ibmros.mac"		; ROM BIOS equates
+	%include "request.mac"		; request header equates
+	%include "driver.mac"		; device driver equates
 
-page
-CGROUP	group	CODE, RCODE, RESUMECODE, ICODE
+;page
+group CGROUP CODE RCODE RESUMECODE ICODE
 
 TIME	struc
 DAYS		dw	?
@@ -52,7 +52,7 @@ TIME	ends
 
 	Assume	CS:CGROUP, DS:CGROUP, ES:Nothing, SS:Nothing
 
-CODE	segment 'CODE'
+section CODE class=CODE
 
 	extrn	endbios:word		; for device driver INIT function
 	extrn	daycount:word
@@ -63,7 +63,7 @@ CONVERSION_FACTOR	equ	0E90Bh
 
 CODE	ends
 
-RCODE	segment 'RCODE'
+section RCODE class=RCODE
 
 	extrn	DataSegment:word
 
@@ -85,7 +85,7 @@ ClockTable:
 	dw	dd_output		; 8-output
 	dw	dd_output		; 9-output with verify
 
-page
+;page
 
 dd_error:	; used for all unsupported driver functions
 ;--------
@@ -94,9 +94,9 @@ dd_error:	; used for all unsupported driver functions
 
 dd_input:	; 4-input
 ;--------
-	les	di,es:RH4_BUFFER[bx]	; ES:DI -> requested date/time buffer
+	les	di,[es:RH4_BUFFER + bx]	; ES:DI -> requested date/time buffer
 	call	read_system_ticks	; read system tick counter
-	mov	ax,daycount		; AX = date
+	mov	ax,[daycount]		; AX = date
 	stosw				; return date
 	push	dx			; save low word of ticks
 	mov	ax,5
@@ -128,16 +128,17 @@ dd_input:	; 4-input
 	sub	ax,ax
 	ret
 
-	page
+;	page
 
 dd_output:	; 8-output
 ;---------
-	les	si,es:RH4_BUFFER[bx]
+	les	si,[es:RH4_BUFFER + bx]
 
 ;	First we'll convert the date & set the RTC if present:
 
-	mov	ax,es:TIME.DAYS[si]	; # of days since 1/1/1980
-	mov	daycount,ax
+TIME.DAYS equ DAYS	; NASM port label
+	mov	ax,[es:TIME.DAYS + si]	; # of days since 1/1/1980
+	mov	[daycount],ax
 
 	mov	dx,1980			; get initial year
 output1:
@@ -156,7 +157,7 @@ output3:				; DX = binary year, AX = day in year
 	sub	bx,bx			; start with January
 	sub	cx,cx			; CH = 0
 output4:
-	mov	cl,cs:monlen[bx]	; CX = # of days in next month
+	mov	cl,[cs:monlen + bx]	; CX = # of days in next month
 	cmp	cl,28			; is it february ?
 	 jne	output5
 	test	dl,3			; is it a leap year ?
@@ -191,10 +192,12 @@ output6:				; DX = binary year
 
 ;	mov	ah,es:TIME.HOURS[si]
 ;	mov	al,es:TIME.MINUTES[si]	; get binary hours & minutes
-	mov	ax,es:word ptr TIME.MINUTES[si]
+TIME.MINUTES equ MINUTES	; NASM port label
+	mov	ax,word ptr [es:TIME.MINUTES + si]
 	call	bin2bcd			; convert to BCD values
 	xchg	ax,cx			; CH, CL = hh:mm in BCD
-	mov	ah,es:TIME.SECONDS[si]
+TIME.SECONDS equ SECONDS	; NASM port label
+	mov	ah,[es:TIME.SECONDS + si]
 	mov	al,0			; get binary seconds & no daylight saving
 	call	bin2bcd			; convert to BCD values
 	xchg	ax,dx			; DH, DL = ss.000 in BCD
@@ -203,9 +206,10 @@ output6:				; DX = binary year
 	int	RTC_INT			;    on AT, XT-286, PS/2, etc.
 
 	mov	al,100
-	mul	es:TIME.SECONDS[si]	; AX = seconds in hundredths
+	mul	byte [es:TIME.SECONDS + si]	; AX = seconds in hundredths
 	xchg	ax,dx			; save in DX
-	mov	al,es:TIME.HUNDREDTHS[si]
+TIME.HUNDREDTHS equ HUNDREDTHS	; NASM port label
+	mov	al,[es:TIME.HUNDREDTHS + si]
 	cbw				; AX = hundredths
 	add	ax,dx			; AX = secs and hundredths in 1/100ths
 	cwd				; make the a dword
@@ -213,9 +217,10 @@ output6:				; DX = binary year
 	div	bx			; AX = secs and hundredths in 5/100ths
 	xchg	ax,bx			; save in BX
 	mov	al,60			; convert hours into minutes
-	mul	es:TIME.HOURS[si]	; AX = hours in mins
+TIME.HOURS equ HOURS	; NASM port label
+	mul	byte [es:TIME.HOURS + si]	; AX = hours in mins
 	xchg	ax,dx
-	mov	al,es:TIME.MINUTES[si]
+	mov	al,[es:TIME.MINUTES + si]
 	cbw				; AX = minutes value
 	add	ax,dx			; AX = hours and mins in mins
 	mov	dx,60*20
@@ -248,7 +253,7 @@ read_system_ticks:
 	int	RTC_INT
 	test	al,al			; have we passed midnight ?
 	 jz	read_st10		; if so a new day has dawned
-	inc	daycount
+	inc	word [daycount]
 read_st10:
 	ret
 
@@ -270,7 +275,7 @@ bin2bcd1:
 
 RCODE	ends				; end of device driver code
 
-RESUMECODE segment 'RESUME'
+section RESUMECODE class=RESUME
 
 ; If the system ROM BIOS supports RESUME mode then it will call Int 6C
 ; when returning from sleep mode. We take this over and reset the clock
@@ -281,7 +286,7 @@ RESUMECODE segment 'RESUME'
 	Public	ResumeHandler
 ResumeHandler	proc	far
 	sti
-	mov	ax,cs:DataSegment	; we have been asleep and are being
+	mov	ax,[cs:DataSegment]	; we have been asleep and are being
 	mov	ds,ax			;  woken by the BIOS
 	mov	es,ax			; lets re-read the RTC before
 	call	set_clock		;  we return to them
@@ -368,7 +373,7 @@ set_clock50:
 	call	bcd2bin			; convert values to binary
 	xchg	ax,dx
 
-	mov	daycount,0		; zero the daycount in case of RESUME
+	mov	word [daycount],0		; zero the daycount in case of RESUME
     mov ax,19*256 + 80      ; assume 1980 
 set_clock55:
 	cmp	ax,cx			; same year?
@@ -378,7 +383,7 @@ set_clock55:
 	 jnz	set_clock60		; (this works til 2400 A.D.)
 	inc	bx			; add FEB 29 if divisible by four
 set_clock60:
-	add	daycount,bx		; add days in previous year to total
+	add	[daycount],bx		; add days in previous year to total
 	inc	al			; next year
 	cmp	al,100			; end of century?
 	 jb	set_clock55		; skip if same century
@@ -395,20 +400,20 @@ set_clock65:				; same year by now
 set_clock70:
 	cmp	dh,bl			; does current month match?
 	 je	set_clock80		; skip if it does
-	mov	al,cs:set_monlen[bx]	; get length of that month
+	mov	al,[cs:set_monlen + bx]	; get length of that month
 	cmp	al,28			; is it february ?
 	 jne	set_clock75
 	test	cl,3			; is it a leap year ?
 	 jnz	set_clock75
 	inc	ax			; leap year, 29 days in february
 set_clock75:
-	add	daycount,ax		; add it to total day count
+	add	[daycount],ax		; add it to total day count
 	inc	bx			; move on to next month
 	jmps	set_clock70
 
 set_clock80:
 	mov	al,dl			; get days in that month
-	add	daycount,ax		; add them to day count
+	add	[daycount],ax		; add them to day count
 	ret
 
 bcd2bin:
@@ -439,7 +444,7 @@ bcd2bin3:				; AL = ones, BL = tens
 RESUMECODE ends
 
 
-ICODE	segment 'ICODE'			; initialization code
+section ICODE class=ICODE			; initialization code
 
 	Assume	CS:CGROUP, DS:CGROUP
 
@@ -447,11 +452,12 @@ dd_init:	; 0-initialize driver
 ;-------
 	call	set_clock		; set elapsed ticks
 
-	les	bx,P_DSTRUC.REQUEST[bp]	; ES:BX -> request header
+P_DSTRUC.REQUEST equ REQUEST	; NASM port label
+	les	bx,[P_DSTRUC.REQUEST + bp]	; ES:BX -> request header
 
-	mov	ax,endbios
-	mov	es:RH0_RESIDENT[bx],ax	; set end of device driver
-	mov	es:RH0_RESIDENT+2[bx],ds
+	mov	ax,[endbios]
+	mov	[es:RH0_RESIDENT + bx],ax	; set end of device driver
+	mov	[es:RH0_RESIDENT+2 + bx],ds
 
 	sub	ax,ax			; initialization succeeded
 	ret				; (BIOS init always does...)
