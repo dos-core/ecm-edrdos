@@ -41,30 +41,45 @@ TRUE	equ	(~ FALSE)
 	jmp	short %1
 %endmacro
 
+%macro stripangles 2.nolist
+%defstr %%param %2
+%substr %%opening %%param 1
+%ifidn %%opening, '<'
+ %substr %%param %%param 2,-1
+%endif
+%strlen %%length %%param
+%substr %%closing %%param %%length
+%ifidn %%closing, '>'
+ %substr %%param %%param 1,-2
+%endif
+%deftok %%token %%param
+%1 %%token
+%endmacro
+
 %macro pushx 0-*.nolist
  %rep %0
-	push %1
+	stripangles push, %1
 	%rotate 1
  %endrep
 %endmacro
 
 %macro popx 0-*.nolist
  %rep %0
-	pop %1
+	stripangles pop, %1
 	%rotate 1
  %endrep
 %endmacro
 
 %macro incx 0-*.nolist
  %rep %0
-	inc %1
+	stripangles inc, %1
 	%rotate 1
  %endrep
 %endmacro
 
 %macro decx 0-*.nolist
  %rep %0
-	dec %1
+	stripangles dec, %1
 	%rotate 1
  %endrep
 %endmacro
