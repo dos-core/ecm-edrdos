@@ -38,7 +38,7 @@ nasm -s -P nasm.mac -f obj initmsgs.nas -l bin/initmsgs.lst -o bin/initmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -DLDOS -DSHORTVERSION -s -P nasm.mac -f obj biosmsgs.nas -l bin/biosmsgs.lst -o bin/biosmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -DCOMPRESSED=%compressdrbio% -c -Fl.\BIN\init.lst -Fo.\BIN\init init.asm
+nasm -DCOMPRESSED=%compressdrbio% -s -P nasm.mac -P nasmorg.mac -f obj init.nas -l bin/init.lst -o bin/init.obj
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\clock.lst -Fo.\BIN\clock clock.asm
 IF ERRORLEVEL 1 GOTO FAILED
