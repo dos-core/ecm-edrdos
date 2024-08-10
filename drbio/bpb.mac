@@ -53,7 +53,7 @@ BOOTBAK		dw	?	; sector number of backup boot block
 RESRVD2		dw	6 dup (?)
 BPB		ends
 
-BPB_LENGTH	equ	size BPB
+BPB_LENGTH	equ	BPB_size
 
 BPB_SECTOR_OFFSET equ 0bh
 
@@ -73,4 +73,4 @@ OLDBPB_SIZE	dd	?	; disk size (32 bit)
 OLDBPB_RESRVD2	db	6 dup (?)
 OLDBPB		ends
 
-OLDBPB_LENGTH	equ	size OLDBPB
+OLDBPB_LENGTH	equ	OLDBPB_size

@@ -53,7 +53,7 @@ SERIAL	dd	?		; serial number
 FSTYPE	db	9 dup (?)	; ASCIIZ "FAT12"/"FAT16" type
 UDSC		ends
 
-UDSC_LENGTH	equ	size UDSC
+UDSC_LENGTH	equ	UDSC_size
 UDSC.TIMER equ TIMER	; NASM port label
 UDSC_FM_PART	equ	UDSC.TIMER	; fixed media part type (always 1)
 UDSC_FM_OFFSET	equ	UDSC.TIMER+2	; fixed media part offset (always 0)
