@@ -56,71 +56,70 @@
 
 ; a little macro to help locate things
 ; it warns us when the ORG get trampled on
-orgabs	MACRO	address, name
-	local	was,is
-	was equ offset $
-	org address
-	is equ offset $
-	%if was GT is
-	%OUT WARNING - absolute data overwritten !! moving it: name
-	org	was
-%endif
-ENDM
+%macro orgabs 2.nolist
+ %assign %%was ($ - $$)
+ %assign %%is %1
+ %if %%was > %%is
+  %warning absolute data overwritten !! moving it: %2
+ %else
+	org %1
+ %endif
+%endmacro
 
-jmpfar	MACRO	address, fixup
+%macro jmpfar 2.nolist
 	db	0EAh		; jmpf opcode
-	dw	offset address wrt CGROUP	; offset of destination
-fixup	dw	0EDCh		; segment of destination
-ENDM
+	dw	offset %1 wrt CGROUP	; offset of destination
+%2:	dw	0EDCh		; segment of destination
+%endmacro
 
-callfar	MACRO	address, fixup
+%macro callfar 2.nolist
 	db	09Ah		; callf opcode
-	dw	offset address wrt CGROUP	; offset of destination
-fixup	dw	0EDCh		; segment of destination
-ENDM
+	dw	offset %1 wrt CGROUP	; offset of destination
+%2:	dw	0EDCh		; segment of destination
+%endmacro
 
 F5KEY		equ	3F00h
 F8KEY		equ	4200h
 
 SWITCH_F	equ	01h
-	
-section IVECT
 
-		org	0000h*4
+absolute 0
+
+		org	0000h*4, db ?
 i0off		dw	?
 i0seg		dw	?
 
-		org	0001h*4
+		org	0001h*4, db ?
 i1off		dw	?
 i1seg		dw	?
 
-		org	0003h*4
+		org	0003h*4, db ?
 i3off		dw	?
 i3seg		dw	?
 
-		org	0004h*4
+		org	0004h*4, db ?
 i4off		dw	?
 i4seg		dw	?
 
-		org	0015h*4
+		org	0015h*4, db ?
 i15off		dw	?
 i15seg		dw	?
 
-		org	0019h*4
+		org	0019h*4, db ?
 i19off		dw	?
 i19seg		dw	?
 
-		org	001Eh*4
+		org	001Eh*4, db ?
 i1Eptr		label	dword
 i1Eoff		dw	?
 i1Eseg		dw	?
 
-		org	002Fh*4
+		org	002Fh*4, db ?
 i2Fptr		label	dword
 i2Foff		dw	?
 i2Fseg		dw	?
 
-		org	006Ch*4
+		org	006Ch*4, db ?
 i6Cptr		label	dword
 i6Coff		dw	?
 i6Cseg		dw	?
@@ -867,14 +866,15 @@ bpbtbl		label	word
 	
 layout_table	label word		; current # of sectors/track
 
+%assign variable_s 1
 S	equ 	1
 
-rept	MAX_SPT
-		;	C  H  S  N
-		;	-  -  -  -
-		db	0, 0, S, 2
-S	equ	S + 1
-endm
+%rep	MAX_SPT
+		;	C  H  S           N
+		;	-  -  -           -
+		db	0, 0, variable_s, 2
+ %assign variable_s variable_s + 1
+%endrep
 
 	orgabs	600h, local_char	; CON: one character look-ahead buffer
 ; nb. it's at 61B in DOS 4.0
