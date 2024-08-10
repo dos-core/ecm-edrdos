@@ -439,7 +439,7 @@ Int13Trap10:
 	mov	[cs:i13_AX],ax		; save Op/Count in case of error
 	clc
 	pushf				; fake an Int
-	call	cs:i13pointer		; call the ROM BIOS
+	call	far [cs:i13pointer]		; call the ROM BIOS
 	 jc	Int13Trap20		; check for error
 	ret	2			; none, so return to caller
 Int13Trap20:
