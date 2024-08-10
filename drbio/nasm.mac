@@ -6,6 +6,8 @@ NASM macros to work with ported sources
 
 %endif
 
+cpu 8086
+
 uppercase
 
 [list -]	; fix trace listing file to not display unknown segment
