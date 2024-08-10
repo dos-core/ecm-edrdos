@@ -147,12 +147,17 @@ uppercase
 %imacro PROC 0-1.nolist
 %00:
  %ifnempty %1
-  %ifnidni %1, NEAR
+  %ifidni %1, NEAR
+   %undef ret
+  %elifidni %1, FAR
+   %define ret retf
+  %else
    %error Unknown keyword to PROC macro
   %endif
  %endif
 %endmacro
 %imacro ENDP 0.nolist
+%undef ret
 %ifidni %00, 0
 %endif
 %endmacro
