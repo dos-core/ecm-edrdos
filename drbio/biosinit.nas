@@ -374,7 +374,7 @@ dos_reloc:
 ;	compression algorithm.
 ;
 dos_r20:
-ife compressdrdos
+%ifn compressdrdos
 	jmp dev_fail
 %else
 	lodsw				; get control word
