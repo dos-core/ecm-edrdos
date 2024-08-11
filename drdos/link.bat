@@ -1,7 +1,5 @@
 @ECHO off
 
-SET JWASMEXE=C:\BIN\JWASM.EXE
-
 REM 
 REM YOU SHOULD NOT HAVE TO CHANGE ANYTHING BELOW THIS LINE.
 REM 
@@ -16,9 +14,6 @@ REM Define local Caldera tools
 SET LOCTOOLS=..\LTOOLS
 
 IF NOT EXIST BIN\*.* MD BIN
-
-ECHO Checking for %JWASMEXE%
-if not exist %JWASMEXE% goto badtool
 
 
 warplink @wldrdos.lnk
@@ -41,7 +36,7 @@ goto :compressed
 IF ERRORLEVEL 1 GOTO FAILED
 :compressed
 
-%JWASMEXE% -bin -Fo.\BIN\country.sys country.asm
+nasm -f bin country.nas -o bin/country.sys
 IF ERRORLEVEL 1 GOTO FAILED
 goto exit
 
