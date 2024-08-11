@@ -36,18 +36,18 @@
 ;
 ;    ENDLOG
 
-	include biosgrps.equ
-	include	drmacros.equ		; standard DR macros
-	include	ibmros.equ		; ROM BIOS equates
-	include	request.equ		; request header equates
-	include	driver.equ		; device driver equates
+	%include "biosgrps.mac"
+	%include "drmacros.mac"		; standard DR macros
+	%include "ibmros.mac"		; ROM BIOS equates
+	%include "request.mac"		; request header equates
+	%include "driver.mac"		; device driver equates
 
-page
-CGROUP	group	CODE, RCODE, ICODE
+;page
+group CGROUP CODE RCODE ICODE
 
 	Assume	CS:CGROUP, DS:CGROUP, ES:CGROUP, SS:CGROUP
 
-CODE	segment 'CODE'
+section CODE class=CODE
 
 	extrn	endbios:word		; for device driver INIT function
 	extrn	serparFlag:byte
@@ -55,7 +55,7 @@ CODE	segment 'CODE'
 
 CODE	ends
 
-RCODE	segment 'RCODE'
+section RCODE class=RCODE
 
 	Public	SerParCommonTable
 
@@ -84,23 +84,23 @@ SerParCommonTable:
 
 	Assume	DS:CGROUP, ES:Nothing, SS:Nothing
 
-page
+;page
 
 dd_error:	; used for all unsupported driver functions
 ;--------
 	mov	ax,RHS_ERROR+3		; "invalid command" error
 	ret
 
-	page
+;	page
 
 poll_char:
 ;---------
 ;	exit:	ZF = 1  =>  no character ready
 ;		ZF = 0  =>  AL = character
 
-	cmp	serparFlag[si],TRUE	; do we have local character?
+	cmp	byte [serparFlag + si],TRUE	; do we have local character?
 	 jne	poll_c2			; skip if not
-	mov	al,serparChar[si]	; get the local charcater
+	mov	al,[serparChar + si]	; get the local charcater
 	jmps	poll_c4			;    and return it
 poll_c2:				; need to check ROS keyboard status
 	mov	ah,3			; get serial status status
@@ -109,8 +109,8 @@ poll_c2:				; need to check ROS keyboard status
 	 jz	poll_c9			; skip if no character there
 	mov	ah,2			; read the character
 	int	ASYNC_INT		; character returned in AL
-	mov	serparChar[si],al	; save it for look ahead
-	mov	serparFlag[si],TRUE	; we've got a local character
+	mov	[serparChar + si],al	; save it for look ahead
+	mov	byte [serparFlag + si],TRUE	; we've got a local character
 poll_c4:				; return the character in AL
 	or	ah,TRUE			; indicate "ready" status
 	ret
@@ -122,10 +122,10 @@ poll_c9:
 char_read:
 ;---------
     xor ax,ax 
-	cmp	serparFlag[si],TRUE	; do we have local character?
+	cmp	byte [serparFlag + si],TRUE	; do we have local character?
 	 jne	rdchr1
-	mov	serparFlag[si],FALSE	; tell them buffer is invalid
-	mov	al,serparChar[si]	; get the local character
+	mov	byte [serparFlag + si],FALSE	; tell them buffer is invalid
+	mov	al,[serparChar + si]	; get the local character
 	ret				;    and return it
 rdchr1:
 	mov	ah,2			; read character from serial port
@@ -133,16 +133,16 @@ rdchr1:
 	and	ah,0eh			; only worry about these error bits
 	ret				; and return the character
 
-	page
+;	page
 dd_input:	; 4-input
 ;--------
 	push	es			; save ES (-> request header!)
-	mov	cx,es:RH4_COUNT[bx]	; get # of characters to output
+	mov	cx,[es:RH4_COUNT + bx]	; get # of characters to output
 	 jcxz	input9			; return if nothing to input
 	sub	dx,3			; convert to serial port #
 	 jb	input9			; return none read if parallel port
 	mov	si,dx			; SI = serial port index
-	les	di,es:RH4_BUFFER[bx]	; get address of string to input
+	les	di,[es:RH4_BUFFER + bx]	; get address of string to input
 input2:
 	call	char_read		; read 8-bit character
 	test	ah,ah			; did we read OK ?
@@ -151,7 +151,7 @@ input2:
 	loop	input2			; repeat for all characters
 input9:
 	pop	es
-	sub	es:RH4_COUNT[bx],cx	; update to actual number xfered
+	sub	[es:RH4_COUNT + bx],cx	; update to actual number xfered
 	sub	ax,ax
 	ret
 
@@ -163,7 +163,7 @@ dd_poll:	; 5-nondestructive input (console only)
 	mov	si,dx			; SI = serial port index
 	call	poll_char		; check keyboard status
 	 jz	poll_busy
-	mov	es:RH5_CHAR[bx],al	; return the character
+	mov	[es:RH5_CHAR + bx],al	; return the character
 	sub	ax,ax
 	ret
 poll_busy:
@@ -201,15 +201,15 @@ inflsh_ret:				; keyboard buffer empty
 
 dd_output:	; 8-output
 ;---------
-	mov	cx,es:RH4_COUNT[bx]	; get # of characters to output
+	mov	cx,[es:RH4_COUNT + bx]	; get # of characters to output
 	 jcxz	output5			; return if nothing to output
 	push	es			; save ES (-> request header!)
-	les	si,es:RH4_BUFFER[bx]	; get address of string to output
+	les	si,[es:RH4_BUFFER + bx]	; get address of string to output
 	sub	dx,3			; test if parallel port
 	 jae	output2			; skip if serial port
 	add	dx,3			; back to parallel port number
 output1:
-	lods	es:byte ptr [si]	; get next character to output
+	es lodsb	; get next character to output
 	mov	ah,0			; output AL to parallel port
 	int	PRINTER_INT		; output to parallel port
 	mov	al,2			; "not ready" error
@@ -225,7 +225,7 @@ output1:
 	jmps	output4			; return successfully when done
 
 output2:				; output is for serial port
-	lods	es:byte ptr [si]	; get next character to output
+	es lodsb	; get next character to output
 	mov	ah,1			; output AL to serial port
 	int	ASYNC_INT		; output to serial port
 	mov	al,2			; "not ready" error
@@ -233,9 +233,9 @@ output2:				; output is for serial port
 	 jnz	output4			; skip if any errors occurred
 	loop	output2			; else repeat for all characters
 output4:
-	mov	ah,RHS_ERROR shr 8	; assume an error code
+	mov	ah,RHS_ERROR >> 8	; assume an error code
 	pop	es
-	sub	es:RH4_COUNT[bx],cx	; update to actual number xfered
+	sub	[es:RH4_COUNT + bx],cx	; update to actual number xfered
 	 jz	output6			; none xfered is an error
 output5:
 	sub	ax,ax			; return successfully when done
@@ -274,7 +274,7 @@ dd_outflush:	; 11-output flush (char only)
 	ret
 
 
-	page
+;	page
 dd_open:	; 13-device open
 ;-------
 	sub	ax,ax			; no operation
@@ -287,7 +287,7 @@ dd_close:	; 14-device close
 	ret
 
 
-	page
+;	page
 dd_genioctl:	; 19-generic IOCTL
 ;-----------
     sub ax,ax           
@@ -296,9 +296,9 @@ dd_genioctl:	; 19-generic IOCTL
 
 RCODE	ends				; end of device driver code
 
-page
+;page
 
-ICODE	segment 'ICODE'			; initialization code
+section ICODE class=ICODE			; initialization code
 
 dd_init:	; 0-initialize driver
 ;-------
@@ -313,11 +313,12 @@ init1:
 	mov	al,0A3h			; 2400 Bd, no parity, 8 data, 1 stop
 	int	ASYNC_INT		; call the ROM BIOS
 init2:
-	les	bx,P_DSTRUC.REQUEST[bp]	; ES:BX -> request header
+P_DSTRUC.REQUEST equ REQUEST	; NASM port label
+	les	bx,[P_DSTRUC.REQUEST + bp]	; ES:BX -> request header
 
-	mov	ax,endbios
-	mov	es:RH0_RESIDENT[bx],ax	; set end of device driver
-	mov	es:RH0_RESIDENT+2[bx],ds
+	mov	ax,[endbios]
+	mov	[es:RH0_RESIDENT + bx],ax	; set end of device driver
+	mov	[es:RH0_RESIDENT+2 + bx],ds
 
 	sub	ax,ax			; initialization succeeded
 	ret				; (BIOS init always does...)
