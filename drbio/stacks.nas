@@ -357,7 +357,7 @@ InitStacks07:
 			Assume DS:STACKS
 	sub	si,2			; we want the word below top of stack
 InitStacks10:
-	add	si,[StackSize]		; SI = top of stack
+	add	si,[StackSize wrt STACKS]		; SI = top of stack
 	mov	word [STACK_CB_FLAGS + bx],STACK_FREE
 	mov	[STACK_CB_TOP + bx],si	; set top of stack
 	mov	word ptr [si],bx	; set backlink
