@@ -32,28 +32,28 @@
 ;
 ;    ENDLOG
 
-	include request.equ
-	include driver.equ
-	include udsc.equ
-	include	config.equ
+	%include "request.mac"
+	%include "driver.mac"
+	%include "udsc.mac"
+	%include "config.mac"
 
 ;	MISC constants
 CR		equ	0dh			;the usual
 LF		equ	0ah
 
 
-DATTS		equ	byte ptr 11
+labelsize DATTS, byte, 11
  DA_VOLUME	equ	08h
  DA_DIR		equ	10h
-DBLOCK1H	equ	word ptr 20
-DBLOCK1		equ	word ptr 26
-DSIZE		equ	word ptr 28
+labelsize DBLOCK1H, word, 20
+labelsize DBLOCK1, word, 26
+labelsize DSIZE, word, 28
 
 
 
-CGROUP		group	INITCODE, INITDATA
+group CGROUP INITCODE INITDATA
 
-INITCODE	segment public word 'INITCODE'
+section INITCODE public align=2 class=INITCODE
 ASSUME CS:CGROUP,DS:CGROUP
 
 VER_MUSTBE	equ	1072h
@@ -76,8 +76,8 @@ dos_version_check:
 	; Tries to detect to logical boot drive by the given phys boot drv
 	; and a partition offset
 detect_boot_drv proc
-	les	di,boot_device		; get device driver address
-	mov	dl,boot_drv		; get the boot drive sub unit
+	les	di,[boot_device]		; get device driver address
+	mov	dl,[boot_drv]		; get the boot drive sub unit
 	xor	dh,dh
 	dec	dh			; dh=255
 	mov	ax,es
@@ -86,34 +86,36 @@ detect_boot_drv proc
 	ret				; single-file kernel, user may resolve
 
 @@get_device_procs:
-	mov	ax,es:6[di]		; get strategy offset
-	mov	strat_off,ax
-	mov	strat_seg,es		; get strategy segment
-	mov	ax,es:8[di]		; get interrupt offset
-	mov	intrpt_off,ax
-	mov	intrpt_seg,es		; get interrupt segment
+	mov	ax,[es:6 + di]		; get strategy offset
+	mov	[strat_off],ax
+	mov	[strat_seg],es		; get strategy segment
+	mov	ax,[es:8 + di]		; get interrupt offset
+	mov	[intrpt_off],ax
+	mov	[intrpt_seg],es		; get interrupt segment
 @@test_drv:
 	mov	bx,offset req_hdr
 	mov	[bx+RH_UNIT],dl		; save logical unit to use
-	mov	[bx+RH_CMD],CMD_BUILD_BPB
+	mov	byte [bx+RH_CMD],CMD_BUILD_BPB
 	call	device_request		; tell it to build a BPB
 	 jnc	@@bpb_ok		; BPB successfully built
 	jmp	@@next_drv		; if not, try next drive
 @@bpb_ok:
-	cmp	dl,boot_drv
+	cmp	dl,[boot_drv]
 	 jne	@@compare_part_off
 	mov	dh,dl			; dh=boot_drv
 @@compare_part_off:
 	les	di,[bx+RH2_BPB]
 	mov al, [init_int13_unit]
 		; magic: poke into the UPB structure around the BPB
-	cmp es:byte ptr - UDSC.BPB + UDSC.RUNIT[di], al
+UDSC.UDSCBPB equ UDSCBPB	; NASM port label
+UDSC.RUNIT equ RUNIT	; NASM port label
+	cmp byte ptr [es:- UDSC.UDSCBPB + UDSC.RUNIT + di], al
 	 jne @@next_drv
-	mov	ax,part_off
-	cmp	es:word ptr BPB_HIDDEN[di],ax
+	mov	ax,[part_off]
+	cmp	word ptr [es:BPB_HIDDEN + di],ax
 	 jne	@@next_drv
-	mov	ax,part_off+2
-	cmp	es:word ptr BPB_HIDDEN+2[di],ax
+	mov	ax,[part_off+2]
+	cmp	word ptr [es:BPB_HIDDEN+2 + di],ax
 	 jne	@@next_drv
 	mov	dh,dl
 	jmp	@@done
@@ -127,8 +129,8 @@ detect_boot_drv proc
 	jmp	dev_fail
 @@store_boot_drv:
 	mov	dl,dh
-	mov	boot_drv,dl
-	mov	init_drv,dl
+	mov	[boot_drv],dl
+	mov	[init_drv],dl
 	ret
 detect_boot_drv endp
 
@@ -142,32 +144,33 @@ dev_fail:	; any error has occurred loading the BDOS
 	push cs
 	pop ds
 	mov	dx,offset dos_msg
-	les	di,resdev_chain		; get first device driver address
+	les	di,[resdev_chain]		; get first device driver address
 fail_scan:
-	test	es:[di+DEVHDR.ATTRIB],DA_CHARDEV
+DEVHDR.ATTRIB equ ATTRIB	; NASM port label
+	test	word [es:di+DEVHDR.ATTRIB],DA_CHARDEV
 	 jz	fail_next		; skip if not a character device
-	test	es:[di+DEVHDR.ATTRIB],DA_ISCOT
+	test	word [es:di+DEVHDR.ATTRIB],DA_ISCOT
 	 jnz	fail_found		; skip if console device found
 fail_next:
-	les	di,es:[di]		; get next device
+	les	di,[es:di]		; get next device
 	jmp	fail_scan
 fail_found:
-	mov	ax,es:6[di]		; get strategy offset
-	mov	strat_off,ax
-	mov	strat_seg,es		; get strategy segment
-	mov	ax,es:8[di]		; get interrupt offset
-	mov	intrpt_off,ax
-	mov	intrpt_seg,es		; get interrupt segment
+	mov	ax,[es:6 + di]		; get strategy offset
+	mov	[strat_off],ax
+	mov	[strat_seg],es		; get strategy segment
+	mov	ax,[es:8 + di]		; get interrupt offset
+	mov	[intrpt_off],ax
+	mov	[intrpt_seg],es		; get interrupt segment
 
 	mov	bx,offset req_hdr
-	mov	[bx+RH_CMD],CMD_OUTPUT	; write to console
-	mov	[bx+RH_LEN],RH4_LEN	; set request header length
+	mov	byte [bx+RH_CMD],CMD_OUTPUT	; write to console
+	mov	byte [bx+RH_LEN],RH4_LEN	; set request header length
 	mov	[bx+RH4_BUFOFF],dx	; set address of string
 	mov	[bx+RH4_BUFSEG],ds
-	mov	[bx+RH4_COUNT],-1
+	mov	word [bx+RH4_COUNT],-1
 	mov	si,dx			; now find the end of the string
 fail_count_chars:
-	inc	[bx+RH4_COUNT]		; print another char
+	inc	word [bx+RH4_COUNT]		; print another char
 	lodsb				; examine the next one
 	cmp	al,'$'			; terminating char ?
 	 jnz	fail_count_chars
@@ -187,12 +190,12 @@ device_request:		; general device driver interface
 	push	es
 	push	ds
 	pop	es
-	mov	ds,strat_seg
-	call	dword ptr cs:strat_ptr
-	call	dword ptr cs:intrpt_ptr
+	mov	ds,[strat_seg]
+	call	far [cs:strat_ptr]
+	call	far [cs:intrpt_ptr]
 	pop	es
 	pop	ds
-	test	[bx+RH_STATUS],RHS_ERROR
+	test	word [bx+RH_STATUS],RHS_ERROR
 	 jnz	devreq_err
 	clc
 	ret
@@ -209,7 +212,7 @@ INITCODE	ends
 ;
 ;	INITIALIZED DATA SEGMENT
 ;	========================
-INITDATA	segment public word 'INITDATA'
+section INITDATA public align=2 class=INITDATA
 
 		extrn	resdev_chain:dword	; resident device driver root
 		extrn	current_dos:word	; current BDOS segment
@@ -233,7 +236,7 @@ part_off	dw	0,0			; offset of boot partition
 ;	single error message if BDOS can't be loaded:
 
 
-include	initmsgs.def				; for dos_msg error msg
+%include "initmsgs.mac"				; for dos_msg error msg
 
 
 ;	static request header for DOS device driver I/O
@@ -246,20 +249,20 @@ req_status	dw	?
 req_media	db	?
 		db	16 dup (?)
 
-req1_return	equ	byte ptr req_media+1
-req1_volid	equ	word ptr req_media+2
+labelsize req1_return, byte, req_media+1
+labelsize req1_volid, word, req_media+2
 
-req2_bufoff	equ	word ptr req_media+1
-req2_bufseg	equ	word ptr req_media+3
-req2_bpb	equ	word ptr req_media+5
+labelsize req2_bufoff, word, req_media+1
+labelsize req2_bufseg, word, req_media+3
+labelsize req2_bpb, word, req_media+5
 
-req3_buffer	equ	dword ptr req_media+1
-req3_bufoff	equ	word ptr req_media+1
-req3_bufseg	equ	word ptr req_media+3
-req3_count	equ	word ptr req_media+5
-req3_sector	equ	word ptr req_media+7
-req3_volid	equ	word ptr req_media+9
-req3_sector32	equ	word ptr req_media+13
+labelsize req3_buffer, dword, req_media+1
+labelsize req3_bufoff, word, req_media+1
+labelsize req3_bufseg, word, req_media+3
+labelsize req3_count, word, req_media+5
+labelsize req3_sector, word, req_media+7
+labelsize req3_volid, word, req_media+9
+labelsize req3_sector32, word, req_media+13
 
 BPB_HIDDEN		equ	17
 
