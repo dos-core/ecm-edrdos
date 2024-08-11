@@ -69,7 +69,7 @@ OLDBPB_FATSEC	dw	?	; # of sectors in a fat
 OLDBPB_SPT	dw	?	; # of sectors per track
 OLDBPB_HEADS	dw	?	; # of heads
 OLDBPB_HIDDEN	dd	?	; disk offset (32 bit)
-OLDBPB_SIZE	dd	?	; disk size (32 bit)
+OLDBPB_SIZ	dd	?	; disk size (32 bit)
 OLDBPB_RESRVD2	db	6 dup (?)
 OLDBPB		ends
 
