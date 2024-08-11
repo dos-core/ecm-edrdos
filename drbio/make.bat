@@ -52,7 +52,7 @@ nasm -s -P nasm.mac -f obj biosgrps.nas -l bin/biosgrps.lst -o bin/biosgrps.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj stacks.nas -l bin/stacks.lst -o bin/stacks.obj
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Fl.\BIN\nlsfunc.lst -Fo.\BIN\nlsfunc nlsfunc.asm
+nasm -s -P nasm.mac -f obj nlsfunc.nas -l bin/nlsfunc.lst -o bin/nlsfunc.obj
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\bdosldr.lst -Fo.\BIN\bdosldr bdosldr.asm
 IF ERRORLEVEL 1 GOTO FAILED
