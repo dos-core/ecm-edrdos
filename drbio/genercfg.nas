@@ -1403,7 +1403,7 @@ get_switch:				; get next command line switch
 	jmp	drivparm_done
 get_swt9:
 	lodsb
-	or	al,('a' xor 'A')	; return upper-cased character
+	or	al,('a' ^ 'A')	; return upper-cased character
 	jmp	dx
 	
 
