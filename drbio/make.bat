@@ -56,7 +56,7 @@ nasm -s -P nasm.mac -f obj nlsfunc.nas -l bin/nlsfunc.lst -o bin/nlsfunc.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj bdosldr.nas -l bin/bdosldr.lst -o bin/bdosldr.obj
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -Dcompressdrdos=%compressdrdos% -c -Fl.\BIN\biosinit.lst -Fo.\BIN\biosinit biosinit.asm
+nasm -Dcompressdrdos=%compressdrdos% -s -P nasm.mac -f obj biosinit.nas -l bin/biosinit.lst -o bin/biosinit.obj
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\config.lst -Fo.\BIN\config config.asm
 IF ERRORLEVEL 1 GOTO FAILED
