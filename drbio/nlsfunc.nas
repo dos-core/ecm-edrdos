@@ -44,21 +44,21 @@
 
 VALID_SIG	equ	0EDC1h	; valid signature in COUNTRY.SYS file
 
-DH_NEXT		equ	dword ptr 0		; Dword Pointer to Next DEV
-DH_ATTRIB	equ	word ptr 4		; device attribute bits
-DH_NAME		equ	byte ptr 10		; 8-BYTE device name
+labelsize DH_NEXT, dword, 0		; Dword Pointer to Next DEV
+labelsize DH_ATTRIB, word, 4		; device attribute bits
+labelsize DH_NAME, byte, 10		; 8-BYTE device name
 
 DA_CHARDEV	equ	8000h		; 1=character device, 0=block device
 DA_IOCTL	equ	4000h		; device supports IOCTL string I/O
 DA_GETSET	equ	0040h		; supports 3.2 level functionality
 
-	include	config.equ
-	include	msdos.equ
-	include	mserror.equ
+	%include "config.mac"
+	%include "msdos.mac"
+	%include "mserror.mac"
 	
 
-CGROUP	GROUP	INITCODE
-INITCODE	segment public para 'INITCODE'
+group CGROUP INITCODE
+section INITCODE public align=16 class=INITCODE
 
 ; We share our NLS buffer with other temporary users
 
@@ -77,11 +77,12 @@ nls_hook:
 	mov	ah,MS_S_GETINT
 	mov	al,2fh
 	int	DOS_INT			; read and save old INT 2F vector
-	mov	old_int2f_off,bx
-	mov	old_int2f_seg,es
+	mov	[old_int2f_off],bx
+	mov	[old_int2f_seg],es
 	mov	ah,MS_S_SETINT
 	mov	al,2fh
-	mov	dx,offset cgroup:int2f_handler	; install our own INT 2F handler
+cgroup equ CGROUP	; NASM port equate
+	mov	dx,offset int2f_handler wrt cgroup	; install our own INT 2F handler
 	int	DOS_INT
 	pop	es
 	ret
@@ -94,8 +95,8 @@ nls_unhook:
 ;	none
 ;
 	push	ds
-	mov	dx,old_int2f_off
-	mov	ds,old_int2f_seg
+	mov	dx,[old_int2f_off]
+	mov	ds,[old_int2f_seg]
 	mov	ah,MS_S_SETINT		; restore INT 2F vector
 	mov	al,2fh
 	int	DOS_INT
@@ -110,7 +111,7 @@ int2f_handler:
 ;-------------
 	cmp	ah,014h		; is it for us ?
 	 je	int2f_handler10
-	jmp	dword ptr old_int2f	; no, pass it on
+	jmp	far [old_int2f]	; no, pass it on
 
 int2f_handler10:
 	cmp	al,0		; installation check ?
@@ -181,8 +182,8 @@ DA_CODEPAGE	equ	DA_CHARDEV+DA_IOCTL+DA_GETSET
 	push	es
 	push	cs
 	pop	es
-	mov	f66_cp,bx		; Save requested CodePage
-	mov	preperr,0000		; Initialize Prepare Error
+	mov	[f66_cp],bx		; Save requested CodePage
+	mov	word [preperr],0000		; Initialize Prepare Error
 	mov	ax,122ch		; magic hook get Device List
 	int	2fh			; after the NUL entry
 	mov	ds,bx			; BX:AX -> header after INT 2F
@@ -190,12 +191,12 @@ DA_CODEPAGE	equ	DA_CHARDEV+DA_IOCTL+DA_GETSET
 f66_p10:
 	push	ds
 	push	bx
-	mov	ax,DH_ATTRIB[bx]
+	mov	ax,[DH_ATTRIB + bx]
 	and	ax,DA_CODEPAGE		; Check for a Character Device which
 	cmp	ax,DA_CODEPAGE		; supports IOCTL strings and GETSET
 	 jnz	f66_p40			; otherwise skip the device
 
-	lea	si,DH_NAME[bx]		; Found a matching device so
+	lea	si,[DH_NAME + bx]		; Found a matching device so
 	mov	di,offset prepname	; open the device and select the 
 	mov	cx,8			; requested codepage
 
@@ -218,7 +219,7 @@ f66_p30:
 	 jc	f66_perr
 	mov	bx,ax			; Save Device Handle in BX
 
-	mov	si,f66_cp		; Get Requested CodePage in SI
+	mov	si,[f66_cp]		; Get Requested CodePage in SI
 	mov	dx,offset cp_packet	; Offset of CodePage Struct
 	mov	cx,006Ah		; Get Unknown CodePage
 	push	bp
@@ -228,10 +229,10 @@ f66_p30:
 	pop	bp
 	 jc	f66_p32			; Error so Select requested Code Page
 
-	cmp	si,cp_cpid
+	cmp	si,[cp_cpid]
 	 je	f66_p35			; If this the currently selected
 f66_p32:				; skip the select CodePage
-	mov	cp_cpid,si
+	mov	[cp_cpid],si
 	mov	dx,offset cp_packet	; Offset of CodePage Struct
 	mov	cx,004Ah		; Select Unkown CodePage
 	push	bp
@@ -241,7 +242,7 @@ f66_p32:				; skip the select CodePage
 	pop	bp
 	 jnc	f66_p35			; No Error so skip the error
 f66_p33:
- 	mov	preperr,ax		; save
+ 	mov	[preperr],ax		; save
 
 f66_p35:	
 	mov	ax,1227h
@@ -249,15 +250,15 @@ f66_p35:
 	jmp f66_p40
 
 f66_perr:
-	mov	preperr,ax		; Save the error code and try the
+	mov	[preperr],ax		; Save the error code and try the
 f66_p40:				; next device in the chain
 	pop	bx			; Restore the Device offset
 	pop	ds
-	lds	bx,DH_NEXT[bx]		; check next character device for
+	lds	bx,[DH_NEXT + bx]		; check next character device for
 	cmp	bx,0FFFFh		;  Codepage support
 	 jne	f66_p10
 
-	mov	ax,preperr		; All devices have been prepared
+	mov	ax,[preperr]		; All devices have been prepared
 	pop	es
 	pop	ds
 	or	ax,ax			;  now return the last error code
@@ -293,7 +294,7 @@ f65_locate_and_read:
 	call	f65x_load_info		; Load required info
 	pop	ax
 	 jc	f65_lr_exit
-	mov	bx,c_handle 		; Close the file first
+	mov	bx,[c_handle] 		; Close the file first
 	mov	ax,1227h
 	int	2fh			; magic hook to close handle
 	 jc	f65_lr_exit
@@ -306,8 +307,8 @@ f65_lr_exit:
 ;         country.sys open ready for more reads if success
 ;
 f65x_find_info:
-	mov	f65xx_country,dx
-	mov	f65xx_codepage,bx
+	mov	[f65xx_country],dx
+	mov	[f65xx_codepage],bx
 	mov	dx,di
 	xor	cx,cx			; Open for read
 	mov	ax,1226h
@@ -317,55 +318,55 @@ f65x_find_info:
 	 jnc	f65x_10
 	ret				; Successful open?
 f65x_10:
-	mov	c_handle,ax		; Save handle
-	mov	dx,f65xx_country
-	cmp	f65xx_code,dx		; do we already have the information?
+	mov	[c_handle],ax		; Save handle
+	mov	dx,[f65xx_country]
+	cmp	[f65xx_code],dx		; do we already have the information?
 	 jne	f65x_30			; No - get it from country.sys
 f65x_20:
-	cmp	f65xx_cp,bx		; Does codepage agree too?
+	cmp	[f65xx_cp],bx		; Does codepage agree too?
 	 je	f65x_35			; Yes so exit with no more ado
 f65x_30:
 	mov	dx,007Eh	
 	xor	cx,cx			; Seek within country.sys
-	mov	bx,c_handle
+	mov	bx,[c_handle]
 	push	bp
 	mov	bp,0			; seek from begining
 	mov	ax,1228h
 	int	2fh
 	pop	bp
 	 jc	f65x_err
-	mov	bx,c_handle		; check them
+	mov	bx,[c_handle]		; check them
 	mov 	cx,2
 	mov 	dx,offset f65xx_sig
 	mov	ax,1229h
 	int	2fh			; read the signature bytes
 	 jc	f65x_err
-	cmp	f65xx_sig,VALID_SIG
+	cmp	word [f65xx_sig],VALID_SIG
 	 jne	f65x_err		; If signature bad exit
 f65x_32:
-	mov	bx,c_handle		; Read from country.sys header until
+	mov	bx,[c_handle]		; Read from country.sys header until
 	mov	cx,f65xx_ptable_len	; Country/codepage found or NULL
 	mov	dx,offset f65xx_code
 	mov	ax,1229h
 	int	2fh
 	 jc	f65x_err	
-	cmp	f65xx_code,0		; Found NULL so reqd combination
+	cmp	word [f65xx_code],0		; Found NULL so reqd combination
 	 je	f65x_err		; was not found
-	mov	dx,f65xx_code		; Get the country/codepage values
-	mov	bx,f65xx_cp		; read from Country.SYS
-	cmp	dx,f65xx_country	; Check against the requested
+	mov	dx,[f65xx_code]		; Get the country/codepage values
+	mov	bx,[f65xx_cp]		; read from Country.SYS
+	cmp	dx,[f65xx_country]	; Check against the requested
 	 jne	f65x_32			; Country. 
-	cmp	f65xx_codepage,0	; If a codepage match is not
+	cmp	word [f65xx_codepage],0	; If a codepage match is not
 	 jz	f65x_35			; then return success
-	cmp	bx,f65xx_codepage	; Check against the requested
+	cmp	bx,[f65xx_codepage]	; Check against the requested
 	 jne	f65x_32			; Codepage
 f65x_35:
-	mov	f65xx_country,dx	; Force the Search Country and
-	mov	f65xx_codepage,bx	; CodePage to be Updated
+	mov	[f65xx_country],dx	; Force the Search Country and
+	mov	[f65xx_codepage],bx	; CodePage to be Updated
 	ret
 
 f65x_err:
-	mov	bx,c_handle 		; and set the carry flag before
+	mov	bx,[c_handle] 		; and set the carry flag before
 	mov	ax,1227h
 	int	2fh			; magic hook to close handle
 	stc
@@ -391,9 +392,9 @@ f65x_load_info:
 	sub	bh,bh			; 5=filechars, 6=Collating table
 	mov	bl,al			; 7=DBCS table
 	shl	bx,1			; Retrieve relevant offset
-	mov	dx,f65xx_data[bx]	
+	mov	dx,[f65xx_data + bx]	
 	xor	cx,cx			; Seek within country.sys
-	mov	bx,c_handle
+	mov	bx,[c_handle]
 	push	bp
 	mov	bp,0			; seek from begining
 	mov	ax,1228h
@@ -404,7 +405,7 @@ f65x_load_info:
 	 jc	f65x_err
 	test	ax,ax			; zero offset is a problem
 	 jz	f65x_err		; (probably DBCS with old COUNTRY.SYS)
-	mov	bx,c_handle		; Now read that info into our data area
+	mov	bx,[c_handle]		; Now read that info into our data area
 	mov	ax,1229h
 	int	2fh
 	 jc	f65x_err
