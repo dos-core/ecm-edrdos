@@ -42,7 +42,7 @@ nasm -DCOMPRESSED=%compressdrbio% -s -P nasm.mac -P nasmorg.mac -f obj init.nas 
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj clock.nas -l bin/clock.lst -o bin/clock.obj
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Fl.\BIN\console.lst -Fo.\BIN\console console.asm
+nasm -s -P nasm.mac -f obj console.nas -l bin/console.lst -o bin/console.obj
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\disk.lst -Fo.\BIN\disk disk.asm
 IF ERRORLEVEL 1 GOTO FAILED
