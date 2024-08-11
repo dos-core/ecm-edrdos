@@ -1,7 +1,5 @@
 @ECHO off
 
-SET JWASMEXE=C:\BIN\JWASM.EXE
-
 REM 
 REM YOU SHOULD NOT HAVE TO CHANGE ANYTHING BELOW THIS LINE.
 REM 
@@ -22,11 +20,6 @@ REM Define local Caldera tools
 SET LOCTOOLS=..\LTOOLS
 
 IF NOT EXIST BIN\*.* MD BIN
-
-REM Check if tools exist
-
-ECHO Checking for %JWASMEXE%
-if not exist %JWASMEXE% goto badtool
 
 copy ..\version.inc . /y
 
