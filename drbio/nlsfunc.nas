@@ -44,9 +44,9 @@
 
 VALID_SIG	equ	0EDC1h	; valid signature in COUNTRY.SYS file
 
-DH_NEXT		equ	ds:dword ptr 0		; Dword Pointer to Next DEV
-DH_ATTRIB	equ	ds:word ptr 4		; device attribute bits
-DH_NAME		equ	ds:byte ptr 10		; 8-BYTE device name
+DH_NEXT		equ	dword ptr 0		; Dword Pointer to Next DEV
+DH_ATTRIB	equ	word ptr 4		; device attribute bits
+DH_NAME		equ	byte ptr 10		; 8-BYTE device name
 
 DA_CHARDEV	equ	8000h		; 1=character device, 0=block device
 DA_IOCTL	equ	4000h		; device supports IOCTL string I/O
