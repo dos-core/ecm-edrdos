@@ -104,9 +104,9 @@
 	%include "keys.mac"		; common key definitions
 
 
-int_____DISK_INT macro
+%macro int_____DISK_INT 0.nolist
 	call	Int13
-	endm
+%endmacro
 
 FASTSETTLE	equ	FALSE		; disable "head settle == 0 ms"
 
@@ -135,32 +135,23 @@ group CGROUP CODE RCODE ICODE RESBIOS IDATA
 
 	Assume	CS:CGROUP, DS:CGROUP, ES:Nothing, SS:Nothing
 
-section IVECT
+absolute 0
 
-		org	0013h*4
+		org	0013h*4, db ?
 i13off		dw	?
 i13seg		dw	?
 
-		org	001Eh*4
+		org	001Eh*4, db ?
 i1eptr		dd	?
 
-		org	002Fh*4
+		org	002Fh*4, db ?
 i2Foff		dw	?
 i2Fseg		dw	?
 
-		org	0472h
-reset_flag	dw	?
-
-		org	0504h
+		org	0504h, db ?
 dual_byte	db	?		; multiple drive byte at 50:4
 
 IVECT	ends
-
-section ROS
-	org	0FFF0h
-reset	proc	far
-reset	endp
-ROS	ends
 
 section CODE class=CODE
 
