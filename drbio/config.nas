@@ -342,8 +342,8 @@ BusMasterRemovable:
 	pop 	es
 	mov	bx,offset removableMediaRequest
 	mov	es:RH_UNIT[bx],dl
-	call	dword ptr cs:strategy
-	call	dword ptr cs:interrupt
+	call	dword ptr cs:strategy_far
+	call	dword ptr cs:interrupt_far
 	test	es:RH_STATUS[bx],RHS_BUSY
 	 jz	BusMasterRemovable10
 	stc				; busy bit set, it's a hard disk
@@ -368,8 +368,8 @@ BusMasterRead:		; Read first sector from drive BL
 	mov	es:RH4_BUFOFF[bx],0
 	mov	es:RH4_BUFSEG[bx],ax
 	mov	es:RH4_COUNT[bx],1
-	call	dword ptr cs:strategy
-	call	dword ptr cs:interrupt
+	call	dword ptr cs:strategy_far
+	call	dword ptr cs:interrupt_far
 	test	es:RH_STATUS[bx],RHS_ERROR
 	 jz	BusMasterRead10
 	stc				; error bit set, say we had a problem
@@ -596,12 +596,12 @@ dev_init:
  	mov	si,di			; DS:SI -> device driver header
 	push	ds
 	push	es
- 	call	dword ptr cs:strategy		; Call Device Strategy Routine
+ 	call	dword ptr cs:strategy_far		; Call Device Strategy Routine
 	pop	es
 	pop	ds
 	mov	ax,ds:DEVHDR.INTERRUPT[si]	; Set up the INTERRUPT Entry Point
 	mov	es:interrupt_off,ax
-	call	dword ptr cs:interrupt		; Call Device Interrupt Routine
+	call	dword ptr cs:interrupt_far		; Call Device Interrupt Routine
 	pop 	di
 	pop 	si
 	pop 	bx			; recover the pointers
@@ -1425,7 +1425,7 @@ include	biosmsgs.def
 	Public	dev_load_seg, dev_reloc_seg, dev_epb, dev_name, dev_count
 	Public	rel_unit, dev_epb
 	Public	strategy_off, strategy_seg, interrupt_off, interrupt_seg, request_hdr
-	Public	next_drv, strategy_seg, strategy, interrupt
+	Public	next_drv, strategy_seg, strategy, interrupt_far
 	Public	strategy_seg, condev_off, condev_seg, clkdev_off, clkdev_seg
 	Public	num_blkdev, blkdev_table, next_drv, max_secsize
 	Public	max_clsize, init_buf, num_read_ahead_buf
@@ -1485,11 +1485,11 @@ blkdev_table	db	BLKDEV_LENGTH*26 dup (0); save block device driver addr. here
 ;	Variable for the FUNC_DEVICE and DEV_INIT sub routines
 ;
 
-strategy	label dword		; Device Strategy Entry Point
+strategy_far	label dword		; Device Strategy Entry Point
 strategy_off	dw	0		; Offset 
 strategy_seg	dw	0		; Segment Address
 
-interrupt	label dword		; Device Entry Point
+interrupt_far	label dword		; Device Entry Point
 interrupt_off	dw	0		; Offset
 interrupt_seg	dw	0		; Segment Address
 
