@@ -3729,8 +3729,8 @@ endif
 	extrn	request_hdr:byte
 	extrn	next_drv:byte
 	extrn	strategy_seg:word
-	extrn	strategy:dword
-	extrn	interrupt:dword
+	extrn	strategy_far:dword
+	extrn	interrupt_far:dword
 	extrn	func52_ptr:dword
 	extrn	strategy_seg:word
 	extrn	condev_off:word
