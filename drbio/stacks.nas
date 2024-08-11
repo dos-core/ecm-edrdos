@@ -38,9 +38,9 @@
 STACKS_IN_HMA	equ	00000001b
 STACKS_IN_UMB	equ	00000010b
 
-CGROUP	group	INITCODE, STACKS, INITDATA
+group CGROUP INITCODE STACKS INITDATA
 
-STACKS		segment	public para 'STACKS'
+section STACKS public align=16 class=STACKS
 
 	Assume	CS:STACKS, DS:Nothing, ES:Nothing, SS:Nothing
 
@@ -57,20 +57,20 @@ StackCB		dw	0		; NumOfStacks*8 = size of control array
 StackSize       dw	0		; size of an individual stack
 StackPtr	label dword		; pointer to stack data		
 	Public	StackSeg,StackOff
-StackOff	dw	offset STACKS:StackHeap
+StackOff	dw	offset StackHeap wrt STACKS
 StackSeg	dw	0
-FirstStack	dw	offset STACKS:StackHeap
-LastStack	dw	offset STACKS:StackHeap-STACK_CB_SIZE
-NextStack	dw	offset STACKS:StackHeap-STACK_CB_SIZE
+FirstStack	dw	offset StackHeap wrt STACKS
+LastStack	dw	offset StackHeap-STACK_CB_SIZE wrt STACKS
+NextStack	dw	offset StackHeap-STACK_CB_SIZE wrt STACKS
 
 ;************
 ; FIXED DATA
 ;************
 
-STACK_CB_FLAGS	equ	word ptr 0	; stack flags
-STACK_CB_SP	equ	word ptr 2	; old stack saved here
-STACK_CB_SS	equ	word ptr 4
-STACK_CB_TOP	equ	word ptr 6	; stack top lives here
+labelsize STACK_CB_FLAGS, word, 0	; stack flags
+labelsize STACK_CB_SP, word, 2	; old stack saved here
+labelsize STACK_CB_SS, word, 4
+labelsize STACK_CB_TOP, word, 6	; stack top lives here
 STACK_CB_SIZE	equ	8
 
 STACK_FREE	equ	0		; stack is available to allocate
@@ -182,33 +182,33 @@ SwapStack proc near
 SwapStack05:
 	pop	di
 	sub	di,(SwapStack05-StackCode)	; to locate the stack variables
-;	mov	si,cs:[NextStack-StackCode]	; start looking here for a stack
-	mov	si,cs:(NextStack-StackCode)[di]	; start looking here for a stack
+;	mov	si,[cs:NextStack-StackCode]	; start looking here for a stack
+	mov	si,[cs:(NextStack-StackCode) + di]	; start looking here for a stack
 SwapStack10:
-	cmp	cs:STACK_CB_FLAGS[si],STACK_FREE
+	cmp	word [cs:STACK_CB_FLAGS + si],STACK_FREE
 	 jne	SwapStack20		; use this stack if possible
-	mov	bp,cs:STACK_CB_TOP[si]	; get the top of this stack
-	cmp	si,cs:word ptr [bp]	; does the check match ?
+	mov	bp,[cs:STACK_CB_TOP + si]	; get the top of this stack
+	cmp	si,word ptr [cs:bp]	; does the check match ?
 	 jne	SwapStack20		; no, try the next one
-;	mov	cs:[NextStack-StackCode],si	; remember where we are
-	mov	cs:(NextStack-StackCode)[di],si	; remember where we are
-	mov	cs:STACK_CB_FLAGS[si],STACK_INUSE
-	mov	cs:STACK_CB_SS[si],ss	; save old stack
-	mov	cs:STACK_CB_SP[si],sp
+;	mov	[cs:NextStack-StackCode],si	; remember where we are
+	mov	[cs:(NextStack-StackCode) + di],si	; remember where we are
+	mov	word [cs:STACK_CB_FLAGS + si],STACK_INUSE
+	mov	[cs:STACK_CB_SS + si],ss	; save old stack
+	mov	[cs:STACK_CB_SP + si],sp
 
 	mov	bp,sp
-	xchg	bx,ss:word ptr 6[bp]	; BX = return address, BX saved
+	xchg	bx,word ptr [6 + bp]	; BX = return address, BX saved
 
 	mov	bp,cs
 	mov	ss,bp
-	mov	sp,cs:STACK_CB_TOP[si]	; switch stacks
+	mov	sp,[cs:STACK_CB_TOP + si]	; switch stacks
 	pushf
-	call	cs:dword ptr 1[bx]	; fake an INT to old handler
-	mov	ss,cs:STACK_CB_SS[si]
-	mov	sp,cs:STACK_CB_SP[si]	; swap back to the original stack
-	mov	cs:STACK_CB_FLAGS[si],STACK_FREE
-;	mov	cs:[NextStack-StackCode],si	; update in case we were nested
-	mov	cs:(NextStack-StackCode)[di],si	; update in case we were nested
+	call	far [cs:1 + bx]	; fake an INT to old handler
+	mov	ss,[cs:STACK_CB_SS + si]
+	mov	sp,[cs:STACK_CB_SP + si]	; swap back to the original stack
+	mov	word [cs:STACK_CB_FLAGS + si],STACK_FREE
+;	mov	[cs:NextStack-StackCode],si	; update in case we were nested
+	mov	[cs:(NextStack-StackCode) + di],si	; update in case we were nested
 	pop	di
 	pop	si			; restore registers
 	pop	bp
@@ -217,8 +217,8 @@ SwapStack10:
 
 SwapStack20:
 	sub	si,STACK_CB_SIZE	; it's not, so try the next
-;	cmp	si,cs:[FirstStack-StackCode]	;  if there is one
-	cmp	si,cs:(FirstStack-StackCode)[di]	;  if there is one
+;	cmp	si,[cs:FirstStack-StackCode]	;  if there is one
+	cmp	si,[cs:(FirstStack-StackCode) + di]	;  if there is one
 	 jae	SwapStack10
 	pop	di
 	pop	si			; restore registers
@@ -227,20 +227,20 @@ SwapStack20:
 
 SwapStack endp
 
-i19Table dw	4*02H, offset STACKS:i02Off
-	dw	4*08H, offset STACKS:i08Off
-	dw	4*09H, offset STACKS:i09Off
-	dw	4*0AH, offset STACKS:i0AOff
-	dw	4*0BH, offset STACKS:i0BOff
-	dw	4*0CH, offset STACKS:i0COff
-	dw	4*0DH, offset STACKS:i0DOff
-	dw	4*0EH, offset STACKS:i0EOff
-	dw	4*70H, offset STACKS:i70Off
-	dw	4*72H, offset STACKS:i72Off
-	dw	4*73H, offset STACKS:i73Off
-	dw	4*74H, offset STACKS:i74Off
-	dw	4*76H, offset STACKS:i76Off
-	dw	4*77H, offset STACKS:i77Off
+i19Table dw	4*02H, offset i02Off wrt STACKS
+	dw	4*08H, offset i08Off wrt STACKS
+	dw	4*09H, offset i09Off wrt STACKS
+	dw	4*0AH, offset i0AOff wrt STACKS
+	dw	4*0BH, offset i0BOff wrt STACKS
+	dw	4*0CH, offset i0COff wrt STACKS
+	dw	4*0DH, offset i0DOff wrt STACKS
+	dw	4*0EH, offset i0EOff wrt STACKS
+	dw	4*70H, offset i70Off wrt STACKS
+	dw	4*72H, offset i72Off wrt STACKS
+	dw	4*73H, offset i73Off wrt STACKS
+	dw	4*74H, offset i74Off wrt STACKS
+	dw	4*76H, offset i76Off wrt STACKS
+	dw	4*77H, offset i77Off wrt STACKS
 	dw	0
 
 Int19:
@@ -252,7 +252,7 @@ Int19:
 	push	cs
 	pop	ds
 			Assume DS:STACKS
-	lea	si,i19Table	; DS:SI -> table to restore
+	lea	si,[i19Table]	; DS:SI -> table to restore
 Int1910:
 	lodsw
 	xchg	ax,di		; ES:DI -> address to restore to
@@ -261,7 +261,7 @@ Int1910:
 	movsw
 	movsw
 	xchg	ax,si		; restore position in table
-	cmp	ds:word ptr [si],0
+	cmp	word ptr [si],0
 	 jne	Int1910
 	db	0EAh		; JMPF
 i19Off	dw	4*19h,0
@@ -274,7 +274,7 @@ RELOCATE_SIZE	equ	($ - StackCode)
 
 STACKS		ends
 
-INITCODE	segment public para 'INITCODE'
+section INITCODE public align=16 class=INITCODE
 
 	Assume	CS:CGROUP, DS:CGROUP, ES:Nothing, SS:Nothing
 
@@ -299,20 +299,20 @@ InitStacks:
 	push	es
 	inc	dx			; let's ensure stacks are WORD
 	and	dx,0FFFEh		;  aligned...
-	mov	NumOfStacks,cx
-	mov	StackSize,dx
+	mov	[NumOfStacks],cx
+	mov	[StackSize],dx
 	mov	ax,STACK_CB_SIZE
 	mul	cx			; AX = bytes in control area
-	mov	StackCB,ax
-	add	LastStack,ax
-	add	NextStack,ax
-	add	StackOff,ax		; adjust our pointers
+	mov	[StackCB],ax
+	add	[LastStack],ax
+	add	[NextStack],ax
+	add	[StackOff],ax		; adjust our pointers
 	xchg	ax,cx			; AX = NumOfStacks
-	mul	StackSize		; AX bytes are required for stacks
-	add	ax,StackOff		; add to start of stacks
+	mul	word [StackSize]		; AX bytes are required for stacks
+	add	ax,[StackOff]		; add to start of stacks
 	push	ax			; save length in bytes
 
-	test	stacksIn,STACKS_IN_HMA	; HMA usage enables for stacks?
+	test	byte [stacksIn],STACKS_IN_HMA	; HMA usage enables for stacks?
 	 jz	InitStacks04
 	call	SetupHMA		; make sure HMA chain is established
 	pop cx				; CX = bytes wanted
@@ -329,7 +329,7 @@ InitStacks04:
 	mov	cl,4
 	shr	ax,cl			; convert it to para's
 	mov	dl,'S'			; allocation signature is Stacks
-	test	stacksIn,STACKS_IN_UMB	; UMB usage enables for stacks?
+	test	byte [stacksIn],STACKS_IN_UMB	; UMB usage enables for stacks?
 	 jz	InitStacks05
 	call	alloc_upper		; yes, try to allocate upper memory
 	 jnc	InitStacks06		; if this fails
@@ -340,27 +340,27 @@ InitStacks06:
 InitStacks07:
 	pop	cx			; CX = length in bytes
 	push	di
-	mov	StackSeg,ax		; remember where
-	mov	StackOff,di
+	mov	[StackSeg],ax		; remember where
+	mov	[StackOff],di
 	mov	es,ax
 			Assume ES:STACKS
 	mov	al,0CCh			; fill stacks with CC for debug
 	rep	stosb
 	pop	di
-	mov	si,offset CGROUP:StackCode
+	mov	si,offset StackCode wrt CGROUP
 	mov	cx,RELOCATE_SIZE
 	rep	movsb			; relocate the code
 
-	mov	bx,FirstStack		; lets start building the CB's
-	mov	cx,NumOfStacks
-	lds	si,StackPtr		; SI = bottom of stack area
+	mov	bx,[FirstStack]		; lets start building the CB's
+	mov	cx,[NumOfStacks]
+	lds	si,[StackPtr]		; SI = bottom of stack area
 			Assume DS:STACKS
-	sub	si,WORD			; we want the word below top of stack
+	sub	si,2			; we want the word below top of stack
 InitStacks10:
-	add	si,StackSize		; SI = top of stack
-	mov	ds:STACK_CB_FLAGS[bx],STACK_FREE
-	mov	ds:STACK_CB_TOP[bx],si	; set top of stack
-	mov	ds:word ptr [si],bx	; set backlink
+	add	si,[StackSize]		; SI = top of stack
+	mov	word [STACK_CB_FLAGS + bx],STACK_FREE
+	mov	[STACK_CB_TOP + bx],si	; set top of stack
+	mov	word ptr [si],bx	; set backlink
 	add	bx,STACK_CB_SIZE	; onto next control block
 	loop	InitStacks10
 			
@@ -368,18 +368,18 @@ InitStacks10:
 	mov	ds,ax
 			Assume DS:Nothing
 	cli
-	mov	si,offset CGROUP:iTable	; now we fixup the vectors
+	mov	si,offset iTable wrt CGROUP	; now we fixup the vectors
 InitStacks20:
-	mov	ax,cs:word ptr 0[si]	; ES:AX = entry point
-	mov	di,cs:word ptr 2[si]	; ES:DI = fixup location
-	mov	bx,es:word ptr [di]	; get the vector to fixup
-	xchg	ax,ds:word ptr [bx]	; set entry offset while saving
+	mov	ax,word ptr [cs:0 + si]	; ES:AX = entry point
+	mov	di,word ptr [cs:2 + si]	; ES:DI = fixup location
+	mov	bx,word ptr [es:di]	; get the vector to fixup
+	xchg	ax,word ptr [bx]	; set entry offset while saving
 	stosw				;  previous handler offset
 	mov	ax,es
-	xchg	ax,ds:word ptr 2[bx]	; now the segment
+	xchg	ax,word ptr [2 + bx]	; now the segment
 	stosw
-	add	si,2*WORD		; onto next entry
-	cmp	cs:word ptr 0[si],0	; (zero terminated)
+	add	si,2*2		; onto next entry
+	cmp	word ptr [cs:0 + si],0	; (zero terminated)
 	 jnz	InitStacks20
 	sti
 InitStacks30:
@@ -387,26 +387,26 @@ InitStacks30:
 	pop	ds
 	ret
 
-iTable	dw	offset STACKS:Int02, offset STACKS:i02Off
-	dw	offset STACKS:Int08, offset STACKS:i08Off
-	dw	offset STACKS:Int09, offset STACKS:i09Off
-	dw	offset STACKS:Int0A, offset STACKS:i0AOff
-	dw	offset STACKS:Int0B, offset STACKS:i0BOff
-	dw	offset STACKS:Int0C, offset STACKS:i0COff
-	dw	offset STACKS:Int0D, offset STACKS:i0DOff
-	dw	offset STACKS:Int0E, offset STACKS:i0EOff
-	dw	offset STACKS:Int70, offset STACKS:i70Off
-	dw	offset STACKS:Int72, offset STACKS:i72Off
-	dw	offset STACKS:Int73, offset STACKS:i73Off
-	dw	offset STACKS:Int74, offset STACKS:i74Off
-	dw	offset STACKS:Int76, offset STACKS:i76Off
-	dw	offset STACKS:Int77, offset STACKS:i77Off
-	dw	offset STACKS:Int19, offset STACKS:i19Off
+iTable	dw	offset Int02 wrt STACKS, offset i02Off wrt STACKS
+	dw	offset Int08 wrt STACKS, offset i08Off wrt STACKS
+	dw	offset Int09 wrt STACKS, offset i09Off wrt STACKS
+	dw	offset Int0A wrt STACKS, offset i0AOff wrt STACKS
+	dw	offset Int0B wrt STACKS, offset i0BOff wrt STACKS
+	dw	offset Int0C wrt STACKS, offset i0COff wrt STACKS
+	dw	offset Int0D wrt STACKS, offset i0DOff wrt STACKS
+	dw	offset Int0E wrt STACKS, offset i0EOff wrt STACKS
+	dw	offset Int70 wrt STACKS, offset i70Off wrt STACKS
+	dw	offset Int72 wrt STACKS, offset i72Off wrt STACKS
+	dw	offset Int73 wrt STACKS, offset i73Off wrt STACKS
+	dw	offset Int74 wrt STACKS, offset i74Off wrt STACKS
+	dw	offset Int76 wrt STACKS, offset i76Off wrt STACKS
+	dw	offset Int77 wrt STACKS, offset i77Off wrt STACKS
+	dw	offset Int19 wrt STACKS, offset i19Off wrt STACKS
 	dw	0
 
 INITCODE	ends
 
-INITDATA	segment	public word 'INITDATA'
+section INITDATA public align=2 class=INITDATA
 
 	extrn	stacksIn:byte
 
