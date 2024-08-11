@@ -105,6 +105,9 @@ CF_LC		equ	0010h		; set if case should be preserved
 CF_QUERY	equ	0020h		; set at run time eg. "DEVICE?"
 CF_ALL		equ	0040h		; execute in all config passes
 
+labelsize drivp_spt, word, ioctl_bpb+13
+labelsize drivp_heads, word, ioctl_bpb+15	; # of heads
+
 group CGROUP INITCODE INITDATA INITENV
 ASSUME CS:CGROUP,DS:CGROUP
 
@@ -3846,8 +3849,6 @@ drivp_chg	db	0		; change line support
 drivp_prm	db	0		; permanent media flag
 drivp_ff	db	0		; form factor
 drivp_trk	dw	80
-labelsize drivp_spt, word, ioctl_bpb+13
-labelsize drivp_heads, word, ioctl_bpb+15	; # of heads
 
 ff_table	dw	bpb360, bpb1200, bpb720		; 360/1200/720 Kb
 		dw	bpb243, bpb1200			; 8" sd/dd
