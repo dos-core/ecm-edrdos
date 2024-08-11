@@ -37,18 +37,18 @@
 ;
 ;    ENDLOG
 
-	include biosgrps.equ
-    include drmacros.equ    ; standard DR macros
-	include	ibmros.equ		; ROM BIOS equates
-	include	request.equ		; request header equates
-	include	driver.equ		; device driver equates
+	%include "biosgrps.mac"
+    %include "drmacros.mac"    ; standard DR macros
+	%include "ibmros.mac"		; ROM BIOS equates
+	%include "request.mac"		; request header equates
+	%include "driver.mac"		; device driver equates
 
-page
-CGROUP	group	CODE, RCODE, ICODE
+;page
+group CGROUP CODE RCODE ICODE
 
 	Assume	CS:CGROUP, DS:CGROUP, ES:CGROUP, SS:CGROUP
 
-CODE	segment 'CODE'
+section CODE class=CODE
 
 INSERT_ACTIVE	equ	2		; set if cmdline insert active
 
@@ -60,7 +60,7 @@ INSERT_ACTIVE	equ	2		; set if cmdline insert active
 
 CODE	ends
 
-RCODE	segment 'RCODE'
+section RCODE class=RCODE
 
 ;	Device driver function table
 
@@ -87,15 +87,15 @@ ConsoleTable:
 
 	Assume	DS:CGROUP, ES:Nothing, SS:Nothing
 
-page
+;page
 
 dd_outioctl:
 ;-----------
-	mov	cx,es:RH4_COUNT[bx]	; get # of characters to output
+	mov	cx,[es:RH4_COUNT + bx]	; get # of characters to output
 	cmp	cx,2			; is it what we expect ?
 	 jne	dd_error		; no, bail out
 	push	ds
-	lds	si,es:RH4_BUFFER[bx]	; DS:SI -> buffer
+	lds	si,[es:RH4_BUFFER + bx]	; DS:SI -> buffer
 	lodsw				; get the data
 	pop	ds
 	xchg	ax,si			; save data in SI
@@ -133,8 +133,8 @@ poll_char:
 ;	exit:	ZF = 1  =>  no character ready
 ;		ZF = 0  =>  AL = character
 
-	mov	al,local_char		; get the local character
-	cmp	local_flag,TRUE		; do we have local character?
+	mov	al,[local_char]		; get the local character
+	cmp	byte [local_flag],TRUE		; do we have local character?
 	 je	poll_c4			; no, check ROS keyboard status
 	mov	ah,1			; get keyboard status (and character)
 	int	KEYBOARD_INT		; read character from keyboard
@@ -151,7 +151,7 @@ poll_c4:				; return the character in AL
 
 char_read:
 ;---------
-	cmp	local_flag,TRUE		; do we have local character?
+	cmp	byte [local_flag],TRUE		; do we have local character?
 	 je	rdchr3			; handle that specially
 	mov	ah,0
 	int	KEYBOARD_INT		; read character from keyboard
@@ -164,22 +164,22 @@ char_read:
 rdchr1:					; else it is normal or function key
 	test	al,al			; test if function key
 	 jnz	rdchr2			; skip if normal character
-	mov	local_flag,TRUE		; else return scan code as next
-	mov	local_char,ah		;    character from next INPUT
+	mov	byte [local_flag],TRUE		; else return scan code as next
+	mov	[local_char],ah		;    character from next INPUT
 rdchr2:					; return the character in AL
 	ret
 rdchr3:
-	mov	local_flag,FALSE	; tell them buffer is invalid
-	mov	al,local_char		; get the local charcater
+	mov	byte [local_flag],FALSE	; tell them buffer is invalid
+	mov	al,[local_char]		; get the local charcater
 	ret				;    and return it
 
-	page
+;	page
 dd_input:	; 4-input
 ;--------
-	mov	cx,es:RH4_COUNT[bx]	; get # of characters to output
+	mov	cx,[es:RH4_COUNT + bx]	; get # of characters to output
 	 jcxz	input9			; return if nothing to input
 	push	es			; save ES (-> request header!)
-	les	di,es:RH4_BUFFER[bx]	; get address of string to input
+	les	di,[es:RH4_BUFFER + bx]	; get address of string to input
 input1:
 	call	char_read		; read 8-bit character
 	stosb				; store it in input buffer
@@ -207,7 +207,7 @@ dd_poll:	; 5-nondestructive input (char only)
 ;-------
 	call	poll_char		; check keyboard status
 	 jz	dd_instat20
-	mov	es:RH5_CHAR[bx],al	; return the character
+	mov	[es:RH5_CHAR + bx],al	; return the character
 dd_poll10:
 	sub	ax,ax
 	ret
@@ -230,12 +230,12 @@ dd_inflush:	; 7-input flush
 
 dd_output:	; 8-output
 ;---------
-	mov	cx,es:RH4_COUNT[bx]	; get # of characters to output
+	mov	cx,[es:RH4_COUNT + bx]	; get # of characters to output
 	 jcxz	output9			; return if nothing to output
 	push	es			; save ES (-> request header!)
-	les	si,es:RH4_BUFFER[bx]	; get address of string to output
+	les	si,[es:RH4_BUFFER + bx]	; get address of string to output
 output1:
-	lods	es:byte ptr [si]	; get next character to output
+	es lodsb	; get next character to output
 	pushf				; stack as per Int 29
 	db	09Ah			; CALLF to our fastconsole entry
 	dw	offset FastConsole
@@ -249,9 +249,9 @@ output9:
 
 RCODE	ends				; end of device driver code
 
-page
+;page
 
-ICODE	segment	'ICODE'			; initialization code
+section ICODE class=ICODE			; initialization code
 
 dd_init:	; 0-initialize driver
 ;-------
@@ -271,7 +271,7 @@ dd_init:	; 0-initialize driver
 	stosw
 	pop	es
 
-ifdef JAPAN
+%ifdef JAPAN
 
 	mov	ax,05000H		; Japanese mode (AX machine)
 	mov	bx,81			; 081 : Japanese mode select
@@ -281,18 +281,19 @@ ifdef JAPAN
 	mov	bx,81			; 081 : Japanese mode select
 	int	KEYBOARD_INT		;
 
-endif
+%endif
 
 	mov	ax,14*256 + 13		; output a carriage return
 	int	VIDEO_INT
 	mov	ax,14*256 + 10		; output a line feed
 	int	VIDEO_INT
 
-	les	bx,P_DSTRUC.REQUEST[bp]	; ES:BX -> request header
+P_DSTRUC.REQUEST equ REQUEST	; NASM port label
+	les	bx,[P_DSTRUC.REQUEST + bp]	; ES:BX -> request header
 
-	mov	ax,endbios		; get last resident byte in BIOS
-	mov	es:RH0_RESIDENT[bx],ax	; set end of device driver
-	mov	es:RH0_RESIDENT+2[bx],ds
+	mov	ax,[endbios]		; get last resident byte in BIOS
+	mov	[es:RH0_RESIDENT + bx],ax	; set end of device driver
+	mov	[es:RH0_RESIDENT+2 + bx],ds
 
 	sub	ax,ax			; initialization succeeded
 	ret             
