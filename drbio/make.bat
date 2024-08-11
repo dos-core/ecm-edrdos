@@ -48,7 +48,7 @@ nasm -s -P nasm.mac -P nasmorg.mac -f obj disk.nas -l bin/disk.lst -o bin/disk.o
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj serpar.nas -l bin/serpar.lst -o bin/serpar.obj
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Fl.\BIN\biosgrps.lst -Fo.\BIN\biosgrps biosgrps.asm
+nasm -s -P nasm.mac -f obj biosgrps.nas -l bin/biosgrps.lst -o bin/biosgrps.obj
 IF ERRORLEVEL 1 GOTO FAILED
 %JWASMEXE% -c -Fl.\BIN\stacks.lst -Fo.\BIN\stacks stacks.asm
 IF ERRORLEVEL 1 GOTO FAILED
