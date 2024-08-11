@@ -55,23 +55,23 @@
 ;    on novell memory managers
 ;    ENDLOG
 
-	include	config.equ
-	include	msdos.equ
-	include char.def
-	include	request.equ
-	include	driver.equ
-	include	fdos.equ
-	include	f52data.def		; Function 52 DOS Data Area
-	include	doshndl.def		; DOS Handle Structure Definition
-	include country.def
+	%include "config.mac"
+	%include "msdos.mac"
+	%include "char.mac"
+	%include "request.mac"
+	%include "driver.mac"
+	%include "fdos.mac"
+	%include "f52data.mac"		; Function 52 DOS Data Area
+	%include "doshndl.mac"		; DOS Handle Structure Definition
+	%include "country.mac"
 	
 TRUE	   	equ	0FFFFh	      ; value of TRUE
 FALSE	   	equ	0	      ; value of FALSE
 
-CGROUP		group	INITCODE, INITDATA
+group CGROUP INITCODE INITDATA
 ASSUME CS:CGROUP,DS:CGROUP
 
-INITCODE	segment public para 'INITCODE'
+section INITCODE public align=16 class=INITCODE
 
 	extrn	AllocHMA:near
 	extrn	SetupHMA:near
@@ -118,12 +118,12 @@ country_init:
 
 ; Failed to get country info. Place dummy uppercase routine in table.
 	mov	si, offset ctry_info
-	mov	CI_CASEOFF[si], offset myretf
-	mov	CI_CASESEG[si], cs
-	mov	bx, country_code
+	mov	word [CI_CASEOFF + si], offset myretf
+	mov	[CI_CASESEG + si], cs
+	mov	bx, [country_code]
 
 ctry_info_done:
-	mov	country_code, bx
+	mov	[country_code], bx
 
 	pop	si
 	pop	di
@@ -140,11 +140,11 @@ myretf:	retf
 	Public config			; Process CONFIG.SYS, loading and
 config:					; initialising device drivers
 	call	country_init		; initialise DBCS tbl and country info
-	mov	ax,max_secsize		; get maximum sector size in BIOS
-	les	bx,func52_ptr
-	cmp	ax,es:F52_SECSIZE[bx]	; larger than default?
+	mov	ax,[max_secsize]		; get maximum sector size in BIOS
+	les	bx,[func52_ptr]
+	cmp	ax,[es:F52_SECSIZE + bx]	; larger than default?
 	 jbe	cfg_skip		; skip if not
-	mov	es:F52_SECSIZE[bx],ax	; else update sector size
+	mov	[es:F52_SECSIZE + bx],ax	; else update sector size
 cfg_skip:
 	call	cpu_init		; initialise CPU type
 	push 	ds
@@ -153,39 +153,39 @@ cfg_skip:
 	call	config_process		; Process CONFIG.SYS
 
 	call	get_boot_options	; look for user keypress
-	mov	boot_options,ax		;  return any options
+	mov	[boot_options],ax		;  return any options
 	cmp	ax,F5KEY
 	 jne	cfg_no_f5
-	lea	dx,cs:f5key_msg
+	lea	dx,[f5key_msg]
 	mov	ah,MS_C_WRITESTR
 	int	DOS_INT
 	jmp	short cfg_no_f8
 cfg_no_f5:
 	cmp	ax,F8KEY
 	 jne	cfg_no_f8
-	lea	dx,cs:f8key_msg
+	lea	dx,[f8key_msg]
 	mov	ah,MS_C_WRITESTR
 	int	DOS_INT
 cfg_no_f8:
 
-	mov	configPass,1		; second pass of CONFIG.SYS
-	mov	cfg_head,0
-	mov	cfg_tail,0
-	mov	cfg_seeklo,0
-	mov	cfg_seekhi,0
+	mov	byte [configPass],1		; second pass of CONFIG.SYS
+	mov	word [cfg_head],0
+	mov	word [cfg_tail],0
+	mov	word [cfg_seeklo],0
+	mov	word [cfg_seekhi],0
 	call	preload_done
 
-	cmp	num_files,MIN_NUM_FILES	; Ensure the Minimum number of File
+	cmp	word [num_files],MIN_NUM_FILES	; Ensure the Minimum number of File
 	jae	cfg_ex10		; have been allocated.
-	mov	num_files,MIN_NUM_FILES
+	mov	word [num_files],MIN_NUM_FILES
 cfg_ex10:
 	xor	ax,ax
-	mov	al,init_buf		; now ensure we have allocated
-	mov	num_buf,ax		; the correct number of buffers
+	mov	al,[init_buf]		; now ensure we have allocated
+	mov	[num_buf],ax		; the correct number of buffers
 
 	call	SetupDeblocking		; do our thing with deblocking
 
-	mov	byte ptr configPass,2
+	mov	byte [configPass],2
 	call	config_finish		; clean up configuration
 	call	setup_fopen		; allocate disk hashing
 	call	setup_history
@@ -195,8 +195,8 @@ cpu_init:
 ; If we are on a 386 or above set CPU flag
 	call	Verify386		; make sure it's a 386
 	 jc	cpu_init10		; skip setting falg if not
-	les	bx,func52_ptr
-	mov	es:F52_CPU_TYPE[bx],1	; we have a 386 !
+	les	bx,[func52_ptr]
+	mov	byte [es:F52_CPU_TYPE + bx],1	; we have a 386 !
 cpu_init10:
 	stc				; it's not a 386
 	ret
@@ -224,9 +224,9 @@ SetupDeblocking:
 ; NB. We will still have problems from LIM, and from DMA crossing page
 ; boundaries on some memory managers (eg. DRDOS 5.0)
 ;
-	les	bx,func52_ptr
-	lea	bx,F52_DEVROOT[bx]	; ES:BX -> NUL device link
-	cmp	DeblockSetByUser,FALSE
+	les	bx,[func52_ptr]
+	lea	bx,[F52_DEVROOT + bx]	; ES:BX -> NUL device link
+	cmp	byte [DeblockSetByUser],FALSE
 	 je	SetupDeblocking20	; the user is king
 SetupDeblocking10:
 	push 	cs
@@ -234,29 +234,32 @@ SetupDeblocking10:
 	ret
 
 SetupDeblocking20:			; get next device driver
-	les	bx,es:[bx]		; we want resident disk device
+	les	bx,[es:bx]		; we want resident disk device
 	cmp	bx,0FFFFh		; end of the chain ?
 	 je	SetupDeblocking10
-	test	es:word ptr 4[bx],8000h
+	test	word ptr [es:4 + bx],8000h
 	 jnz	SetupDeblocking20	; we assume one disk device at 70:xxxx
 	mov	ax,es
-	cmp	ax,cs:bios_seg		; scan for resident disk in IO.SYS
+	cmp	ax,[cs:bios_seg]		; scan for resident disk in IO.SYS
 	 jne	SetupDeblocking20
-	cmp	es:word ptr 18[bx],0EDCh
+	cmp	word ptr [es:18 + bx],0EDCh
 	 jne	SetupDeblocking20	; is it our disk driver ?
-	lea	ax,22[bx]		; deblocking variable is here
-	mov	deblockOffset,ax	; remember that for fixups
-	mov	deblockSeg,es
-	mov	ax,es:DEVHDR.STRATEGY[bx]	; Set up the STRATEGY Entry Point
-	mov	strategy_off,ax
-	mov	strategy_seg,es	
+	lea	ax,[22 + bx]		; deblocking variable is here
+	mov	[deblockOffset],ax	; remember that for fixups
+	mov	[deblockSeg],es
+DEVHDR.STRATEGY equ STRATEGY	; NASM port label
+	mov	ax,[es:DEVHDR.STRATEGY + bx]	; Set up the STRATEGY Entry Point
+	mov	[strategy_off],ax
+	mov	[strategy_seg],es	
 
-	mov	ax,es:DEVHDR.INTERRUPT[bx]	; Set up the INTERRUPT Entry Point
-	mov	interrupt_off,ax
-	mov	interrupt_seg,es
-	mov	al,es:DEVHDR.NAM[bx]	; get # supported units
+DEVHDR.INTERRUPT equ INTERRUPT	; NASM port label
+	mov	ax,[es:DEVHDR.INTERRUPT + bx]	; Set up the INTERRUPT Entry Point
+	mov	[interrupt_off],ax
+	mov	[interrupt_seg],es
+DEVHDR.NAM equ NAM	; NASM port label
+	mov	al,[es:DEVHDR.NAM + bx]	; get # supported units
 	cbw
-	mov	numUnits,ax		; remember for later
+	mov	[numUnits],ax		; remember for later
 
 	mov	ax,(MS_M_STRATEGY*256)+1; set allocation strategy
 	mov	bl,42h			;  to last fit, upper only
@@ -265,8 +268,8 @@ SetupDeblocking20:			; get next device driver
 	mov	ah, MS_M_ALLOC		; try to allocate on in upper memory
 	int	DOS_INT
 	 jc	SetupDeblocking50
-	mov	UpperMemoryBuffer,ax	; use this for deblocking checks
-	mov	cx,numUnits		; CX = # of drives supported
+	mov	[UpperMemoryBuffer],ax	; use this for deblocking checks
+	mov	cx,[numUnits]		; CX = # of drives supported
 	mov	dx,'C'-'A'		; start with drive C:
 	sub	cx,dx			; CX = # of potential hard disks
 	 jbe	SetupDeblocking40	; skip tests if none
@@ -279,10 +282,10 @@ SetupDeblocking30:			; DX = next drive, CX = drive count
 	 jc	SetupDeblocking40	; is so leave deblocking alone
 	inc	dx			; else move to next drive
 	loop	SetupDeblocking30	; repeat for all drives
-	les	bx,deblockPointer
-	mov	es:word ptr [bx],0FFFFh	; safe to disable deblocking
+	les	bx,[deblockPointer]
+	mov	word ptr [es:bx],0FFFFh	; safe to disable deblocking
 SetupDeblocking40:
-	mov	es,UpperMemoryBuffer
+	mov	es,[UpperMemoryBuffer]
 	mov	ah,MS_M_FREE
 	int	DOS_INT			; free the upper memory buffer
 SetupDeblocking50:
@@ -303,25 +306,25 @@ BusMasterCheck:		; determine if we have an old troublesome controller
 ;
 	call	BusMasterRemovable	; is it a removable device ?
 	 jnc	BMCheck10		; yes, skip the checks
-	mov	ax,mem_current		; read into low memory
+	mov	ax,[mem_current]		; read into low memory
 	call	BusMasterRead		; read one sector from disk
 	 jc	BMCheck10		; give up if we couldn't read
 
-	mov	es,mem_current		; ensure at least the 1st word will
-	mov	ax,es:0			;  differ if the read doesn't happen
+	mov	es,[mem_current]		; ensure at least the 1st word will
+	mov	ax,[es:0]			;  differ if the read doesn't happen
 	not	ax
-	mov	es,UpperMemoryBuffer
-	mov	es:0,ax
+	mov	es,[UpperMemoryBuffer]
+	mov	[es:0],ax
 
-	mov	ax,UpperMemoryBuffer	; read into upper memory
+	mov	ax,[UpperMemoryBuffer]	; read into upper memory
 	call	BusMasterRead		; read one sector from disk
 	 jc	BMCheck10		; give up if we couldn't read
 		
 	xor	si,si
 	xor	di,di
 	mov	cx,512/2
-	mov	es,mem_current
-	mov	ds,UpperMemoryBuffer
+	mov	es,[mem_current]
+	mov	ds,[UpperMemoryBuffer]
 	repe	cmpsw			; does the sector match ?
 	push 	cs
 	pop 	ds
@@ -341,10 +344,10 @@ BusMasterRemovable:
 	push 	cs
 	pop 	es
 	mov	bx,offset removableMediaRequest
-	mov	es:RH_UNIT[bx],dl
-	call	dword ptr cs:strategy_far
-	call	dword ptr cs:interrupt_far
-	test	es:RH_STATUS[bx],RHS_BUSY
+	mov	[es:RH_UNIT + bx],dl
+	call	far [cs:strategy_far]
+	call	far [cs:interrupt_far]
+	test	word [es:RH_STATUS + bx],RHS_BUSY
 	 jz	BusMasterRemovable10
 	stc				; busy bit set, it's a hard disk
 BusMasterRemovable10:
@@ -359,69 +362,69 @@ BusMasterRead:		; Read first sector from drive BL
 ;	CY clear if deblocking not required
 ;	DL preserved
 ;
-	les	bx,deblockPointer
-	mov	es:word ptr [bx],0FFFFh	; no deblocking during the test
+	les	bx,[deblockPointer]
+	mov	word ptr [es:bx],0FFFFh	; no deblocking during the test
 	push 	cs
 	pop 	es
 	mov	bx,offset readRequest
-	mov	es:RH_UNIT[bx],dl
-	mov	es:RH4_BUFOFF[bx],0
-	mov	es:RH4_BUFSEG[bx],ax
-	mov	es:RH4_COUNT[bx],1
-	call	dword ptr cs:strategy_far
-	call	dword ptr cs:interrupt_far
-	test	es:RH_STATUS[bx],RHS_ERROR
+	mov	[es:RH_UNIT + bx],dl
+	mov	word [es:RH4_BUFOFF + bx],0
+	mov	[es:RH4_BUFSEG + bx],ax
+	mov	word [es:RH4_COUNT + bx],1
+	call	far [cs:strategy_far]
+	call	far [cs:interrupt_far]
+	test	word [es:RH_STATUS + bx],RHS_ERROR
 	 jz	BusMasterRead10
 	stc				; error bit set, say we had a problem
 BusMasterRead10:
-	les	bx,deblockPointer
-	mov	es:word ptr [bx],0A000h	; enable deblocking again
+	les	bx,[deblockPointer]
+	mov	word ptr [es:bx],0A000h	; enable deblocking again
 	ret
 
 
 	Public	setup_stacks
 
 setup_stacks:
-	mov	cx,num_stacks		; we want this many stacks
+	mov	cx,[num_stacks]		; we want this many stacks
 	 jcxz	setup_stacks10		; skip if we don't want any
-	mov	dx,stack_size		; they should be this big
+	mov	dx,[stack_size]		; they should be this big
 	call	InitStacks		; initialise the stacks
 setup_stacks10:
 	ret
 
 setup_history:
-	test	history_flg,RLF_ENHANCED
+	test	byte [history_flg],RLF_ENHANCED
 	 jz	setup_hist10		; if history not enabled just exit
 
 	push	es
-	les	bx,drdos_ptr		; Get the internal data area
+	les	bx,[drdos_ptr]		; Get the internal data area
 
-	mov	si,es:DRDOS_HIST1CTL[bx]; Get the address of History Control
-	mov	ax,history_size		; Get Offset buffer for History data
+	mov	si,[es:DRDOS_HIST1CTL + bx]; Get the address of History Control
+	mov	ax,[history_size]		; Get Offset buffer for History data
 	call	setup_hist20		; Allocate Buffer 1
 
-	mov	si,es:DRDOS_HIST2CTL[bx]; Get the address of History Control 2
-	mov	ax,history_size		; Get Offset buffer for History data
+	mov	si,[es:DRDOS_HIST2CTL + bx]; Get the address of History Control 2
+	mov	ax,[history_size]		; Get Offset buffer for History data
 	call	setup_hist20		; Allocate Buffer 2
 
-	mov	al,history_flg		; copy history state
-	mov	es:DRDOS_HISTFLG[bx],al	;  into DRDOS data area
+	mov	al,[history_flg]		; copy history state
+	mov	[es:DRDOS_HISTFLG + bx],al	;  into DRDOS data area
 
 	pop	es
 setup_hist10:
 	ret
 
 setup_hist20:
-	and	ax,not 15		; round to a complete paragraph
+	and	ax,~ 15		; round to a complete paragraph
 	add	ax,16			; always be a para bigger
-	mov	es:word ptr 02[si],ax	; Buffer Tail Address
+	mov	word ptr [es:02 + si],ax	; Buffer Tail Address
 	mov	cl,4
 	push	ax			; save buffers size in bytes
 	shr	ax,cl			; convert to para's
 	mov	dl,'H'			; History buffer
 	mov	dh,ALLOC_IN_UMB
 	call	alloc_instseg		; Allocate Buffer
-	mov	es:word ptr 00[si],ax	; Buffer Start Address
+	mov	word ptr [es:00 + si],ax	; Buffer Start Address
 	pop	cx			; recover buffer size in bytes
 	push	es
 	mov	es,ax			; point ES at buffer seg
@@ -459,17 +462,17 @@ device_init:
 
 resident_device_init:
 ;--------------------
-	mov	rel_unit,0		; set rel unit to zero for block devices
-	mov	dev_count,0
+	mov	word [rel_unit],0		; set rel unit to zero for block devices
+	mov	byte [dev_count],0
 	mov	bx,offset request_hdr	; ds:bx -> command block
-if TRUE
-	mov	ax,mem_max		; AX:0 -> top of available memory
-	mov	ds:RH0_RESIDENT[bx],0	; pass to the device driver
-	mov	ds:RH0_RESIDENT+2[bx],ax	;  in the RESIDENT field
-else
-	mov	ds:RH0_RESIDENT[bx],di	; Force the default RESIDENT field
-	mov	ds:RH0_RESIDENT+2[bx],es	;  to be the error condition
-endif
+%if TRUE
+	mov	ax,[mem_max]		; AX:0 -> top of available memory
+	mov	word [RH0_RESIDENT + bx],0	; pass to the device driver
+	mov	[RH0_RESIDENT+2 + bx],ax	;  in the RESIDENT field
+%else
+	mov	[RH0_RESIDENT + bx],di	; Force the default RESIDENT field
+	mov	[RH0_RESIDENT+2 + bx],es	;  to be the error condition
+%endif
 dev_i10:
 	push	si
 	push 	es
@@ -477,33 +480,35 @@ dev_i10:
 	call	save_vecs		; save interrupt vectors
 	mov	bx,offset request_hdr	; ds:bx -> command block
 	call	dev_init		; initialise the device driver
-	test	es:DEVHDR.ATTRIB[di],DA_CHARDEV
+DEVHDR.ATTRIB equ ATTRIB	; NASM port label
+	test	word [es:DEVHDR.ATTRIB + di],DA_CHARDEV
 	 jnz	dev_i18			; skip if a character device
-	cmp	ds:RH0_NUNITS[bx],0		; no drives installed for disk device?
+	cmp	byte [RH0_NUNITS + bx],0		; no drives installed for disk device?
 	 je	dev_i_err		; failed if no drives found
 dev_i18:
-	mov	ax,ds:RH0_RESIDENT[bx]	; Calculate the address of
+	mov	ax,[RH0_RESIDENT + bx]	; Calculate the address of
 	mov	cl,4			; last paragraph used by the
 	shr	ax,cl			; device driver. If this is the
-	add	ax,ds:RH0_RESIDENT+2[bx]	; device driver CS then error
-	test	ds:RH0_RESIDENT[bx],15	; allow for partial para ?
+	add	ax,[RH0_RESIDENT+2 + bx]	; device driver CS then error
+	test	word [RH0_RESIDENT + bx],15	; allow for partial para ?
 	 jz	dev_i19
 	inc	ax			; round it up
 dev_i19:
-	cmp	ax,strategy_seg
+	cmp	ax,[strategy_seg]
 	 jbe	dev_i_err
 
-	cmp	ax,mem_max		; Check for Memory Overflow
+	cmp	ax,[mem_max]		; Check for Memory Overflow
 	 jb	dev_i30			; if it does then we can't install
 	call	restore_vecs		; so replace interrupt vectors
 dev_i_err:				; device initialization failed!
-	les	di,cs:func52_ptr	; ES:DI -> internal data
+	les	di,[cs:func52_ptr]	; ES:DI -> internal data
 	mov	ax,es
 	or	ax,di			; DOS data area present yet?
 	pop 	di
 	pop 	es			; recover the device header
 
-	les	di,es:DEVHDR.NEXT[di]	; try next device driver
+DEVHDR.NEXT equ NEXT	; NASM port label
+	les	di,[es:DEVHDR.NEXT + di]	; try next device driver
 	 jz	dev_i60			; if it's resident initialisation
 	mov	di,0FFFFh		;  else stop now
 	jmp	short dev_i60
@@ -516,8 +521,8 @@ dev_i_err:				; device initialization failed!
 ;	ES:DI = device driver header
 ;
 dev_i30:				; DEV_INIT OK so update the Top of
-	mov	mem_current,ax		; memory field
-	test	es:DEVHDR.ATTRIB[di],DA_CHARDEV
+	mov	[mem_current],ax		; memory field
+	test	word [es:DEVHDR.ATTRIB + di],DA_CHARDEV
 	 jz	dev_i40
 
 	call	char_device		; Handle Initialization of all
@@ -530,9 +535,9 @@ dev_i40:
 dev_i50:
 	pop 	di
 	pop 	es			; Retrieve the current device header
-	push	word ptr es:[di+DEVHDR.NEXT+2]	; save next entry on the list
-	push	word ptr es:[di+DEVHDR.NEXT]	; while we deal with existing one
-	mov	word ptr es:[di+DEVHDR.NEXT],0FFFFh; terminate the list	
+	push	word ptr [es:di+DEVHDR.NEXT+2]	; save next entry on the list
+	push	word ptr [es:di+DEVHDR.NEXT]	; while we deal with existing one
+	mov	word ptr [es:di+DEVHDR.NEXT],0FFFFh; terminate the list	
 	call	device_insert		;  and insert into the list
 	pop	di
 	pop	es			; go round till the end
@@ -541,7 +546,7 @@ dev_i60:
 	cmp	di,0FFFFh		; was that the last device to
 	 jne	dev_i10			;  initialise, no do next
 	mov	bx,offset request_hdr	; ds:bx -> command block
-	mov	ax,ds:RH_STATUS[bx]		; return Status Register
+	mov	ax,[RH_STATUS + bx]		; return Status Register
 	and	ax,80FFh		; is there an error ?
 	 js	dev_i70
 	xor	ax,ax			; no, return success
@@ -553,17 +558,17 @@ dev_i70:
 init_static_request:
 					; Set up request header for INIT command.
 	sub	ax,ax			; get a convenient zero
-	mov	ds:RH_LEN[bx],RH0_LEN	; Init Request Length
-	mov	ds:RH_UNIT[bx],al		; relative drive always 0
-	mov	ds:RH_CMD[bx],CMD_INIT	; Init Command 
-	mov	ds:RH_STATUS[bx],ax		; Zero Status Register
+	mov	byte [RH_LEN + bx],RH0_LEN	; Init Request Length
+	mov	[RH_UNIT + bx],al		; relative drive always 0
+	mov	byte [RH_CMD + bx],CMD_INIT	; Init Command 
+	mov	[RH_STATUS + bx],ax		; Zero Status Register
 
-	mov	ds:RH0_BPBOFF[bx],si	; Save the command line offset and
-	mov	ds:RH0_BPBSEG[bx],ds	; Segment in the BPB Pointer
+	mov	[RH0_BPBOFF + bx],si	; Save the command line offset and
+	mov	[RH0_BPBSEG + bx],ds	; Segment in the BPB Pointer
 
-	mov	al,next_drv		; the first drive for this device
-	sub	al,preload_drv		; (not including preloaded devices)
-	mov	ds:RH0_DRIVE[bx],al	 	; will be allocated as NEXT_DRV
+	mov	al,[next_drv]		; the first drive for this device
+	sub	al,[preload_drv]		; (not including preloaded devices)
+	mov	[RH0_DRIVE + bx],al	 	; will be allocated as NEXT_DRV
 ;;;	mov	es:DEVHDR.NEXTSEG[di],0	; force seg to zero (386max 4.05)
 	ret
 
@@ -576,13 +581,13 @@ dev_init:
 ; On Exit:
 ;	ES:DI/DS:BX <preserved>
 ;
-	mov	ax,es:DEVHDR.STRATEGY[di]	; Set up the STRATEGY Entry Point
-	mov	strategy_off,ax
-	mov	strategy_seg,es	
+	mov	ax,[es:DEVHDR.STRATEGY + di]	; Set up the STRATEGY Entry Point
+	mov	[strategy_off],ax
+	mov	[strategy_seg],es	
 
-	mov	ax,es:DEVHDR.INTERRUPT[di]	; Set up the INTERRUPT Entry Point
-	mov	interrupt_off,ax
-	mov	interrupt_seg,es
+	mov	ax,[es:DEVHDR.INTERRUPT + di]	; Set up the INTERRUPT Entry Point
+	mov	[interrupt_off],ax
+	mov	[interrupt_seg],es
 	call	init_static_request
 
 	push 	ds
@@ -592,22 +597,22 @@ dev_init:
 	push 	di			; and pointers (not all preserve them)
 	push 	ds
 	pop 	es			; ES -> Points at the Data Segment
-	mov	ds,strategy_seg		; DS == Device Drive Segment
+	mov	ds,[strategy_seg]		; DS == Device Drive Segment
  	mov	si,di			; DS:SI -> device driver header
 	push	ds
 	push	es
- 	call	dword ptr cs:strategy_far		; Call Device Strategy Routine
+ 	call	far [cs:strategy_far]		; Call Device Strategy Routine
 	pop	es
 	pop	ds
-	mov	ax,ds:DEVHDR.INTERRUPT[si]	; Set up the INTERRUPT Entry Point
-	mov	es:interrupt_off,ax
-	call	dword ptr cs:interrupt_far		; Call Device Interrupt Routine
+	mov	ax,[DEVHDR.INTERRUPT + si]	; Set up the INTERRUPT Entry Point
+	mov	[es:interrupt_off],ax
+	call	far [cs:interrupt_far]		; Call Device Interrupt Routine
 	pop 	di
 	pop 	si
 	pop 	bx			; recover the pointers
 	pop 	es
 	pop 	ds			; Restore Segment Registers
-	mov	word ptr es:[di+DEVHDR.NEXT+2],es	; ignore segment - it MUST be same one
+	mov	word ptr [es:di+DEVHDR.NEXT+2],es	; ignore segment - it MUST be same one
 	ret
 
 ;
@@ -618,17 +623,17 @@ dev_init:
 ;	ES:DI		Device Driver Header
 ;
 char_device:
-	test	es:DEVHDR.ATTRIB[di],DA_ISCIN
+	test	word [es:DEVHDR.ATTRIB + di],DA_ISCIN
 	 jz	char_d10		; is this the standard console device?
-	mov	condev_off,di		; save console device driver address
-	mov	condev_seg,es
+	mov	[condev_off],di		; save console device driver address
+	mov	[condev_seg],es
 	ret
 
 char_d10:
-	test	es:DEVHDR.ATTRIB[di],DA_ISCLK
+	test	word [es:DEVHDR.ATTRIB + di],DA_ISCLK
 	 jz	char_d20		; is this the standard clock device?
-	mov	clkdev_off,di		; save clock device driver address
-	mov	clkdev_seg,es
+	mov	[clkdev_off],di		; save clock device driver address
+	mov	[clkdev_seg],es
 char_d20:
 	ret
 
@@ -643,69 +648,69 @@ char_d20:
 	public	block_device
 block_device:
 	mov	al,BLKDEV_LENGTH	; bytes per block device table entry
-	mul	byte ptr num_blkdev	;   * # of block devices installed
+	mul	byte [num_blkdev]	;   * # of block devices installed
 	add	ax,offset blkdev_table	; AX -> block dev init result table
 	xchg	ax,si			; pointer to next block device struct
-	mov	devoff,di
-	mov	devseg,es		; point to device driver header
-	mov	0[si],di
-	mov	2[si],es		; save device driver address for later
-	mov	ax,ds:RH0_BPBOFF[bx]
-	mov	4[si],ax		; save BPB table address (offset)
-	mov	ax,ds:RH0_BPBSEG[bx]
-	mov	6[si],ax		; save BPB table address (segment)
-	mov	cl,ds:RH0_NUNITS[bx]
-	mov	8[si],cl		; get # of units supported by driver
-	mov	es:DEVHDR.NAM[di],cl	; set # of units in device name
-	inc	num_blkdev		; we've installed another block device
-	add	next_drv,cl		; update drive base for next driver
-	add	dev_count,cl		; number of new units
+	mov	[devoff],di
+	mov	[devseg],es		; point to device driver header
+	mov	[0 + si],di
+	mov	[2 + si],es		; save device driver address for later
+	mov	ax,[RH0_BPBOFF + bx]
+	mov	[4 + si],ax		; save BPB table address (offset)
+	mov	ax,[RH0_BPBSEG + bx]
+	mov	[6 + si],ax		; save BPB table address (segment)
+	mov	cl,[RH0_NUNITS + bx]
+	mov	[8 + si],cl		; get # of units supported by driver
+	mov	[es:DEVHDR.NAM + di],cl	; set # of units in device name
+	inc	word [num_blkdev]		; we've installed another block device
+	add	[next_drv],cl		; update drive base for next driver
+	add	[dev_count],cl		; number of new units
 
-	mov	ax,boot_device		; now for Andy's bit about boot device
-	or	ax,boot_device+2	; have we already got a boot device?
+	mov	ax,[boot_device]		; now for Andy's bit about boot device
+	or	ax,[boot_device+2]	; have we already got a boot device?
 	 jnz	not_boot_dev
-	mov	ch,init_drv
-	sub	ch,next_drv		; is sub unit in this driver
+	mov	ch,[init_drv]
+	sub	ch,[next_drv]		; is sub unit in this driver
 	 ja	not_boot_dev		; no, skip it
 	add	ch,cl			; work out which sub unit it is
-	mov	boot_drv,ch		; and remember it
-	mov	boot_device,di
-	mov	boot_device+2,es
+	mov	[boot_drv],ch		; and remember it
+	mov	[boot_device],di
+	mov	[boot_device+2],es
 not_boot_dev:
 
 	push	si
 	push 	es
 	push 	di
-	mov	cl,8[si]
+	mov	cl,[8 + si]
 	mov	ch,0			; CX = # of drives found in driver
-	les	si,4[si]		; ES:SI -> BPB array in BIOS
-	mov	bpbseg,es		; remember the segment
+	les	si,[4 + si]		; ES:SI -> BPB array in BIOS
+	mov	[bpbseg],es		; remember the segment
 blkdev_loop:
-	lods	word ptr es:[si]	; AX = offset of next BPB
+	es lodsw	; AX = offset of next BPB
 	push 	es
 	push 	si
 	push 	cx
-	mov	bpboff,ax		; remember the offset
+	mov	[bpboff],ax		; remember the offset
 	xchg	ax,di			; ES:DI -> next BPB
-	mov	ax,es:[di]		; AX = sector size for BPB
-	cmp	ax,max_secsize		; new maximum for sector size
+	mov	ax,[es:di]		; AX = sector size for BPB
+	cmp	ax,[max_secsize]		; new maximum for sector size
 	 jbe	blkdev_next1		; skip if sector size not grown
-	mov	max_secsize,ax		; else set new maximum
+	mov	[max_secsize],ax		; else set new maximum
 blkdev_next1:
-	mov	dl,es:2[di]		; get sectors per cluster
+	mov	dl,[es:2 + di]		; get sectors per cluster
 	mov	dh,0			; make this a word
 	mul	dx			; AX = bytes per cluster
-	cmp	ax,max_clsize		; more than previous maximum
+	cmp	ax,[max_clsize]		; more than previous maximum
 	 jbe	blkdev_next2		; skip if no new high score
-	mov	max_clsize,ax		; else record max. sector size
+	mov	[max_clsize],ax		; else record max. sector size
 blkdev_next2:
-	les	bx,func52_ptr		; ES:BX -> internal data
+	les	bx,[func52_ptr]		; ES:BX -> internal data
 	mov	ax,es
 	or	ax,bx			; DOS data area present yet?
 	 jz	blkdev_next3		; skip if BDOS not present yet
 	call	setup_drives		; update drives in BDOS data
-	mov	es,mem_current		; MUST create a DDSC just after driver
-	add	mem_current,(DDSC_LEN+15)/16
+	mov	es,[mem_current]		; MUST create a DDSC just after driver
+	add	word [mem_current],(DDSC_LEN+15)/16
 	xor	bp,bp			; ES:BP points to the DDSC
 	call	setup_ddsc		; add new DDSC_ to chain
 	call	setup_ldt		; initialise LDT for that drive
@@ -724,9 +729,9 @@ resident_ddscs:
 ; Allocate DDSC's for the resident device drivers - we can only do this
 ; after the DOS data area is established.
 ;
-	push	word ptr res_ddsc_ptr
+	push	word [res_ddsc_ptr]
 	sub	bx,bx			; start with 1st block device
-	mov	cx,num_blkdev		; get # of block devices
+	mov	cx,[num_blkdev]		; get # of block devices
 	 jcxz	res_ddsc40		; skip if no block devices
 res_ddsc10:
 	push	bx
@@ -736,25 +741,25 @@ res_ddsc10:
 	add	ax,offset blkdev_table
 	xchg	ax,si			; SI -> block device table
 	sub	cx,cx
-	mov	cl,8[si]		; CX = # of units on device
+	mov	cl,[8 + si]		; CX = # of units on device
 	sub	bx,bx			; BX = relative unit # * 2
-	mov	rel_unit,bx		; start with relative unit # 0
+	mov	[rel_unit],bx		; start with relative unit # 0
 
 res_ddsc20:				; CX = remaining units
 	push	bx
 	push 	cx
 	push 	si			; BX = offset, SI -> drive structure
 	lodsw
-	mov	devoff,ax		; save device header offset
+	mov	[devoff],ax		; save device header offset
 	lodsw
-	mov	devseg,ax		; save device header segment 
+	mov	[devseg],ax		; save device header segment 
 	les	si,[si]			; get offset of BPB array
-	mov	ax,es:[bx+si]		; get offset for our BPB
-	mov	bpboff,ax
-	mov	bpbseg,es		; save pointer to BPB
+	mov	ax,[es:bx+si]		; get offset for our BPB
+	mov	[bpboff],ax
+	mov	[bpbseg],es		; save pointer to BPB
 
-	les	bp,res_ddsc_ptr		; point to position for DDSC_
-	add	ds:word ptr res_ddsc_ptr,DDSC_LEN
+	les	bp,[res_ddsc_ptr]		; point to position for DDSC_
+	add	word [res_ddsc_ptr],DDSC_LEN
 	call	setup_ddsc		; setup one unit
 	pop	si
 	pop 	cx
@@ -768,7 +773,7 @@ res_ddsc20:				; CX = remaining units
 	inc	bx
 	loop	res_ddsc10		; repeat for next driver
 res_ddsc40:				; all block devices done
-	pop	word ptr res_ddsc_ptr
+	pop	word [res_ddsc_ptr]
 	ret
 
 	
@@ -783,38 +788,38 @@ setup_ddsc:
 ;	None
 ;
 	push	ds
-	lds	si,bpbptr		; DS:SI points to the BPB
+	lds	si,[bpbptr]		; DS:SI points to the BPB
 	mov	ah,53h			; build DDSC from BPB call
 	int	DOS_INT			;  initialises the structure
 	pop	ds
-	mov	ax,devoff
-	mov	es:DDSC_DEVOFF[bp],ax
-	mov	ax,devseg
-	mov	es:DDSC_DEVSEG[bp],ax
+	mov	ax,[devoff]
+	mov	[es:DDSC_DEVOFF + bp],ax
+	mov	ax,[devseg]
+	mov	[es:DDSC_DEVSEG + bp],ax
 
-	mov	ax,abs_unit
-	inc	abs_unit
-	mov	es:DDSC_UNIT[bp],al	; set absolute unit (global)
-	mov	ax,rel_unit
-	inc	rel_unit
-	mov	es:DDSC_RUNIT[bp],al	; set relative unit (driver relative)
+	mov	ax,[abs_unit]
+	inc	word [abs_unit]
+	mov	[es:DDSC_UNIT + bp],al	; set absolute unit (global)
+	mov	ax,[rel_unit]
+	inc	word [rel_unit]
+	mov	[es:DDSC_RUNIT + bp],al	; set relative unit (driver relative)
 
 	mov	ax,-1			; set link to FFFFh:FFFFh
-	mov	es:word ptr DDSC_LINK[bp],ax
-	mov	es:word ptr DDSC_LINK+2[bp],ax
-	mov	es:DDSC_FIRST[bp],al	; set drive never accessed flag
+	mov	word ptr [es:DDSC_LINK + bp],ax
+	mov	word ptr [es:DDSC_LINK+2 + bp],ax
+	mov	[es:DDSC_FIRST + bp],al	; set drive never accessed flag
 	mov	ax,es			; now link into device chain
 ;
-	les	bx,func52_ptr		; ES:BX -> secret 52h data
-	lea	bx,(F52_DDSCPTR-offset DDSC_LINK)[bx]
+	les	bx,[func52_ptr]		; ES:BX -> secret 52h data
+	lea	bx,[(F52_DDSCPTR-offset DDSC_LINK) + bx]
 setup_ddsc10:
-	cmp	es:word ptr DDSC_LINK[bx],0FFFFh
+	cmp	word ptr [es:DDSC_LINK + bx],0FFFFh
 	 je	setup_ddsc20		; is there another one ?
-	les	bx,es:DDSC_LINK[bx]	; onto next DDSC_
+	les	bx,[es:DDSC_LINK + bx]	; onto next DDSC_
 	jmp	short setup_ddsc10
 setup_ddsc20:				; link new DDSC to end of chain
-	mov	es:word ptr DDSC_LINK[bx],bp
-	mov	es:word ptr DDSC_LINK+2[bx],ax
+	mov	word ptr [es:DDSC_LINK + bx],bp
+	mov	word ptr [es:DDSC_LINK+2 + bx],ax
 	ret				; now RAF will be happy
 	
 
@@ -823,13 +828,13 @@ setup_ddsc20:				; link new DDSC to end of chain
 setup_ldt:
 	push	ds
 	push	es
-	les	bx,func52_ptr		; get internal data in ES:BX
+	les	bx,[func52_ptr]		; get internal data in ES:BX
 	mov	al,LDT_LEN		; we need this many bytes per drive
-	mul	es:F52_LASTDRV[bx]	; *lastdrive
+	mul	byte [es:F52_LASTDRV + bx]	; *lastdrive
 	xchg	ax,cx			; CX = size to initialise
-	mov	al,es:F52_LASTDRV[bx]	; lastdrive
+	mov	al,[es:F52_LASTDRV + bx]	; lastdrive
 	push	ax			; save for later
-	les	di,es:F52_PATHPTR[bx]	; now initialise the CSD's
+	les	di,[es:F52_PATHPTR + bx]	; now initialise the CSD's
 	mov	bx,di
 	xor	al,al			; to zero
 	rep	stosb			; zero them
@@ -842,35 +847,35 @@ ldt_init:
 	push	ax
 	push	cx
 	push	ax
-	lea	di,LDT_NAME[bx]
+	lea	di,[LDT_NAME + bx]
 	add	al,'A'			; make drive ASCII
 	stosb
-	mov	ax,'\:'			; point at the root
+	mov	ax,':\'			; point at the root	; NASM port swapped text literals
 	stosw
 	mov	ax,0FFFFh
-	lea	di,LDT_BLK[bx]		; set to FFFF to force LDT_ rebuild
+	lea	di,[LDT_BLK + bx]		; set to FFFF to force LDT_ rebuild
 	stosw
 	stosw
 	stosw				;  next two words are FFFF too
-	lea	di,LDT_BLKH[bx]
+	lea	di,[LDT_BLKH + bx]
 	stosw
-	lea	di,LDT_ROOTH[bx]
+	lea	di,[LDT_ROOTH + bx]
 	stosw
-	lea	di,LDT_ROOTLEN[bx]
+	lea	di,[LDT_ROOTLEN + bx]
 	mov	ax,2
 	stosw				; set the length field
 	pop	ax
-	lds	si,cs:func52_ptr	; get internal data in DS:SI
+	lds	si,[cs:func52_ptr]	; get internal data in DS:SI
 	sub	si,offset DDSC_LINK
 ldt_init20:
-	lds	si,ds:DDSC_LINK[si]	; point to next PDT
+	lds	si,[DDSC_LINK + si]	; point to next PDT
 	cmp	si,-1			; skip if there isn't one
 	 je	ldt_init40
-	cmp	al,ds:DDSC_UNIT[si]	; is this the DDSC for the drive
+	cmp	al,[DDSC_UNIT + si]	; is this the DDSC for the drive
 	 jne	ldt_init20		; if not try another
-	mov	es:word ptr LDT_PDT[bx],si
-	mov	es:word ptr LDT_PDT+2[bx],ds
-	cmp	ds:DDSC_NFATS[si],0	; no FATS, then it's a reserved drive
+	mov	word ptr [es:LDT_PDT + bx],si
+	mov	word ptr [es:LDT_PDT+2 + bx],ds
+	cmp	byte [DDSC_NFATS + si],0	; no FATS, then it's a reserved drive
 	 je	ldt_init40		
 	push	es
 	push	bx
@@ -898,7 +903,7 @@ ldt_init20:
 ldt_init30:
 	pop	bx
 	pop	es
-	mov	es:LDT_FLAGS[bx],ax
+	mov	[es:LDT_FLAGS + bx],ax
 ldt_init40:
 	add	bx,LDT_LEN		; move onto next LDT_
 	pop	cx
@@ -918,8 +923,8 @@ device_insert:
 ; if we are initialising the resident device drivers then we don't have
 ;  a global chain, so insert them on a local chain and try again later
 	push	ds
-	lds	bx,func52_ptr		; Internal Data Pointer
-	lea	si,F52_DEVROOT[bx]	; DS:SI -> NUL device
+	lds	bx,[func52_ptr]		; Internal Data Pointer
+	lea	si,[F52_DEVROOT + bx]	; DS:SI -> NUL device
 	mov	ax,ds			; if BDOS data area isn't present
 	or	ax,bx			;  we are initialising resident
 	 jnz	dev_ins_next		;  devices
@@ -929,12 +934,12 @@ device_insert:
 dev_ins_next:
 	cmp	di,-1			; end of device chain reached?
 	 je	devins_done		; yes, all devices inserted
-	mov	ax,0[si]
-	mov	dx,2[si]		; DX:AX = original chain 
-	mov	0[si],di
-	mov	2[si],es		; link our device at head of chain
-	xchg	ax,es:0[di]		; link old global chain to device
-	xchg	dx,es:2[di]		;  & get next device in local chain
+	mov	ax,[0 + si]
+	mov	dx,[2 + si]		; DX:AX = original chain 
+	mov	[0 + si],di
+	mov	[2 + si],es		; link our device at head of chain
+	xchg	ax,[es:0 + di]		; link old global chain to device
+	xchg	dx,[es:2 + di]		;  & get next device in local chain
 	mov	di,ax			; point to next device in chain
 	mov	es,dx
 	jmp	short dev_ins_next	; repeat until chain empty
@@ -947,41 +952,41 @@ devins_done:
 
 config_finish:		; finish off configuration
 ;-------------
-	cmp	resdev_off,-1		; are resident devices already
+	cmp	word [resdev_off],-1		; are resident devices already
 	 je	cfg_fin10		;  installed
-	les	di,resdev_chain		; insert all the resident device
+	les	di,[resdev_chain]		; insert all the resident device
 	call	device_insert		;  drivers into DOS chain
 	call	resident_ddscs		; build DDSC's for resident devices
-	mov	resdev_off,-1		; only do this once...
+	mov	word [resdev_off],-1		; only do this once...
 cfg_fin10:
 
-	cmp	byte ptr configPass,0	; skip if second pass
+	cmp	byte [configPass],0	; skip if second pass
 	 jne	cfg_fin20
-	les	bx,func52_ptr		; ES:BX -> base of DOS variables
+	les	bx,[func52_ptr]		; ES:BX -> base of DOS variables
 	call	setup_drives		; Update No of Physical Drives in case
 					; this is the first pass
 	call	setup_ldt		; setup the ldt's
 cfg_fin20:
-	les	bx,func52_ptr
-	lea	di,F52_CLKDEV[bx]	; ES:DI -> clock ptr, console ptr
+	les	bx,[func52_ptr]
+	lea	di,[F52_CLKDEV + bx]	; ES:DI -> clock ptr, console ptr
 	mov	si,offset clkdev_off	; DS:SI -> local pointer values
 	movsw				; set offset of clock device driver
 	movsw				; set segment of clock device driver
 	movsw				; set offset of console device driver
 	movsw				; set segment of console device driver
 
-	push	num_files
-	push	num_fcbs
-	mov	al,filesIn
+	push	word [num_files]
+	push	word [num_fcbs]
+	mov	al,[filesIn]
 	push	ax
-	mov	num_fcbs,MIN_NUM_FCBS
-	mov	num_files,MIN_NUM_FILES
-	mov	filesIn,0
+	mov	word [num_fcbs],MIN_NUM_FCBS
+	mov	word [num_files],MIN_NUM_FILES
+	mov	byte [filesIn],0
 	call	setup_doshndl
 	pop	ax
-	mov	filesIn,al
-	pop	num_fcbs
-	pop	num_files
+	mov	[filesIn],al
+	pop	word [num_fcbs]
+	pop	word [num_files]
 
 	call	setup_doshndl		; Allocate DOS compatible Handles
 					; NB must immediately follow devices !
@@ -994,29 +999,29 @@ setup_buffers:
 ;	entry:	num_buf = minimum # of buffers required
 ;		          0 - use temporary high buffers
 ;
-	les	bx,func52_ptr		; ES:BX -> internal data structure
-	mov	ax,num_buf		; fill in info in DOS for diagnostic
-	mov	es:F52_NUM_BUF[bx],ax	;  programs
-	mov	al,num_read_ahead_buf
-	mov	es:F52_READ_AHEAD[bx],ax
-	mov	ax,es:F52_SECSIZE[bx]	; get DOS data sector size
-	cmp	ax,max_secsize		; has it been poked to a bigger value ?
+	les	bx,[func52_ptr]		; ES:BX -> internal data structure
+	mov	ax,[num_buf]		; fill in info in DOS for diagnostic
+	mov	[es:F52_NUM_BUF + bx],ax	;  programs
+	mov	al,[num_read_ahead_buf]
+	mov	[es:F52_READ_AHEAD + bx],ax
+	mov	ax,[es:F52_SECSIZE + bx]	; get DOS data sector size
+	cmp	ax,[max_secsize]		; has it been poked to a bigger value ?
 	 ja	setup_b10		; if so we must discard anyway
-	mov	ax,max_secsize		; get max. sector size found
+	mov	ax,[max_secsize]		; get max. sector size found
 setup_b10:
-	mov	es:F52_SECSIZE[bx],ax	; update max. sector size in PCMODE
-	mov	max_secsize,ax		; update max. sector size locally
+	mov	[es:F52_SECSIZE + bx],ax	; update max. sector size in PCMODE
+	mov	[max_secsize],ax		; update max. sector size locally
 	add	ax,offset BCB_DATA	; add in the header size
 
-	mov	es,init_dseg		; ES:DI -> init buffers
+	mov	es,[init_dseg]		; ES:DI -> init buffers
 	mov	di,offset INIT_BUFFERS
 	mov	cx,NUM_BUFFS		; CX buffs, DX in size, at ES:DI
 	mov	dx,SIZEOF_BUFFS		; size of init buffers
-	cmp	num_buf,0		; (zero at init time)
+	cmp	word [num_buf],0		; (zero at init time)
 	 je	setup_b70		; go ahead and initialise
 
 	push	ax			; save size of buffer
-	mul	num_buf			; AX = total bytes required
+	mul	word [num_buf]			; AX = total bytes required
 	test	dx,dx			; > 64 K ?
 	 jz	setup_b30
 	mov	ax,0FFFFh		; do the maximum
@@ -1029,7 +1034,7 @@ setup_b30:
 	push	ax			; save # buffers
 	push	bx			; save size of a buffer
 	push	cx			; save bytes wanted
-	test	buffersIn,BUFFERS_IN_HMA
+	test	byte [buffersIn],BUFFERS_IN_HMA
 	stc				; do we want buffers at FFFF ?
 	 jz	setup_b40
 	call	SetupHMA		; make sure HMA chain is established
@@ -1050,7 +1055,7 @@ setup_b40:
 	inc	ax			; convert from bytes to para's
 	push	dx
 	mov	dl,'B'			; allocate as a Buffer
-	test	buffersIn,BUFFERS_IN_UMB
+	test	byte [buffersIn],BUFFERS_IN_UMB
 	 jz	setup_b50		; allocation from UMB's OK ?
 	call	alloc_upper		; yes, try and allocate memory there
 	 jnc	setup_b60
@@ -1069,51 +1074,51 @@ setup_b80:
 	mov	cx,dx
 	xor	ax,ax
 	rep	stosb			; zero the buffer, ES:DI -> next buffer
-	mov	es:BCB_DRV[bx],0FFh	; invalidate buffer
-	mov	es:BCB_NEXT[bx],di	; point to where "next" will be
+	mov	byte [es:BCB_DRV + bx],0FFh	; invalidate buffer
+	mov	[es:BCB_NEXT + bx],di	; point to where "next" will be
 	mov	ax,bx
 	sub	ax,dx			; work out what our previous was
-	mov	es:BCB_PREV[bx],ax	;  and point to it
+	mov	[es:BCB_PREV + bx],ax	;  and point to it
 	pop	cx
 	loop	setup_b80		; do them all
 
-	mov	es:BCB_NEXT[bx],si	; the last's "next" is our first buffer
-	mov	es:BCB_PREV[si],bx	; the first's "previous" is our last
+	mov	[es:BCB_NEXT + bx],si	; the last's "next" is our first buffer
+	mov	[es:BCB_PREV + si],bx	; the first's "previous" is our last
 	mov	ax,es			; AX:SI -> 1st buffer
-	les	bx,func52_ptr		; ES:BX -> internal data structure
-	mov	es:F52_BCBOFF[bx],si
-	mov	es:F52_BCBSEG[bx],ax	; fixup buffer pointers
-	mov	es:word ptr F52_BUF_INFO[bx],si
-	mov	es:word ptr F52_BUF_INFO+2[bx],ax
+	les	bx,[func52_ptr]		; ES:BX -> internal data structure
+	mov	[es:F52_BCBOFF + bx],si
+	mov	[es:F52_BCBSEG + bx],ax	; fixup buffer pointers
+	mov	word ptr [es:F52_BUF_INFO + bx],si
+	mov	word ptr [es:F52_BUF_INFO+2 + bx],ax
 	inc	ax			; seg FFFF ?
 	 jnz	setup_b90		; skip if not
-	mov	es:F52_HMAFLAG[bx],1	; buffers are in HMA
-	mov	ax,es:F52_SECSIZE[bx]
+	mov	byte [es:F52_HMAFLAG + bx],1	; buffers are in HMA
+	mov	ax,[es:F52_SECSIZE + bx]
 	add	ax,15
 	mov	cl,4
 	shr	ax,cl			; convert to para size
 	mov	dl,'B'			; allocate as a Buffer
 	call	alloc_hiseg		; allocate a deblocking buffer
-	mov	es:F52_DEBLOCK[bx],ax
-	les	bx,drdos_ptr		; ES:BX -> data area
-	mov	es:DRDOS_DEBLOCK[bx],ax	;  of deblocking buffer
+	mov	[es:F52_DEBLOCK + bx],ax
+	les	bx,[drdos_ptr]		; ES:BX -> data area
+	mov	[es:DRDOS_DEBLOCK + bx],ax	;  of deblocking buffer
 setup_b90:
 	ret
 
 setup_doshndl:
 	push	es
-	les	bx,func52_ptr			; Internal Data Pointer
-	lea	bx,F52_FILEPTR[bx]		; Start of Handle List
-	mov	cx,num_files			; Number of DOS Handles
-	add	cx,num_fcbs			; + some for FCB's
+	les	bx,[func52_ptr]			; Internal Data Pointer
+	lea	bx,[F52_FILEPTR + bx]		; Start of Handle List
+	mov	cx,[num_files]			; Number of DOS Handles
+	add	cx,[num_fcbs]			; + some for FCB's
 	cmp	cx,255
 	 jbe	setup_dh10
 	mov	cx,255				; maximum IFN is 255
 setup_dh10:
-	cmp	es:DCNTRL_DSOFF[bx],0FFFFh	; Last entry ?
+	cmp	word [es:DCNTRL_DSOFF + bx],0FFFFh	; Last entry ?
 	 je	setup_dh20			; no, loop round again
-	les	bx,es:DCNTRL_DSADD[bx]		; Get the Next Entry
-	sub	cx,es:DCNTRL_COUNT[bx]		; Update the count
+	les	bx,[es:DCNTRL_DSADD + bx]		; Get the Next Entry
+	sub	cx,[es:DCNTRL_COUNT + bx]		; Update the count
 	 jc	setup_dh30			; going negative isn't allowed
 	jmp	short setup_dh10
 
@@ -1125,7 +1130,7 @@ setup_dh20:
 	add	ax,DCNTRL_LEN			; including the control
 	mov	dx,ax
 
-	test	filesIn,FILES_IN_HMA
+	test	byte [filesIn],FILES_IN_HMA
 	 jz	setup_dh23
 	push	es
 	push	bx
@@ -1154,7 +1159,7 @@ setup_dh23:
 	shr 	ax,1
 	shr 	ax,1				; allocate some memory
 	mov	dl,'F'				; allocate for Files
-	test	filesIn,FILES_IN_UMB		; UMB usage activated?
+	test	byte [filesIn],FILES_IN_UMB		; UMB usage activated?
 	 jz	setup_dh25			; no, use conventional mem
 	call	alloc_upper			; then try to move them there first
 	 jnc	setup_dh26			; if upper fails, try low mem
@@ -1163,19 +1168,19 @@ setup_dh25:
 setup_dh26:
 	xor	di,di
 setup_dh27:
-	mov	es:DCNTRL_DSOFF[bx],di		; link the new seg
-	mov	es:DCNTRL_DSSEG[bx],ax		; to the end of the list
+	mov	[es:DCNTRL_DSOFF + bx],di		; link the new seg
+	mov	[es:DCNTRL_DSSEG + bx],ax		; to the end of the list
 	
 ; We can now initialise the new structure
-	les	bx,es:DCNTRL_DSADD[bx]		; Get the New Entry
-	mov	es:DCNTRL_DSOFF[bx],0FFFFh	; terminate the list
-	mov	es:DCNTRL_DSSEG[bx],0FFFFh	; with -1,-1
- 	mov	es:DCNTRL_COUNT[bx],cx		; Number of elements
+	les	bx,[es:DCNTRL_DSADD + bx]		; Get the New Entry
+	mov	word [es:DCNTRL_DSOFF + bx],0FFFFh	; terminate the list
+	mov	word [es:DCNTRL_DSSEG + bx],0FFFFh	; with -1,-1
+ 	mov	[es:DCNTRL_COUNT + bx],cx		; Number of elements
 ; Now zero the tables
 	mov	ax,DHNDL_LEN			; How many bytes do we have
  	mul	cx				; with this number of elements
 	mov	cx,ax				; in the structure
-	lea	di,DCNTRL_LEN[bx]		; Zero the contents of the
+	lea	di,[DCNTRL_LEN + bx]		; Zero the contents of the
 	sub	al,al				; structure
 	rep	stosb
 	 
@@ -1185,13 +1190,13 @@ setup_dh30:
 
 
 setup_drives:
-	mov	al,next_drv		; AL = # of drives supported
+	mov	al,[next_drv]		; AL = # of drives supported
 	push	es
 	push 	bx
-	les	bx,func52_ptr		; ES:BX -> base of DOS variables
-	mov	es:F52_PHYDRV[bx],al	; set # of Physical drives installed
+	les	bx,[func52_ptr]		; ES:BX -> base of DOS variables
+	mov	[es:F52_PHYDRV + bx],al	; set # of Physical drives installed
 ;	mov	es:F52_LASTDRV[bx],al	; set # of Logical drives installed
-	mov	es:F52_LASTDRV[bx],26	; set # of Logical drives installed
+	mov	byte [es:F52_LASTDRV + bx],26	; set # of Logical drives installed
 	pop	bx
 	pop 	es
 	ret
@@ -1199,17 +1204,17 @@ setup_drives:
 
 setup_fopen:		; allocate file hashing information
 ;-----------
-	les	bx,drdos_ptr
-	mov	ax,num_fopen		; get # of hashed directory entries
+	les	bx,[drdos_ptr]
+	mov	ax,[num_fopen]		; get # of hashed directory entries
 	cmp	ax,-1			; has it been set yet ?
 	 jne	setup_fopen10		; yes, then leave it alone
 	mov	ax,DEF_NUM_FOPEN
-	cmp	es:DRDOS_HIMEM_ROOT[bx],0; do we have a high memory chain ?
+	cmp	word [es:DRDOS_HIMEM_ROOT + bx],0; do we have a high memory chain ?
 	 jne	setup_fopen10		; high memory means no TPA hit
 	xor	ax,ax			; keep things small otherwise
 setup_fopen10:
 	xor	dx,dx			; AX/DX = 32 bit # of entries
-	mov	si,max_clsize		; max. cluster size
+	mov	si,[max_clsize]		; max. cluster size
 	mov	cl,5			; 32 byte per directory entry
 	shr	si,cl			; SI = directory entries per cluster
 	add	ax,si			; round up count to multiple of cluster
@@ -1218,32 +1223,32 @@ setup_fopen10:
 	mov	cx,ax
 	 jcxz	setup_fopen90		; skip if hashing disabled
 
-	mov	es:DRDOS_HASHMAX[bx],si	; maximum # dir entries allowed
+	mov	[es:DRDOS_HASHMAX + bx],si	; maximum # dir entries allowed
 
 	shl	si,1			; SI = bytes required for data
-	lea	si,HCB_DATA[si]		;  + control information
+	lea	si,[HCB_DATA + si]		;  + control information
 	mul	si			; AX bytes of data required
 	test	dx,dx
 	 jnz	setup_fopen90		; overflow (shouldn't happen)
 
 ; Allocate CX HCB_'s of size SI bytes, AX bytes in total
 
-	mov	bx,es:DRDOS_HIMEM_ROOT[bx]; do we have a high memory chain ?
+	mov	bx,[es:DRDOS_HIMEM_ROOT + bx]; do we have a high memory chain ?
 	test	bx,bx			;  zero indicates we don't
 	 jz	setup_fopen30
 	mov	dx,0FFFFh		; use the magic FFFF segment
 	mov	es,dx
-	cmp	ax,es:2[bx]		; is there enough room ?
+	cmp	ax,[es:2 + bx]		; is there enough room ?
 	 ja	setup_fopen30		; no, forget try conventinal memory
-	sub	es:2[bx],ax		; else allocate the memory
-	mov	di,es:2[bx]		; get base+length
+	sub	[es:2 + bx],ax		; else allocate the memory
+	mov	di,[es:2 + bx]		; get base+length
 	add	di,bx			;  = our allocation
-	mov	ax,es:2[bx]		; if the section left is under
-	cmp	ax,2*WORD		;  2 words discard it
+	mov	ax,[es:2 + bx]		; if the section left is under
+	cmp	ax,2*2		;  2 words discard it
 	 jae	setup_fopen20		;  as we may overwrite size/link
-	mov	ax,es:[bx]		; get next entry
-	les	bx,drdos_ptr		;  and make it the new himem root
-	mov	es:DRDOS_HIMEM_ROOT[bx],ax
+	mov	ax,[es:bx]		; get next entry
+	les	bx,[drdos_ptr]		;  and make it the new himem root
+	mov	[es:DRDOS_HIMEM_ROOT + bx],ax
 setup_fopen20:
 	xchg	ax,dx			; AX = FFFF
 	jmp	short setup_fopen40	; AX:DI -> data block allocated
@@ -1262,18 +1267,18 @@ setup_fopen30:
 
 setup_fopen40:
 ; setup CX HCB_'s of size SI at AX:DI
-	les	bx,drdos_ptr
-	mov	es:DRDOS_HASHOFF[bx],di
-	mov	es:DRDOS_HASHSEG[bx],ax
+	les	bx,[drdos_ptr]
+	mov	[es:DRDOS_HASHOFF + bx],di
+	mov	[es:DRDOS_HASHSEG + bx],ax
 	mov	es,ax
 
 setup_fopen50:
-	mov	es:HCB_DRV[di],-1	; discard the HCB initially
+	mov	byte [es:HCB_DRV + di],-1	; discard the HCB initially
 	mov	bx,di			; remember where it is
 	add	di,si			; onto next HCB_
-	mov	es:HCB_LINK[bx],di	; link it to previous HCB_
+	mov	[es:HCB_LINK + bx],di	; link it to previous HCB_
 	loop	setup_fopen50		; allocate all hash control blocks
-	mov	es:HCB_LINK[bx],0	; zero terminate the list
+	mov	word [es:HCB_LINK + bx],0	; zero terminate the list
 setup_fopen90:				; all HCBs done, return
 	push	cs
 	pop	es			; back to 8080 model
@@ -1295,7 +1300,7 @@ whitespace:
 build_cmd_tail:
 	push 	ds
 	pop 	es
-	mov	cx,(lengthof cfg_buffer) - 3 ; (leave room for 3 extra chars)
+	mov	cx,(lengthof_cfg_buffer) - 3 ; (leave room for 3 extra chars)
 	mov	di,offset cfg_buffer
 build_cl1:
 	lodsb			; Copy the device name
@@ -1337,7 +1342,7 @@ save_vecs:
 	push 	si
 	push 	di
 	push 	cx
-	mov	cx,(lengthof vec_save_buf)*2	; CX = words to save
+	mov	cx,(lengthof_vec_save_buf)*2	; CX = words to save
 	xor	si,si
 	mov	ds,si				; DS:SI -> vectors to save
 	push 	cs
@@ -1358,24 +1363,24 @@ restore_vecs:
 	push 	si
 	push 	di
 	push 	cx
-	mov	cx,lengthof vec_save_buf	; CX = vectors to restore
+	mov	cx,lengthof_vec_save_buf	; CX = vectors to restore
 	push 	cs
 	pop 	ds
 	mov	si,offset vec_save_buf		; DS:SI -> save area
 	xor	di,di
 	mov	es,di				; ES:DI -> vectors to restore
 rest_vec1:
-	mov	ax,es:2[di]			; get updated vector
-	cmp	ax,mem_current			; below attempted driver?
+	mov	ax,[es:2 + di]			; get updated vector
+	cmp	ax,[mem_current]			; below attempted driver?
 	 jb	rest_vec2			; yes, don't zap it
-	cmp	ax,mem_max			; above attempted driver?
+	cmp	ax,[mem_max]			; above attempted driver?
 	 jae	rest_vec2			; yes, don't zap it
 	movsw
 	movsw					; else restore vector
 	jmp	short rest_vec3			;   overwritten by driver
 rest_vec2:
-	add	si,dword			; skip vector in source
-	add	di,dword			;   and in destination
+	add	si,4			; skip vector in source
+	add	di,4			;   and in destination
 rest_vec3:
 	loop	rest_vec1			; next vector
 	pop 	cx
@@ -1388,7 +1393,7 @@ rest_vec3:
 INITCODE ends
 
 
-INITDATA	segment public word 'INITDATA'
+section INITDATA public align=2 class=INITDATA
 	
 	extrn	shell:byte		; Default Command Processor
 	extrn	shell_cline:byte	; Default Command Line
@@ -1415,8 +1420,8 @@ INITDATA	segment public word 'INITDATA'
 	extrn	cfg_seekhi:word
 	extrn	boot_options:word
 
-include	initmsgs.def				; Include TFT Header File
-include	biosmsgs.def
+%include "initmsgs.mac"				; Include TFT Header File
+%include "biosmsgs.mac"
 
 
 	extrn	preload_drv:byte
@@ -1425,6 +1430,7 @@ include	biosmsgs.def
 	Public	dev_load_seg, dev_reloc_seg, dev_epb, dev_name, dev_count
 	Public	rel_unit, dev_epb
 	Public	strategy_off, strategy_seg, interrupt_off, interrupt_seg, request_hdr
+strategy equ STRATEGY	; NASM port label
 	Public	next_drv, strategy_seg, strategy, interrupt_far
 	Public	strategy_seg, condev_off, condev_seg, clkdev_off, clkdev_seg
 	Public	num_blkdev, blkdev_table, next_drv, max_secsize
@@ -1438,6 +1444,7 @@ history_flg	db	0	; Disable history buffers to save RAM
 history_size	dw	256	; When enabled 2*history size are used for bufs
 
 cfg_buffer	db	CFG_BUF_LEN dup (0)	; extra termination for buggy Windows
+lengthof_cfg_buffer equ $ - cfg_buffer
 		db	CR,LF,0		; device driver - give it CR/LF to hit
 	
 init_buf	db	MIN_NUM_BUFFS	; default # of buffers
@@ -1524,6 +1531,7 @@ nls_temp_area	label byte		; NLS buffer can be shared with
 
 
 vec_save_buf	dd	256 dup (0)	; reserve space to save int vectors
+lengthof_vec_save_buf equ ($ - vec_save_buf) / 4
 
 dbcs_buf	db	0		; BDOS puts a 7 here
 dbcs_tbl	dd	0		; pointer to DBCS table in BDOS
