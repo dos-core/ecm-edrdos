@@ -60,7 +60,7 @@ nasm -Dcompressdrdos=%compressdrdos% -s -P nasm.mac -f obj biosinit.nas -l bin/b
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj config.nas -l bin/config.lst -o bin/config.obj
 IF ERRORLEVEL 1 GOTO FAILED
-%JWASMEXE% -c -Fl.\BIN\genercfg.lst -Fo.\BIN\genercfg genercfg.asm
+nasm -s -P nasm.mac -f obj genercfg.nas -l bin/genercfg.lst -o bin/genercfg.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 REM ***************************************************
