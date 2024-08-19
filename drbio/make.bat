@@ -37,7 +37,7 @@ nasm -s -P nasm.mac -f obj clock.nas -l bin/clock.lst -o bin/clock.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj console.nas -l bin/console.lst -o bin/console.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -s -P nasm.mac -P nasmorg.mac -f obj disk.nas -l bin/disk.lst -o bin/disk.obj
+nasm -t -s -P nasm.mac -P nasmorg.mac -f obj disk.nas -l bin/disk.lst -o bin/disk.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj serpar.nas -l bin/serpar.lst -o bin/serpar.obj
 IF ERRORLEVEL 1 GOTO FAILED

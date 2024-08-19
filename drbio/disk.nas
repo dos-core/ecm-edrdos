@@ -608,7 +608,7 @@ add_unit:	; add a new unit to the list
 	push	ds
 	mov	word ptr [es:UDSC.NEXT + di],0FFFFh
 					; make sure it's terminated
-	and	word [es:UDSC.FLAGS + di],UDF_LBA+UDF_HARD+UDF_CHGLINE
+	and	word [es:UDSC.FLAGS + di],UDF_LBA+UDF_HARD+UDF_CHGLINE+UDF_NOACCESS
 	lea	si,[udsc_root]		; DS:SI -> [first UDSC_]
 add_unit10:
 	cmp	word ptr [UDSC.NEXT + si],0FFFFh
@@ -620,7 +620,7 @@ add_unit10:
 	mov	ax,[UDSC.FLAGS + si]	; inherit some flags
 	push	ax
 	and	ax,UDF_LBA+UDF_HARD+UDF_CHGLINE
-	mov	[es:UDSC.FLAGS + di],ax	; hard disk/changeline inherited
+	or	[es:UDSC.FLAGS + di],ax	; hard disk/changeline inherited
 	pop	ax
 	test	ax,UDF_HARD
 	 jnz	add_unit10		; skip owner stuff on hard drive
@@ -1064,6 +1064,12 @@ dd_input:	; 4-input
 
 io_common:				; common code for the above three
 	call	point_unit		; get unit descriptor
+	test	word [es:UDSC.FLAGS + di],UDF_NOACCESS
+	 jz	io_granted
+	 mov	ax,RHS_ERROR+7		; bad media type
+	 stc
+	 ret
+io_granted:
 	call	ask_for_disk		; make sure we've got correct floppy
 	call	setup_rw		; setup for read/write operation
 	 jc	io_ret			; return if bad parameters
@@ -1570,6 +1576,10 @@ genioctlTable	label	byte
 	dw	offset ioctl_getmedia
 	db	RQ19_SETMEDIA		; set media id
 	dw	offset ioctl_setmedia
+	db	RQ19_SETACCESS		; set access flag
+	dw	offset ioctl_setaccess
+	db	RQ19_GETACCESS		; get access flag
+	dw	offset ioctl_getaccess	
 	db	RQ19_LOCKLOG
 	dw	offset ioctl_locklogical
 	db	RQ19_LOCKPHYS
@@ -2074,6 +2084,34 @@ ioctl_setmedia:
 setmedia10:
 	ret
 
+ioctl_setaccess proc
+	push	ds
+	call	point_ioctl_packet	; DS:BX -> ioctl packet
+	mov	ax,[es:UDSC.FLAGS + di]	; get flags
+	and	ax,~ UDF_NOACCESS	; clear NOACCES flag
+	cmp	byte ptr [1 + bx],0	; zero means request sets no access flg
+	jne	@@done			; if not zero, skip setting NOACCESS
+	or	ax,UDF_NOACCESS		; set NOACCESS flag
+@@done:	mov	es:UDSC.FLAGS[di],ax	; write back access flag
+	xor	ax,ax			; return success
+	pop	ds
+	ret
+ioctl_setaccess endp
+
+ioctl_getaccess proc
+	push	ds
+	call	point_ioctl_packet	; DS:BX -> ioctl packet
+	mov	ax,[es:UDSC.FLAGS + di]	; get flags
+	mov	byte ptr [1 + bx],1	; default to access granted
+	and	ax,UDF_NOACCESS		; perhaps not?
+	 jz	@@done			; it is granted!
+	mov	byte ptr [1 + bx],0	; otherwise indicate not accessible
+	xor	ax,ax			; return success
+@@done: pop	ds
+	ret
+ioctl_getaccess endp
+
+
 ioctl_locklogical:
 ioctl_lockphysical:
 ioctl_unlocklogical:
@@ -2373,6 +2411,7 @@ equip_loop:
 
 	call	new_unit		; ES:DI -> UDSC
 	mov	[es:UDSC.RUNIT + di],dl	; set physical drive (ROS code)
+	and	word [es:UDSC.FLAGS + di],~ UDF_NOACCESS	; floppy access enabled by default
 
 	call	floppy_type		; determine type, build default BPB
 
@@ -2989,6 +3028,7 @@ log_p1:					; any of the above:  BPB invalid
 	jmp	log_p9
 
 log_p2:					; valid BPB for partition, AX/DX = size
+	and 	word [es:UDSC.FLAGS + di], ~ UDF_NOACCESS ; mark drive as accessible
 	cmp word ptr [BPB.TOTSEC + si], 0	; BPB says small size ?
 	jne log_p2a			; no -->
 	test dx, dx			; partition table says larger ?
@@ -3304,6 +3344,7 @@ new_unit:
 	xor	bx,bx
 	mov	bl,[nunits]		; BX = unit we are working on
 	mov	[es:UDSC.DRIVE + di],bl	; make that our logical unit
+	or	word [es:UDSC.FLAGS + di],UDF_NOACCESS	; no access until valid BPB
 	shl	bx,1			; make it a BPB index
 	lea	ax,[UDSC.DEVBPB + di]	; get storage area for device BPB
 	mov	[bpbtbl + bx],ax		; update entry in BPB table
