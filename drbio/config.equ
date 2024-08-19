@@ -35,6 +35,8 @@
 
 DOS5		equ	0FFFFh
 
+BIO_SEG		equ	70h		; BIO lives here
+
 if DOS5
 MOVE_DOWN	equ	1800h		; start relocated code 96K down
 else
