@@ -785,7 +785,7 @@ login_media10:
 	call	login_read		; try to read the sector
 	 jc	login_media_err		; abort if physical error
 	cmp	word ptr 1[si],-1	; bytes 1, 2 must be 0FFh, 0FFh
-	 jne	login_media30		; default media if bad FAT
+	 jne	login_media_err		; error if bad fat
 	lodsb				; else get FAT ID byte
 	mov	si,offset bpb160		; look through builtin BPB table
 	mov	cx,NBPBS		; # of builtin BPBs
@@ -794,10 +794,12 @@ login_media20:
 	 je	login_media40		; yes, use builtin BPB
 	add	si,BPB_LENGTH		; else move to next BPB
 	loop	login_media20		; repeat for all BPBs
-login_media30:				; can't find that FAT ID
-	lea	si,UDSC.DEVBPB[di]	; use the default type
-	push	es
-	pop	ds			; use BPB at DS:SI ->
+login_media_err:			; can't read BPB
+	lea	di,UDSC.BPB[di]
+	mov	BPB.FATID[di],0		; make sure FAT ID is invalidated
+	stc
+	pop	ds
+	ret
 login_media40:
 	push	di
 	lea	di,UDSC.BPB[di]		; ES:DI -> unit descriptor (UDSC)
@@ -829,7 +831,6 @@ login_media50:
 login_media60:
 	call	UpdateMediaID		; update UDSC_ with media info
 	clc
-login_media_err:
 	pop	ds
 	ret
 
