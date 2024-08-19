@@ -4068,15 +4068,16 @@ INITDATA ends
 
 section INITENV public align=16 class=INITDATA
 Public envstart
-envstart	db	250 dup (0)	; initial env buffer
-Public envend
+envstart	db	250 dup (0)	; <<< initial env buffer, copied to seg 60
+Public envend				; 
 envend		dw	0		; make it double null terminated
 		db	1Ah		; EOF marker env buffer
 	Public	boot_options, boot_switches
 boot_options	dw	0
 boot_switches	db	0
 ; set by BIOS to either the SHIFT states, or to F5KEY or F8KEY
-
+					; >>> end of range copied to seg 60
+					;     may not exceed 256 bytes
 EXE_LENGTH	equ	001Ch
 
 exeBuffer	label word
