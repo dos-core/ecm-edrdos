@@ -47,9 +47,9 @@ nasm -s -P nasm.mac -f obj stacks.nas -l bin/stacks.lst -o bin/stacks.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj nlsfunc.nas -l bin/nlsfunc.lst -o bin/nlsfunc.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -s -P nasm.mac -f obj bdosldr.nas -l bin/bdosldr.lst -o bin/bdosldr.obj
+nasm -t -s -P nasm.mac -f obj bdosldr.nas -l bin/bdosldr.lst -o bin/bdosldr.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -Dcompressdrdos=%compressdrdos% -s -P nasm.mac -f obj biosinit.nas -l bin/biosinit.lst -o bin/biosinit.obj
+nasm -Dcompressdrdos=%compressdrdos% -t -s -P nasm.mac -f obj biosinit.nas -l bin/biosinit.lst -o bin/biosinit.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj config.nas -l bin/config.lst -o bin/config.obj
 IF ERRORLEVEL 1 GOTO FAILED
