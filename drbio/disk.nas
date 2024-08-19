@@ -789,7 +789,7 @@ login_media10:
 	call	login_read		; try to read the sector
 	 jc	login_media_err		; abort if physical error
 	cmp	word ptr [1 + si],-1	; bytes 1, 2 must be 0FFh, 0FFh
-	 jne	login_media30		; default media if bad FAT
+	 jne	login_media_err		; error if bad fat
 	lodsb				; else get FAT ID byte
 	mov	si,offset bpb160		; look through builtin BPB table
 	mov	cx,NBPBS		; # of builtin BPBs
@@ -798,11 +798,12 @@ login_media20:
 	 je	login_media40		; yes, use builtin BPB
 	add	si,BPB_LENGTH		; else move to next BPB
 	loop	login_media20		; repeat for all BPBs
-login_media30:				; can't find that FAT ID
-UDSC.DEVBPB equ DEVBPB	; NASM port label
-	lea	si,[UDSC.DEVBPB + di]	; use the default type
-	push	es
-	pop	ds			; use BPB at DS:SI ->
+login_media_err:			; can't read BPB
+	lea	di,[UDSC.UDSCBPB + di]
+	mov	byte [BPB.FATID + di],0		; make sure FAT ID is invalidated
+	stc
+	pop	ds
+	ret
 login_media40:
 	push	di
 	lea	di,[UDSC.UDSCBPB + di]		; ES:DI -> unit descriptor (UDSC)
@@ -836,7 +837,6 @@ login_media50:
 login_media60:
 	call	UpdateMediaID		; update UDSC_ with media info
 	clc
-login_media_err:
 	pop	ds
 	ret
 
@@ -1626,6 +1626,7 @@ UDSC.NCYL equ NCYL	; NASM port label
 
 	test	byte ptr [bx],1	; return default BPB?
 	pop	ds
+UDSC.DEVBPB equ DEVBPB	; NASM port label
 	lea	si,[UDSC.DEVBPB + di]	; assume we want device BPB
 	 jz	get1			; skip if yes
 	test	word [es:UDSC.FLAGS + di],UDF_HARD
@@ -2092,7 +2093,7 @@ ioctl_setaccess proc
 	cmp	byte ptr [1 + bx],0	; zero means request sets no access flg
 	jne	@@done			; if not zero, skip setting NOACCESS
 	or	ax,UDF_NOACCESS		; set NOACCESS flag
-@@done:	mov	es:UDSC.FLAGS[di],ax	; write back access flag
+@@done:	mov	[es:UDSC.FLAGS + di],ax	; write back access flag
 	xor	ax,ax			; return success
 	pop	ds
 	ret
