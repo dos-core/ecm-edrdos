@@ -464,7 +464,6 @@ dos_r50:
 	call	config_start		; get free memory
 	call	config			; read and process CONFIG.SYS
 	call	config_end		; relocate DOS code and free memory
-	call	add_comspec_to_env	; append COMSPEC to config environment
 
 	mov	ax,(MS_X_OPEN*256)+2	; Open for Write
 	mov	dx,offset idle_dev	; Get the IDLE Device Name#
@@ -505,6 +504,7 @@ dos_r70:
 	push 	cs
 	pop 	es
 load_e10:
+	call	add_comspec_to_env	; append / update COMSPEC in config env
 	mov	ax,(MS_X_EXEC * 256)+0	; Exec the Command Processor
 	mov	bx,offset exec_env	; Get the Parameter Block Address
 	mov	dx,offset shell		; and the Command Processor
@@ -2054,17 +2054,13 @@ add_comspec_to_env proc
 	inc	di			; DI points to free part of env
 	mov	comspec_env_offset,di	; remember comspec offset
 @@copy_comspec:
-	mov	si,offset comspec
 	cmp	di,offset envend - 8
 	jae	@@err			; not much room enough to copy COMSPEC=
-	lodsw				; CO
-	stosw
-	lodsw				; MS
-	stosw
-	lodsw				; PE
-	stosw
-	lodsw				; C=
-	stosw
+	mov	si,offset comspec
+	movsw
+	movsw
+	movsw
+	movsw
 @@copy_shell:
 	mov	si,offset shell
 @@copy_next:
