@@ -4063,7 +4063,7 @@ save_sp		dw	0		; save SP here for GOSUB/RETURN's
 INITDATA ends
 
 INITENV		segment public para 'INITDATA'
-
+Public envstart
 envstart	db	253 dup (0)	; initial env buffer
 envend		dw	0		; make it double null terminated
 		db	1Ah		; EOF marker env buffer

@@ -147,7 +147,6 @@ CODE	segment 'CODE'
 	extrn	biosinit_end:byte	; End of the BIOS Init Code and Data
 	extrn	biosinit:near
 	
-	extrn	boot_options:word
 	extrn	rcode_fixups:word
 	extrn	rcode_seg:word
 	extrn	rcode_offset:word
@@ -163,7 +162,6 @@ CODE	segment 'CODE'
 	extrn	init_runit:byte
 	extrn	comspec_drv:byte
 	extrn	init_flags:word
-	extrn	boot_switches:byte
 
 
 include	biosmsgs.def			; Include TFT Header File
@@ -897,8 +895,6 @@ debugger_detected:
 	call	output_msg
 	mov	si,offset starting_dos_msg
 	call	output_msg
-;	call	get_boot_options	; look for user keypress
-;	mov	boot_options,ax		;  return any options
 
 	mov	ah,EXT_MEMORY
 	int	SYSTEM_INT		; find out how much extended memory
