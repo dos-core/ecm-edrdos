@@ -36,6 +36,7 @@
 	%include "driver.mac"
 	%include "udsc.mac"
 	%include "config.mac"
+	%include "initmsgs.mac"				; for dos_msg error msg
 
 ;	MISC constants
 CR		equ	0dh			;the usual
@@ -62,15 +63,17 @@ VER_MUSTBE	equ	1072h
 	Public	detect_boot_drv
 	Public	dos_version_check
 
-dos_version_check:
+dos_version_check proc
 ;-----------------
 	mov	ax,4452h
 	int	21h			; try and get DRDOS version number
-	 jc	dev_fail		;  it's not DRDOS !
+	 jc	@@fail			;  it's not DRDOS !
 	and	ax,0fffeh		; don't be so picky
 	cmp	ax,VER_MUSTBE		; version check the DRDOS BDOS
-	 jne	dev_fail		;  reject all but the one we want
+	 jne	@@fail			;  reject all but the one we want
 	ret				; return now I'm happy
+@@fail:	jmp	dos_load_panic
+dos_version_check endp
 
 
 	; Tries to detect to logical boot drive by the given phys boot drv
@@ -82,9 +85,7 @@ detect_boot_drv proc
 	dec	dh			; dh=255
 	mov	ax,es
 	or	ax,di			; make sure boot device is initialised
-	 jnz	@@get_device_procs
-	ret				; single-file kernel, user may resolve
-
+	 jz	@@error
 @@get_device_procs:
 	mov	ax,[es:6 + di]		; get strategy offset
 	mov	[strat_off],ax
@@ -126,7 +127,10 @@ UDSC.RUNIT equ RUNIT	; NASM port label
 @@done:
 	cmp	dh,255
 	 jne	@@store_boot_drv	; boot drv found?
-	jmp	dev_fail
+@@error:
+	mov	dx,offset bootpart_not_found_msg
+	call	bio_output_str
+	ret
 @@store_boot_drv:
 	mov	dl,dh
 	mov	[boot_drv],dl
@@ -135,26 +139,26 @@ UDSC.RUNIT equ RUNIT	; NASM port label
 detect_boot_drv endp
 
 
-	public dev_fail
-
-dev_fail:	; any error has occurred loading the BDOS
 ;--------
 ; Print '$' terminated message at offset DX to console without using the BDOS
 ;
-	push cs
-	pop ds
-	mov	dx,offset dos_msg
+bio_output_str proc
+	push	ax
+	push	bx
+	push	si
+	push	di
+	push	es
 	les	di,[resdev_chain]		; get first device driver address
-fail_scan:
+@@dev_scan:
 DEVHDR.ATTRIB equ ATTRIB	; NASM port label
 	test	word [es:di+DEVHDR.ATTRIB],DA_CHARDEV
-	 jz	fail_next		; skip if not a character device
+	 jz	@@dev_next		; skip if not a character device
 	test	word [es:di+DEVHDR.ATTRIB],DA_ISCOT
-	 jnz	fail_found		; skip if console device found
-fail_next:
+	 jnz	@@dev_found		; skip if console device found
+@@dev_next:
 	les	di,[es:di]		; get next device
-	jmp	fail_scan
-fail_found:
+	jmp	@@dev_scan
+@@dev_found:
 	mov	ax,[es:6 + di]		; get strategy offset
 	mov	[strat_off],ax
 	mov	[strat_seg],es		; get strategy segment
@@ -169,16 +173,32 @@ fail_found:
 	mov	[bx+RH4_BUFSEG],ds
 	mov	word [bx+RH4_COUNT],-1
 	mov	si,dx			; now find the end of the string
-fail_count_chars:
+@@count_chars:
 	inc	word [bx+RH4_COUNT]		; print another char
 	lodsb				; examine the next one
 	cmp	al,'$'			; terminating char ?
-	 jnz	fail_count_chars
+	 jnz	@@count_chars
 	call	device_request		; call the console driver
+	pop	es
+	pop	di
+	pop	si
+	pop	bx
+	pop	ax
+	ret
+bio_output_str endp
 
+
+	public dos_load_panic
+
+dos_load_panic proc	; any error has occurred loading the BDOS
+	push cs
+	pop ds
+	mov	dx,offset dos_msg
+	call	bio_output_str
 	sti
-wait_forever:
-	jmp	wait_forever			; wait for reboot
+@@forever:
+	jmp	@@forever		; wait for reboot
+dos_load_panic endp
 
 
 device_request:		; general device driver interface
@@ -201,9 +221,6 @@ device_request:		; general device driver interface
 	ret
 devreq_err:
 	stc
-;	jmp	dev_fail		; print error message
-
-
 	ret
 
 INITCODE	ends
@@ -234,9 +251,6 @@ intrpt_seg	dw	?
 part_off	dw	0,0			; offset of boot partition
 
 ;	single error message if BDOS can't be loaded:
-
-
-%include "initmsgs.mac"				; for dos_msg error msg
 
 
 ;	static request header for DOS device driver I/O

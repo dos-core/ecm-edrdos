@@ -125,7 +125,7 @@ section INITCODE public align=16 class=INITCODE
 	extrn	setup_stacks:near
 	extrn	detect_boot_drv:near
 	extrn	dos_version_check:near
-	extrn	dev_fail:near
+	extrn	dos_load_panic:near
 	extrn	preload_done:near
 
 		db	'Copyright (c) 1983,1996 '
@@ -375,7 +375,7 @@ dos_reloc:
 ;
 dos_r20:
 %ifn compressdrdos
-	jmp dev_fail
+	jmp dos_load_panic
 %else
 	lodsw				; get control word
 	mov	cx,ax			; as a count
