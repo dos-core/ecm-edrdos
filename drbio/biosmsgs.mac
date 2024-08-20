@@ -8,5 +8,3 @@
 	extrn	drdosprojects_msg	: byte
 	extrn	_starting_dos_msg	: byte
 	extrn	starting_dos_msg	: byte
-	extrn	_lba_supp_msg		: byte
-	extrn	lba_supp_msg		: byte

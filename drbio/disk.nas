@@ -2602,6 +2602,8 @@ ver_1x		db	"1.x",CR,LF,NUL
 ver_20		db	"2.0/EDD-1.0",CR,LF,NUL
 ver_21		db	"2.1/EDD-1.1",CR,LF,NUL
 ver_30		db	"EDD-3.0",CR,LF,NUL
+lba_supp_msg	db	"Supported version of int 13 extensions: ", NUL
+last_sect_msg	db	"warning: can't read last partition sector, verify partition layout", CR, LF, NUL
 
 hard_init:	; setup all hard disk units
 ;---------
@@ -2908,30 +2910,26 @@ login_primary:
 	 je	login_p9		; ignore this if LBA support not present
 	cmp	byte [parttype],FAT32X_ID	; LBA partition?
 	 je	login_p9		; ignore this if LBA support not present
-	mov	ax,word ptr [partend+2]	; partition within CHS bounds?
-	cmp	ax,word ptr [partend_max+2]
-	 ja	login_p9		; cannot access via CHS, ignoring it
-	 jb	login_p0		; within CHS bounds, proceed normally
-	mov	ax,word ptr [partend]
-	cmp	ax,word ptr [partend_max]
-	 ja	login_p9		; out of bounds, ignore this partition
 login_p0:
-;	mov	cl,2
-;	mov	bx,5[si]		; get last head/sector
-;	and	bx,1100000011000000b	; isolate cylinder bits 10..11,8..9
-;	rol	bl,cl			; bits 10..11 from head into position
-;	or	bh,bl			;  or in bits 8..9
-;	rol	bh,cl			; bits 8..11 into place
-;	mov	bl,7[si]		; get cylinder bits 0..7
-;	mov	dh,1[si]		; get head of DOS partition
-;	mov	cx,2[si]		; get cylinder, sector of DOS partition
 	pushx	<bx,cx,dx>
 	lea	si,[diskaddrpack]		; pointer to disk address packet
-	mov	ax,word ptr [partstart]	; copy offset of partition table
+	mov	ax,word ptr [partend]	; copy last partition sector number
+	mov	word ptr [si+8],ax	; to test-read
+	mov	ax,word ptr [partend+2]
+	mov	word ptr [si+10],ax
+	call	login_read_dx_lba	; try to read last partition sector
+	popx	<dx,cx,bx>	
+	 jnc	login_p1
+	mov	si,offset last_sect_msg	; and warn if not readable
+	call	output_msg
+login_p1:
+	pushx	<bx,cx,dx>
+	lea	si,[diskaddrpack]		; pointer to disk address packet
+	mov	ax,word ptr [partstart]	; copy partition start sector number
 	mov	word ptr [si+8],ax
 	mov	ax,word ptr [partstart+2]
 	mov	word ptr [si+10],ax
-	call	login_read_dx_lba	; try to read the partition boot
+	call	login_read_dx_lba	; try to read the first sector
 	popx	<dx,cx,bx>
 	 jc	login_p9		; skip if partition not readable
 					; CX, DX = disk addr of 1st sector

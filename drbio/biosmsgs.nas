@@ -48,10 +48,6 @@ _starting_dos_msg	db	CR, LF, "Starting "
 shortversion equ 1
 			%include "version.mac"
 			db	CR, LF, NUL
-	public	_lba_supp_msg
-	public	lba_supp_msg
-lba_supp_msg		label	byte
-_lba_supp_msg		db	"Supported version of int 13 extensions: ", NUL
 
 RCODE	ends
 
