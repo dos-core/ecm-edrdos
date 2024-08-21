@@ -164,5 +164,8 @@ uppercase
 %endif
 %endmacro
 
+; Undo nasm -t trickery to use our END macro instead
+%undef END
+
 %imacro END 0-1.nolist
 %endmacro
