@@ -43,6 +43,22 @@ CR		equ	0dh			;the usual
 LF		equ	0ah
 
 
+labelsize req1_return, byte, req_media+1
+labelsize req1_volid, word, req_media+2
+
+labelsize req2_bufoff, word, req_media+1
+labelsize req2_bufseg, word, req_media+3
+labelsize req2_bpb, word, req_media+5
+
+labelsize req3_buffer, dword, req_media+1
+labelsize req3_bufoff, word, req_media+1
+labelsize req3_bufseg, word, req_media+3
+labelsize req3_count, word, req_media+5
+labelsize req3_sector, word, req_media+7
+labelsize req3_volid, word, req_media+9
+labelsize req3_sector32, word, req_media+13
+
+
 labelsize DATTS, byte, 11
  DA_VOLUME	equ	08h
  DA_DIR		equ	10h
@@ -60,7 +76,7 @@ ASSUME CS:CGROUP,DS:CGROUP
 VER_MUSTBE	equ	1072h
 
 %if SVARDOS eq 0
- %ifn SINGLEFILE
+ %ifndef SINGLEFILE
   SINGLEFILE equ 1
  %endif
 %endif
@@ -938,21 +954,6 @@ req_status	dw	?
 		dd	2 dup (?)
 req_media	db	?
 		db	16 dup (?)
-
-labelsize req1_return, byte, req_media+1
-labelsize req1_volid, word, req_media+2
-
-labelsize req2_bufoff, word, req_media+1
-labelsize req2_bufseg, word, req_media+3
-labelsize req2_bpb, word, req_media+5
-
-labelsize req3_buffer, dword, req_media+1
-labelsize req3_bufoff, word, req_media+1
-labelsize req3_bufseg, word, req_media+3
-labelsize req3_count, word, req_media+5
-labelsize req3_sector, word, req_media+7
-labelsize req3_volid, word, req_media+9
-labelsize req3_sector32, word, req_media+13
 
 ;	local copy of the BPB for the boot device
 
