@@ -62,7 +62,6 @@
 	%include "psp.mac"			; PSP Definition
 	%include "f52data.mac"		; Internal DOS data area
 	%include "doshndl.mac"		; Dummy DOS structures
-	%include "config.mac"
 	%include "fdos.mac"
 	%include "modfunc.mac"
 
