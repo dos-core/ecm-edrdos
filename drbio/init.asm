@@ -1052,6 +1052,24 @@ IFDEF EMBEDDED
 endif
 		dw	0
 
+ifdef LDOS
+	drdosprojects_msg	db	CR, LF
+db "lDOS Enhanced DR-DOS kernel fork               https://hg.pushbx.org/ecm/edrdos"
+				db CR, LF, NUL
+;lDOS Enhanced DR-DOS kernel fork               https://hg.pushbx.org/ecm/edrdos
+;Enhanced DR-DOS continuation                  https://github.com/svardos/edrdos
+;The DR-DOS/OpenDOS Enhancement Project              http://www.drdosprojects.de
+;12345678901234567890123456789012345678901234567890123456789012345678901234567890
+elseifdef SVARDOS
+	drdosprojects_msg	db	CR, LF, "Enhanced DR-DOS continuation                  https://github.com/svardos/edrdos", CR, LF, NUL
+else
+	drdosprojects_msg	db	CR, LF, "The DR-DOS/OpenDOS Enhancement Project              http://www.drdosprojects.de", CR, LF, NUL
+endif
+starting_dos_msg	db	CR, LF, "Starting "
+shortversion equ 1
+			include version.inc
+			db	CR, LF, NUL
+
 INITDATA	ends
 
 CODE	segment	'CODE'
