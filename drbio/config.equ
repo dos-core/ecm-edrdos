@@ -32,16 +32,17 @@
 ;
 ;    ENDLOG
 
+		; For SvarDOS kernel flavours
+COMPRESSED_FLG	equ	1
+SINGLEFILE_FLG	equ	2
+DEBUG_FLG	equ	4
+TEMP_RELOC_SEG	equ	2000h		; used on initial BIO relocation
 
 DOS5		equ	0FFFFh
 
 BIO_SEG		equ	70h		; BIO lives here
 
-if DOS5
 MOVE_DOWN	equ	1800h		; start relocated code 96K down
-else
-MOVE_DOWN	equ	2500h		; start relocated code 148K down
-endif
 
 NUM_BUFFS	equ	4
 SIZEOF_BUFFS	equ	1024+32		; allow for large sectors during init
