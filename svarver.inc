@@ -8,7 +8,11 @@ else
 COMMIT   textequ GIT_REV
 endif
 
-KERNEL_VER_STR	textequ <13, 10, "Enhanced DR-DOS kernel >, VERSION, < (rev >, COMMIT, <) [built >, @date, < >, @time , <]", 13, 10>
+ifndef DATETIME
+ DATETIME textequ @date, < >, @time
+endif
+
+KERNEL_VER_STR	textequ <13, 10, "Enhanced DR-DOS kernel >, VERSION, < (rev >, COMMIT, <) [built >, DATETIME, <]", 13, 10>
 ifdef LDOS
 REPOSITORY_STR	textequ <"source and licensing conditions available at https://hg.pushbx.org/ecm/edrdos", 13, 10>
 else
