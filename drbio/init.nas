@@ -39,6 +39,7 @@
 ;    switch over to REQUEST.EQU
 ;    ENDLOG
 
+	%include "lmacros2.mac"
 
 	%include "biosgrps.mac"
 	%include "config.mac"
@@ -656,8 +657,8 @@ local_buffer 	label 	byte
 
 	Assume	DS:Nothing
 
-	mov	[i1Eoff],di
-	mov	[i1Eseg],es		; setup new location
+	mov	[es:i1Eoff],di
+	mov	[es:i1Eseg],es		; setup new location
 	mov	cx,11
 	rep	movsb
 	mov	byte ptr [es:di-7],36	; enable read/writing of 36 sectors/track
@@ -699,7 +700,7 @@ uncompress_and_relocate_kernel:
 %if (SINGLEFILE eq 1) | (COMPRESSED eq 1)
 	; determine kernel file size in words
 	; this is set by COMPBIOS and COMPKERN tools
-	mov	ax,[kernel_size]
+	mov	ax,[cs:kernel_size]
 %else
 	 ; for an uncompressed DRBIO.SYS we must determine kernel_size, as
 	 ; neither COMPBIO or COMPKERN are run on this (kernel_size=0)
@@ -728,7 +729,7 @@ uncompress_and_relocate_kernel:
   	shr	ax,1
 %else
   	; copy whole kernel if uncompressed
-  	mov	ax,[kernel_size]
+  	mov	ax,[cs:kernel_size]
 %endif
 	call	copywords
 
@@ -1103,7 +1104,6 @@ bpbtbl		label	word
 layout_table	label word		; current # of sectors/track
 
 %assign variable_s 1
-S	equ 	1
 
 %rep	MAX_SPT
 		;	C  H  S           N
@@ -1339,7 +1339,7 @@ SaveVectors:
 	loop	SaveVectors		; go and do another
 
 %if SVARDOS
-	test	byte [kernflg],DEBUG_FLG
+	test	byte [es:kernflg],DEBUG_FLG
 	jz	debugger_disabled
 %endif
 	clc

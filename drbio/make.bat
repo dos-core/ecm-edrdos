@@ -22,6 +22,7 @@ SET LOCTOOLS=..\LTOOLS
 IF NOT EXIST BIN\*.* MD BIN
 
 copy ..\version.inc . /y
+copy ..\svarver.mac . /y
 
 REM *************************************
 REM Build .ASM files first, get the obj's
@@ -31,7 +32,7 @@ nasm -s -P nasm.mac -f obj initmsgs.nas -l bin/initmsgs.lst -o bin/initmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj biosmsgs.nas -l bin/biosmsgs.lst -o bin/biosmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -DSVARDOS=0 -DLDOS=1 -DSHORTVERSION=1 -DCOMPRESSED=%compressdrbio% -t -s -P nasm.mac -P nasmorg.mac -f obj init.nas -l bin/init.lst -o bin/init.obj
+nasm -DSVARDOS=0 -DLDOS=1 -DSHORTVERSION=1 -DCOMPRESSED=%compressdrbio% -t -s -I ../lmacros/ -P nasm.mac -P nasmorg.mac -f obj init.nas -l bin/init.lst -o bin/init.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj clock.nas -l bin/clock.lst -o bin/clock.obj
 IF ERRORLEVEL 1 GOTO FAILED
