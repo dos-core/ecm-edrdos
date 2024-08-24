@@ -71,6 +71,7 @@ group PCMDATA PCMODE_DATA FIXED_DOS_DATA PCMODE_CODE BDOS_DATA PCMODE_DSIZE
 
 group PCMCODE PCM_HEADER PCM_HISTORY PCM_ICODE PCM_CODEND
 
+	[list -]
 	%include "pcmode.mac"
 	%include "vectors.mac"
 
@@ -84,6 +85,7 @@ group PCMCODE PCM_HEADER PCM_HISTORY PCM_ICODE PCM_CODEND
 	%include "psp.mac"
 	%include "request.mac"
 	%include "country.mac"
+	[list +]
 
 PADDING		equ	14*1024		; offset code start by this much
 
