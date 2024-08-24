@@ -55,6 +55,8 @@
 
 section ENDCODE
 ENDCODE_start:
+section DATAEND
+DATAEND_start:
 section IDATA
 IDATA_start:
 section INITDATA
@@ -704,9 +706,9 @@ uncompress_and_relocate_kernel:
 %else
 	 ; for an uncompressed DRBIO.SYS we must determine kernel_size, as
 	 ; neither COMPBIO or COMPKERN are run on this (kernel_size=0)
-	mov	ax,offset DATAEND wrt CGROUP
+	mov	ax,offset DATAEND_start wrt CGROUP
 	shr	ax,1
-	mov	[kernel_size],ax
+	mov	[cs:kernel_size],ax
 %endif
 	; we now copy up to 128K to TEMP_RELOC_SEG for relocation
 	; and / or uncompression
