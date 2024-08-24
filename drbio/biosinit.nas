@@ -277,7 +277,7 @@ biosinit30:
 	push	ds
 	mov	[current_dos],ax		; prevent relocated_init from
 	mov	es,ax			; trying to load BDOS file
-	mov	ax,offset DATAEND wrt CGROUP	; calculate paragraphs
+	mov	ax,offset DATAEND_start wrt CGROUP	; calculate paragraphs
 	mov	cl,4			; of BDOS into the kernel file...
 	shr	ax,cl
 	push	cs
@@ -2413,6 +2413,7 @@ comspec_env_offset	dw -1			; comspec offset of environment
 INITENV ends
 
 section DATAEND public align=16 class=INITDATA
+DATAEND_start:
 
 	Public	biosinit_end
 biosinit_end	label byte
