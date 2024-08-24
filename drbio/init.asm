@@ -197,7 +197,7 @@ compstart	dw	offset CGROUP:COMPRESS_FROM_HERE
 ;	   CAUTION: breaks original IBM-PC compatibility if not run under
 ;	            debugger
 ;   bit 7: set after kernel was processed by COMPBIOS and COMPKERN 
-kernflg		db	(SINGLEFILE shl 1) + COMPRESSED
+kernflg		db	DEBUG_FLG + (SINGLEFILE shl 1) + COMPRESSED
 else
 compflg	label	word
 	dw	offset CGROUP:INITDATA	; compresses from INITDATA onwards

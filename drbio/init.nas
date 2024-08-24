@@ -214,7 +214,7 @@ compstart	dw	offset COMPRESS_FROM_HERE wrt CGROUP
 ;	   CAUTION: breaks original IBM-PC compatibility if not run under
 ;	            debugger
 ;   bit 7: set after kernel was processed by COMPBIOS and COMPKERN 
-kernflg		db	(SINGLEFILE << 1) + COMPRESSED
+kernflg		db	DEBUG_FLG + (SINGLEFILE << 1) + COMPRESSED
 %else
 init0 equ init1
 
