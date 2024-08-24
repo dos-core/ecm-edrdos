@@ -709,7 +709,7 @@ endif
 
 if COMPRESSED eq 1
   	; copy uncompressed part of compressed DRBIO / KERNEL to BIO_SEG
-  	mov	ax,COMPRESS_FROM_HERE
+  	mov	ax, offset COMPRESS_FROM_HERE
   	inc	ax
   	shr	ax,1
 else
@@ -725,7 +725,7 @@ endif
 
 if COMPRESSED eq 1
 	; now decompress the compressed part of DRBIO/KERNEL
-	mov	si,COMPRESS_FROM_HERE
+	mov	si, offset COMPRESS_FROM_HERE
 	mov	di,si
 @@uncompress_block:
 	mov	cl,4
