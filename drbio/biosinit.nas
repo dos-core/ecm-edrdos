@@ -57,8 +57,9 @@
 ;    hide preload drives from func_device
 ;    ENDLOG
 
+	%include "config.mac"
 	%include "msdos.mac"		; DOS Function Equates
-	%include "psp.mac"		; PSP Definition
+	%include "psp.mac"			; PSP Definition
 	%include "f52data.mac"		; Internal DOS data area
 	%include "doshndl.mac"		; Dummy DOS structures
 	%include "config.mac"
@@ -109,6 +110,9 @@ JMPF_OPCODE	equ	0EAh			; 8086 JMPF instruction
 SWITCH_F	equ	01h
 SWITCH_N	equ	02h
 
+%if SVARDOS
+	extrn	kernflg:byte
+%endif
 	extrn	oldxbda:word
 	extrn	newxbda:word
 	extrn	xbdalen:word
@@ -126,14 +130,26 @@ section INITCODE public align=16 class=INITCODE
 	extrn	detect_boot_drv:near
 	extrn	dos_version_check:near
 	extrn	dos_load_panic:near
+%if SVARDOS
+ %if SINGLEFILE eq 0
+	extrn	read_dos:near			; load DOS file
+ %endif
+%endif
 	extrn	preload_done:near
 
+copyright:
+%if SVARDOS
+	%include "svarver.mac"
+	db COPYRIGHT_STR
+	db 0
+%else
 		db	'Copyright (c) 1983,1996 '
 		db	'Caldera, Inc. All Rights Reserved '
 		db	'XXXX-0000-987654321X '
 
 		db	'Patches to original OpenDOS source code '
 		db	'Copyright (c) 2002-2011 Udo Kuhnt'
+%endif
 
 
 	Public	biosinit
@@ -160,10 +176,12 @@ biosinit:
 	cli
 	mov	ax,cs			; Initialise our stack and Data Segment
 	mov	ds,ax
+%if SVARDOS eq 0
 	pop	word [drdosseg]		; drkernpl ax
 	pop	word [drdoslen]		; drkernpl si
 	pop	word [part_off]		; pushed at init from BPB hidden sectors
 	pop	word [part_off+2]
+%endif
 	mov	ss,ax
 	mov	sp,offset stack
 	sti
@@ -254,6 +272,29 @@ biosinit20:
 biosinit30:
 	mov	[dos_cseg],ax		; a relocated DOS image will live here
 
+	; Move BDOS to dos_cseg segment if we have combined BIO/BDIOS file
+%if SVARDOS
+ %if SINGLEFILE
+	push	ds
+	mov	[current_dos],ax		; prevent relocated_init from
+	mov	es,ax			; trying to load BDOS file
+	mov	ax,offset DATAEND wrt CGROUP	; calculate paragraphs
+	mov	cl,4			; of BDOS into the kernel file...
+	shr	ax,cl
+	push	cs
+	pop	si
+	add	ax,si			; ... and add kernel load segment to
+	mov	ds,ax			; get absolute BDOS segment
+	xor	si,si
+	xor	di,di
+	mov	cx,[DOS_CODE]		; get code and data size from BDOS
+	add	cx,[DOS_DATA]		; header
+	inc	cx
+	shr	cx,1
+	rep	movsw			; move it
+	pop	ds
+ %endif	; SINGLEFILE
+%else	; SVARDOS
 	push ds
 	mov cx, [drdoslen]
 	mov ds, [drdosseg]
@@ -262,6 +303,7 @@ biosinit30:
 	xor di, di
 	rep movsb
 	pop ds
+%endif	; SVARDOS
 
 	mov	ax,offset biosinit_end+32
 	mov	cl,4			; Leave the Last Paragraph Free for
@@ -315,13 +357,26 @@ relocated_init:
 	mov	ax,0100h		;  the multi tasker (386 or above)
 dont_align:
 	mov	[free_seg],ax		;  and save as first Free Segment
+%if SVARDOS
+	test	word [init_flags],INIT_ROMCODE ; ROM boot: no boot drv detection
+	 jnz	skip_boot_drv_detection
 	call	detect_boot_drv
+skip_boot_drv_detection:
+ %if SINGLEFILE eq 0
 	cmp	word [current_dos],0		; does the OEM want us to read
 	 jnz	dos_reloc		;   the DOS file from disk?
 	mov	ax,[dos_cseg]
 	mov	[current_dos],ax		; the file is held on the INIT_DRV with
-	; call	read_dos		;   the name specified in DOS_NAME
+	call	read_dos		;   the name specified in DOS_NAME
+ %endif
+%else
+	call	detect_boot_drv
 
+	cmp	word [current_dos],0		; does the OEM want us to read
+	 jnz	dos_reloc		;   the DOS file from disk?
+	mov	ax,[dos_cseg]
+	mov	[current_dos],ax		; the file is held on the INIT_DRV with
+%endif
 ;
 ;	The following code will relocate the DOS code.
 ;
@@ -374,7 +429,7 @@ dos_reloc:
 ;	compression algorithm.
 ;
 dos_r20:
-%ifn compressdrdos
+%if compressdrdos eq 0
 	jmp dos_load_panic
 %else
 	lodsw				; get control word
@@ -2104,7 +2159,7 @@ copy_config_env_to_seg60 endp
 
 INITCODE ends
 
-section INITDATA public class=INITDATA
+section INITDATA public align=2 class=INITDATA
 
 
 %include "initmsgs.mac"				; Include TFT Header File
@@ -2124,8 +2179,10 @@ section INITDATA public class=INITDATA
 	extrn	boot_switches:byte
 	extrn	envstart:near
 	extrn	envend:near
+%if SVARDOS eq 0
 drdosseg	dw 0
 drdoslen	dw 0
+%endif
 
 ;
 ;	PUBLIC Variables which are initialised by the BIOS before the
@@ -2204,6 +2261,13 @@ num_fcbs	dw	DEF_NUM_FCBS	; # of fcb file handles
 num_fopen	dw	-1		; "unset" value for fast open
 country_code	dw	DEF_COUNTRY	; Country Code 
 code_page	dw	DEF_CODEPAGE	; Code Page
+
+%if SVARDOS
+ %if SINGLEFILE eq 0
+	Public	dos_name
+dos_name	db	'DRDOS   SYS',0	; default DOS filename
+ %endif
+%endif
 
 rpl_name	db	'RPLOADER'
 lengthof_rpl_name equ $ - rpl_name
