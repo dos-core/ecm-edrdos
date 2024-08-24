@@ -1,24 +1,59 @@
-ifidn VERSION, <>
-VERSION	    textequ <?>
-endif
 
-ifidn GIT_REV, <>
-COMMIT   textequ <?>
-else
-COMMIT   textequ GIT_REV
-endif
+%ifndef VERSION
+ %define VERSION "?"
+%elifempty VERSION
+ %define VERSION "?"
+%elifidn VERSION, ""
+ %define VERSION "?"
+%elifstr VERSION
+%else
+ %defstr VERSION VERSION
+%endif
 
-KERNEL_VER_STR	textequ <13, 10, "Enhanced DR-DOS kernel >, VERSION, < (rev >, COMMIT, <) [built >, @date, < >, @time , <]", 13, 10>
-ifdef LDOS
-REPOSITORY_STR	textequ <"source and licensing conditions available at https://hg.pushbx.org/ecm/edrdos", 13, 10>
-else
-REPOSITORY_STR	textequ <"source and licensing conditions available at https://github.com/SvarDOS/edrdos", 13, 10>
-endif
+%ifndef GIT_REV
+ %define COMMIT "?"
+%elifempty GIT_REV
+ %define COMMIT "?"
+%elifidn GIT_REV, ""
+ %define COMMIT "?"
+%elifstr GIT_REV
+ %xdefine COMMIT GIT_REV
+%else
+ %defstr COMMIT GIT_REV
+%endif
+
+%ifndef LDOS
+ %assign LDOS 0
+%elifempty LDOS
+ %assign LDOS 1
+%endif
+
+%ifndef DATETIME
+ ; YYYY-MM-DD
+ ; 1234567890
+ %substr DAY __DATE__ 9,2
+ %substr MONTH __DATE__ 6,2
+ %substr YEARTRUNCATED __DATE__ 3,2
+ %strcat DATETIME MONTH, "/", DAY, "/", YEARTRUNCATED, " ", __TIME__
+%elifempty DATETIME
+ %define DATETIME ""
+%elifidn DATETIME, ""
+%elifstr DATETIME
+%else
+ %defstr DATETIME DATETIME
+%endif
+
+%define KERNEL_VER_STR	13, 10, "Enhanced DR-DOS kernel ", VERSION, " (rev ", COMMIT, ") [built ", DATETIME, "]", 13, 10
+%if LDOS
+%define REPOSITORY_STR	"source and licensing conditions available at https://hg.pushbx.org/ecm/edrdos", 13, 10
+%else
+%define REPOSITORY_STR	"source and licensing conditions available at https://github.com/SvarDOS/edrdos", 13, 10
+%endif
 
 ; used by command.com
-SYSNAME_STR textequ <'Enhanced DR-DOS based on Caldera OpenDOS 7.01'>
+%define SYSNAME_STR	'Enhanced DR-DOS based on Caldera OpenDOS 7.01'
 
 ; embedded in DRBIO.SYS
-COPYRIGHT_STR   textequ <"Copyright (c) 1983,1996 Caldera, Inc. All Rights Reserved>, \
-< Patches to original OpenDOS source code Copyright (c) 2002-2011 Udo Kuhnt>, \
-< distributed and used under license agreement by DRDOS, Inc. on 2022-07-07">
+%define COPYRIGHT_STR   "Copyright (c) 1983,1996 Caldera, Inc. All Rights Reserved", \
+" Patches to original OpenDOS source code Copyright (c) 2002-2011 Udo Kuhnt", \
+" distributed and used under license agreement by DRDOS, Inc. on 2022-07-07"
