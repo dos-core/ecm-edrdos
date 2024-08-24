@@ -58,7 +58,7 @@ uppercase
 %endmacro
 
 
-%imacro LABEL 0-1+
+%imacro LABEL 0-1+.nolist
 %endmacro
 
 
