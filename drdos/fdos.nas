@@ -446,12 +446,6 @@ BDOS_CODE	ends
 
 section BDOS_DATA public align=2 class=DATA
 
-shortversion equ 1
-		%include "version.mac"
-		db	' Patches to original OpenDOS source code '
-		db	'Copyright (c) 2002-2011 Udo Kuhnt'
-		db	0
-
 BDOS_DATA	ends
 
 	END
