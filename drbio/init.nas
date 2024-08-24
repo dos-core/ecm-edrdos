@@ -216,6 +216,8 @@ compstart	dw	offset COMPRESS_FROM_HERE wrt CGROUP
 ;   bit 7: set after kernel was processed by COMPBIOS and COMPKERN 
 kernflg		db	(SINGLEFILE << 1) + COMPRESSED
 %else
+init0 equ init1
+
 compflg	label	word
 	dw	offset INITDATA_start wrt CGROUP	; compresses from INITDATA onwards
 %endif					; this word set to 0 when compressed
@@ -1143,11 +1145,9 @@ bpbs		dw	offset bpb360	; 0: 320/360 Kb 5.25" floppy
 		dw	offset bpb1440	; 8: Other
 		dw	offset bpb2880	; 9: 2.88 Mb 3.5" floppy
 
-%if SVARDOS
 init1	proc	near
-%else
-init0	proc	near
 
+%if SVARDOS eq 0
 ; 	DRBIO initialization code. This is executed right after the jump
 ; 	at the beginning of the CODE segment.
 
@@ -1226,7 +1226,7 @@ init0	proc	near
 	xor	si, si
 	mov	si, [compflg]		; Get Compresed BIOS Flag
 	or	si, si			; Set to Zero if the BIOS has
-	jnz	not_compressed		; been compressed
+	jnz	bios_r50_not_compressed		; been compressed
 	mov	si, offset INITDATA_start wrt CGROUP
 	push	di			; bios_seg
 	push	ax			; bdos_seg
@@ -1266,7 +1266,7 @@ bios_r40:
 	pop	bx
 	pop	ax
 	pop	di
-not_compressed:
+bios_r50_not_compressed:
 %endif	; compressed
 
 %endif	; lDOS flavour init0
@@ -1453,11 +1453,7 @@ resume_exit:
 @@fixup_done:
 	jmp	biosinit		; jump to BIOS code
 
-%if SVARDOS
 init1	endp
-%else
-init0	endp
-%endif
 
 	public	output_msg
 output_msg:
