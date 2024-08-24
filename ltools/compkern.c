@@ -77,7 +77,8 @@ The kernel decompression is implemented in init0 in DRBIO\INIT.ASM
 int main( int argc, char *argv[] )
 {
    farkeyword char *bio_data, *bdos_data;
-   char *out_data[2];
+   farkeyword char *out_data[2];
+   farkeyword char *out_data_1_to_free = NULL;
    size_t bio_size, bio_comp_size;
    size_t bdos_size, bdos_comp_size;
    size_t out_size[2];
@@ -104,7 +105,7 @@ int main( int argc, char *argv[] )
    bdos_data = read_file( argv[2], &bdos_size );
    if ( !bdos_data ) {
       puts( "error: can not read DRDOS file" );
-      free( bio_data );
+      farfree( bio_data );
       return 1;
    }
 
@@ -126,15 +127,16 @@ int main( int argc, char *argv[] )
 
       out_data[0] = bio_data;
       out_size[0] = bio_size;
+      out_data_1_to_free = bdos_data;
       out_data[1] = bdos_data + bdos_padding;
       out_size[1] = bdos_size - bdos_padding;
 
       /* prepend kernel size in words before (non)compressed area */
       kernel_words = (uint16_t)(((uint32_t)bio_size + 
                      (uint32_t)bdos_size - (uint32_t)bdos_padding + 1) >> 1);
-      *(uint16_t*)(out_data[0] + bio_comp_start - 2) = kernel_words;
+      *(farkeyword uint16_t*)(out_data[0] + bio_comp_start - 2) = kernel_words;
 
-      result = write_file_multiple( argv[3], (const char **)out_data, out_size, 2 );
+      result = write_file_multiple( argv[3], (farkeyword const char **)out_data, out_size, 2 );
       if ( !result ) {
          puts( "error: cannot write kernel file" );
       }
@@ -167,6 +169,7 @@ int main( int argc, char *argv[] )
       }
    
       out_data[1] = farmalloc( bdos_size );
+      out_data_1_to_free = out_data[1];
       if ( !out_data[1] ) {
          puts( "allocation error" );
          farfree( out_data[0] );
@@ -193,14 +196,14 @@ int main( int argc, char *argv[] )
       /* prepend kernel size in words before (non)compressed area */
       kernel_words = (uint16_t)(((uint32_t)bio_comp_start + 
                      (uint32_t)bio_comp_size + (uint32_t)bdos_comp_size + 1) >> 1);
-      *(uint16_t*)(out_data[0] + bio_comp_start - 2) = kernel_words;
+      *(farkeyword uint16_t*)(out_data[0] + bio_comp_start - 2) = kernel_words;
 
       out_size[0] = bio_comp_start + bio_comp_size;
       out_size[1] = bdos_comp_size;
       
       /* ...and write everything to output file */
 
-      result = write_file_multiple( argv[3], (const char **)out_data, out_size, 2 );
+      result = write_file_multiple( argv[3], (farkeyword const char **)out_data, out_size, 2 );
       if ( !result ) {
          puts( "error: cannot write kernel file" );
          goto error;
@@ -209,7 +212,7 @@ int main( int argc, char *argv[] )
       printf( "kernel compression starts at offset %04xh\n", bio_comp_start );
       printf( "BIO size: %zu(%zu), BDOS size: %zu(%zu)\n", out_size[0], bio_size, out_size[1], bdos_size );
 error:
-      farfree( out_data[1] );
+      farfree( out_data_1_to_free );
       farfree( out_data[0] );
       farfree( bdos_data );
       farfree( bio_data );

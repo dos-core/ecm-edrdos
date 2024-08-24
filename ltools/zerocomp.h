@@ -1,23 +1,23 @@
 #ifndef ZEROCOMP_H
 #define ZEROCOMP_H
 
-void zerocomp( farkeyword char *data, size_t data_len, char *out, size_t *out_len, int terminate );
+void zerocomp( farkeyword char *data, size_t data_len, farkeyword char *out, size_t *out_len, int terminate );
 farkeyword char * read_file( const char *fn, size_t *size );
 int write_file( const char *fn, const char *data, size_t size );
-int write_file_multiple( const char *fn, const char **data, size_t *size, int num );
+int write_file_multiple( const char *fn, farkeyword const char **data, size_t *size, int num );
 
 #define ZERO_THRESHOLD 5
 
 /* encodes a single block of either non-zero data or zeroes. Up to 
    ZERO_THRESHOLD consecutive zeroes are allowed in non-zero data blocks.
    Block size is restricted to 0x7fff bytes. */
-static void zerocomp_block( farkeyword char **in, farkeyword char *eof, char **out )
+static void zerocomp_block( farkeyword char **in, farkeyword char *eof, farkeyword char **out )
 {
    farkeyword char *data = *in;
    size_t len;
    uint16_t count = 0, zero_count = 0;
    farkeyword char *last_non_zero = NULL;
-   char *outp = *out;
+   farkeyword char *outp = *out;
 
    if ( data >= eof ) return;
 
@@ -46,14 +46,14 @@ static void zerocomp_block( farkeyword char **in, farkeyword char *eof, char **o
 
    if ( last_non_zero ) {
       /*printf( "NON-ZERO: %04tX\n", len );*/
-      *(uint16_t*)outp = len;
+      *(farkeyword uint16_t*)outp = len;
       outp += 2;
       farmemcpy( outp, *in, len);
       outp += len;
    }
    else {
       /*printf( "ZERO    : %04tX\n", 0x8000 | len );*/
-      *(uint16_t*)outp = 0x8000 | len;
+      *(farkeyword uint16_t*)outp = 0x8000 | len;
       outp+=2;
    }
 
@@ -62,11 +62,11 @@ static void zerocomp_block( farkeyword char **in, farkeyword char *eof, char **o
 }
 
 
-void zerocomp( farkeyword char *data, size_t data_len, char *out, size_t *out_len, int terminate )
+void zerocomp( farkeyword char *data, size_t data_len, farkeyword char *out, size_t *out_len, int terminate )
 {
    farkeyword char *eof = data + data_len;
    farkeyword char *end = eof;
-   char *outp = out;
+   farkeyword char *outp = out;
 
    /* Optimization: scan for trailing zeroes. Three or four trailing zeroes
       may be encoded more efficiently as RLE compared to when included in
@@ -167,24 +167,56 @@ int write_file( const char *fn, const char *data, size_t size )
 
 
 /* writes multiple buffers given by **data and *size to output file */
-int write_file_multiple( const char *fn, const char **data, size_t *size, int num )
+int write_file_multiple( const char *fn, farkeyword const char **data, size_t *size, int num )
 {
    FILE *f;
+#ifdef __FAR
+   char *nearbuf;
+   unsigned int nearbufsize = 1024, stepsize, remaining, done;
+
+   nearbuf = malloc( nearbufsize );
+   if ( !nearbuf ) {
+      return 0;
+   }
+#endif
 
    f = fopen( fn, "wb" );
    if ( !f ) {
+#ifdef __FAR
+      free( nearbuf );
+#endif
       return 0;
    }
 
    while ( num-- ) {
+#ifdef __FAR
+      done = 0;
+      remaining = *size;
+      while ( remaining ) {
+         stepsize = remaining;
+         if (stepsize > nearbufsize) { stepsize = nearbufsize; }
+         farmemcpy( nearbuf, *data + done, stepsize );
+         if ( fwrite( nearbuf, 1, stepsize, f ) != stepsize ) {
+            free( nearbuf );
+            fclose( f );
+            return 0;
+         }
+         done += stepsize;
+         remaining -= stepsize;
+      }
+#else
       if ( fwrite( *data, 1, *size, f ) != *size ) {
          fclose( f );
          return 0;
       }
+#endif
       data++;
       size++;
    }
 
+#ifdef __FAR
+   free( nearbuf );
+#endif
    fclose( f );
    return 1;
 }
