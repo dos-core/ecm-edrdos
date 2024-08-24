@@ -100,7 +100,7 @@ delfat_cl	dw	0,0
 	extrn	deblock_seg:word
 BDOS_DATA	ends
 
-BDOS_CODE 	segment public byte 'CODE'
+BDOS_CODE 	segment public word 'CODE'
 ASSUME DS:PCMDATA
 
 	extrn	clus2sec:near

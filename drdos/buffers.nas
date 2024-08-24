@@ -100,7 +100,7 @@ delfat_cl	dw	0,0
 	extrn	deblock_seg:word
 BDOS_DATA	ends
 
-section BDOS_CODE public align=1 class=CODE
+section BDOS_CODE public align=2 class=CODE
 ASSUME DS:PCMDATA
 
 	extrn	clus2sec:near
