@@ -38,7 +38,8 @@
 ;    ENDLOG
 
 	include biosgrps.equ
-    include drmacros.equ    ; standard DR macros
+	include config.equ
+	include drmacros.equ		; standard DR macros
 	include	ibmros.equ		; ROM BIOS equates
 	include	request.equ		; request header equates
 	include	driver.equ		; device driver equates
@@ -239,7 +240,7 @@ output1:
 	pushf				; stack as per Int 29
 	db	09Ah			; CALLF to our fastconsole entry
 	dw	offset FastConsole
-	dw	70h
+	dw	BIO_SEG
 	loop	output1			; repeat for all characters
 	pop	es
 output9:

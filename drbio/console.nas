@@ -38,7 +38,8 @@
 ;    ENDLOG
 
 	%include "biosgrps.mac"
-    %include "drmacros.mac"    ; standard DR macros
+	%include "config.mac"
+	%include "drmacros.mac"		; standard DR macros
 	%include "ibmros.mac"		; ROM BIOS equates
 	%include "request.mac"		; request header equates
 	%include "driver.mac"		; device driver equates
@@ -239,7 +240,7 @@ output1:
 	pushf				; stack as per Int 29
 	db	09Ah			; CALLF to our fastconsole entry
 	dw	offset FastConsole
-	dw	70h
+	dw	BIO_SEG
 	loop	output1			; repeat for all characters
 	pop	es
 output9:
