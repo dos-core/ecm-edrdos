@@ -41,6 +41,7 @@
 
 
 	%include "biosgrps.mac"
+	%include "config.mac"
 	%include "drmacros.mac"
 	%include "ibmros.mac"
 	%include "msdos.mac"
@@ -143,11 +144,15 @@ IVECT	ends
 
 group CGROUP CODE RCODE ICODE INITDATA
 
-section CODE class=CODE
+section CODE public align=2 class=CODE
 
 	Assume	CS:CGROUP, DS:Nothing, ES:Nothing, SS:Nothing
 
 	public	strat
+%if SVARDOS
+	public	kernflg
+	public COMPRESS_FROM_HERE
+%endif
 
 	extrn	ConsoleTable:word
 	extrn	ClockTable:word
@@ -192,24 +197,29 @@ A20Enable proc near
 A20Enable endp
 
 init	proc	near			; this is at BIOSCODE:0000h
-%ifndef COPYPROT
-	jmp	init0			; jump to reusable init space
-%else
-	extrn	protect:near		; Jump to Copy protection code
-	jmp	protect			; which will return control to
-%endif					; INIT0 on completion
+	jmp	init0			; jump to zero-decompression stage
 init	endp
 
-compflg	label	word
-%ifdef COPYPROT
-	dw	'  '			; stops any compression working
+%if SVARDOS
+; start offset of zero-compressed file area
+compstart	dw	offset COMPRESS_FROM_HERE wrt CGROUP	
+
+; kernel flags:
+;   bit 0: set if assembled for compression
+;   bit 1: set if assembled for single-file kernel
+;   bit 2: if set, gives debugger a chance to intercept by calling INT 3
+;	   CAUTION: breaks original IBM-PC compatibility if not run under
+;	            debugger
+;   bit 7: set after kernel was processed by COMPBIOS and COMPKERN 
+kernflg		db	(SINGLEFILE << 1) + COMPRESSED
 %else
+compflg	label	word
 	dw	offset INITDATA_start wrt CGROUP	; compresses from INITDATA onwards
 %endif					; this word set to 0 when compressed
 
 	org	06h
-    db  'COMPAQCompatible'  
 
+	db	'COMPAQCompatible'  
 	dw	offset RCODE_start wrt CGROUP	; lets find offset of RCODE
 MemFixup dw	0			;  and its relocated segment	
 
@@ -598,8 +608,221 @@ daycount	dw	0
 
 	public	local_buffer,local_id,local_pt
 
-	even
+
+		even
+
+%if SVARDOS
+; DRBIO/DRKERNEL uncompression and relocation stage. This is executed right
+; after the jump at the beginning of the CODE segment. This area is shared
+; with the 512 byte deblocking buffer and gets eventually overwritten.
+;
+; If the kernel is not loaded to segment 70h it is relocated to it.
+
+init0	proc near
+
+local_buffer 	label 	byte
+
+	mov	byte [cs:A20Enable],0C3h ; fixup the RET
+	mov	si,TEMP_RELOC_SEG - 41h	; stack right below relocation
+	mov	ss,si			; segment with 16 bytes safety
+	mov	sp,400h			; distance
+
+	sti
+	cld
+
+	; The following expects ds:bp to point to the boot sector, in
+	; particular the BPB, to push its hidden sectors field to stack.
+	; It is used to determine the boot drive by matching the
+	; partition offset.
+	push	word [ds:1eh + bp]		; push BPB hidden sectors
+	push	word [ds:1ch + bp]		; ..popped at init0 end
+
+	push	cx			; save entry registers
+	push	di			; (important in ROM systems)
+
+	xor	si,si
+	mov	ds,si
+	mov	es,si
+
+	Assume	DS:IVECT, ES:IVECT
+
+	; Copy diskette parameters (11 bytes) from the location stored
+	; at INT1E over to 0000:0522. This MAY previously be located at 7C00
+	; or another (non-)BIOS location depending on the boot sector code.
+	; After copying, set INT1E to point to the new location.
+
+	mov	di,522h			; ES:DI -> save area for parameters
+	lds	si,[i1Eptr]		; DS:SI -> FD parameters for ROS
+
+	Assume	DS:Nothing
+
+	mov	[i1Eoff],di
+	mov	[i1Eseg],es		; setup new location
+	mov	cx,11
+	rep	movsb
+	mov	byte ptr [es:di-7],36	; enable read/writing of 36 sectors/track
+
+	pop	di
+	pop	cx
+
+	push	ax			; ROM boot: BDOS seg
+	mov	ax, cs			; preserve entry registers
+	mov	ds, ax			; other than si, ds and es
+	xor	si, si
+
+	; determine which register holds the boot drive unit
+	; EDR load protocol: CS=70h, DL=unit
+	; FreeDOS load protocol: CS=60h, BL=unit
+	; standardize to DL holding drive unit
+	cmp	ax,60h			; are we loaded at segment 60h?
+	jne	uncompress_and_relocate_kernel
+	mov	dl,bl			; copy phys boot drive fron BL to DL
+
+uncompress_and_relocate_kernel:
+%if COMPRESSED eq 0
+	; if kernel is uncompressed and we live at the correct segment, then
+	; skip whole uncompression and relocation
+	push	cs
+	pop	ax
+	cmp	ax,BIO_SEG
+	jne	@F
+	jmp	not_compressed
+@@:
+%endif
+	push	di			; ROM boot: DL=0ffh, Disk boot: DL=phys boot drv
+	push	bx			; ROM boot: memory size, Disk boot: unused
+	push	cx			; ROM boot: initial drives, Disk boot: unused
+	push	dx			; ROM boot: BIO seg, Disk boot: unused
+
+	mov	ax,TEMP_RELOC_SEG
+	mov	es,ax
+%if (SINGLEFILE eq 1) | (COMPRESSED eq 1)
+	; determine kernel file size in words
+	; this is set by COMPBIOS and COMPKERN tools
+	mov	ax,[kernel_size]
+%else
+	 ; for an uncompressed DRBIO.SYS we must determine kernel_size, as
+	 ; neither COMPBIO or COMPKERN are run on this (kernel_size=0)
+	mov	ax,offset DATAEND wrt CGROUP
+	shr	ax,1
+	mov	[kernel_size],ax
+%endif
+	; we now copy up to 128K to TEMP_RELOC_SEG for relocation
+	; and / or uncompression
+	call	copywords
+
+	; we now far jmp to our kernel copy at TEMP_RELOC_SEG
+	db	0eah
+	dw	@@farjmp_tmp_seg,TEMP_RELOC_SEG	
+ @@farjmp_tmp_seg:
+
+  	mov	ax,TEMP_RELOC_SEG
+  	mov	ds,ax
+  	mov	ax,BIO_SEG
+  	mov	es,ax
+
+%if COMPRESSED eq 1
+  	; copy uncompressed part of compressed DRBIO / KERNEL to BIO_SEG
+  	mov	ax,[COMPRESS_FROM_HERE]
+  	inc	ax
+  	shr	ax,1
+%else
+  	; copy whole kernel if uncompressed
+  	mov	ax,[kernel_size]
+%endif
+	call	copywords
+
+	; we now far jmp to ourself at BIO_SEG
+	db	0eah
+	dw	@@farjmp_bio_seg,BIO_SEG	
+@@farjmp_bio_seg:
+
+%if COMPRESSED eq 1
+	; now decompress the compressed part of DRBIO/KERNEL
+	mov	si,[COMPRESS_FROM_HERE]
+	mov	di,si
+@@uncompress_block:
+	mov	cl,4
+	mov	bx,ds			; canonicalize ds:si
+	mov	ax,si			; to support kernel images >64K
+	shr	ax,cl			; and make sure we do not wrap around
+	add	ax,bx			; at segment boundary while
+	mov	ds,ax			; uncompressing
+	and	si,0fh
+	mov	bx,es			; canonicalize es:di
+	mov	ax,di			; to support kernel images >64K
+	shr	ax,cl			; and make sure we do not wrap around
+	add	ax,bx			; at segment boundary while
+	mov	es,ax			; uncompressing
+	and	di,0fh
+	lodsw				; get control word
+	mov	cx,ax			; as a count
+	jcxz	@@uncompress_fini	; all done
+	test	cx,8000h		; negative ?
+	jnz	@@uncompress_zeros	; yes do zeros
+	rep	movsb			; else move in data bytes
+	jmp 	@@uncompress_block	; and to the next
+@@uncompress_zeros:
+	and	cx,7fffh		; remove sign
+	jcxz	@@uncompress_block	; none to do
+	xor	ax,ax
+	rep	stosb			; fill with zeros
+	jmp 	@@uncompress_block
+@@uncompress_fini:
+%endif
+	pop	dx			; ROM boot: DL=0ffh, Disk boot: DL=phys boot drv
+	pop	cx			; ROM boot: memory size, Disk boot: unused
+	pop	bx			; ROM boot: initial drives, Disk boot: unused
+	pop	di			; ROM boot: BIO seg, Disk boot: unused
+not_compressed:
+	pop	ax			; ROM boot: BDOS seg
+	pop	word [cs:part_off]		; pushed at init0 start from BPB hidden sectors
+	pop	word [cs:part_off+2]
+	jmp	init1			; next initialization stage is
+					; part of discardable ICODE segment
+init0	endp
+
+copywords proc
+	; copies up to 0ffffh words
+	; ax = count
+	; ds:0 = source segment
+	; es:0 = destination segment
+	; destroyed: si, di
+	xor	si,si
+	xor	di,di
+ 	test	ax,ax
+ 	js	@F		; more than 64K, take long route
+	mov	cx,ax
+	rep	movsw
+	ret
+@@:	mov	cx,8000h
+	rep	movsw		; copy first 64K
+	sub	ax,8000h	
+	mov	cx,ax		; CX now contains how much left
+	mov	ax,ds
+	add	ax,1000h
+	mov	ds,ax		; increase DS by 1000h (64K)
+	mov	ax,es
+	add	ax,1000h
+	mov	es,ax		; increase ES by 1000h (64K)
+	rep	movsw		; copy what is left
+	ret
+
+copywords endp
+
+kernel_size	dw	0		; kernel file size in words
+					; patched by compbios and compkern
+COMPRESS_FROM_HERE:
+
+%if ($ - init0) gt 512
+	error "too much code in deblocking buffer"
+%endif
+		; grow deblocking buffer to 512 byte
+		db	512 - ($ - init0) dup (?)
+%else
 local_buffer	db	512 dup (?)	; local deblocking buffer
+%endif
+
 SECSIZE		equ	512
 IDOFF		equ	SECSIZE-2	; last word in boot sector is ID
 PTOFF		equ	IDOFF-40h	; 4*16 bytes for partition def's
@@ -903,7 +1126,7 @@ endbios		dw	offset RESBIOS_start wrt CGROUP	; pointer to last resident byte
 
 CODE	ends
 
-section ICODE class=ICODE			; reusable initialization code
+section ICODE public align=2 class=ICODE			; reusable initialization code
 
 	Assume	CS:CGROUP, DS:CGROUP, ES:CGROUP, SS:Nothing
 
@@ -918,6 +1141,9 @@ bpbs		dw	offset bpb360	; 0: 320/360 Kb 5.25" floppy
 		dw	offset bpb1440	; 8: Other
 		dw	offset bpb2880	; 9: 2.88 Mb 3.5" floppy
 
+%if SVARDOS
+init1	proc	near
+%else
 init0	proc	near
 
 ; 	DRBIO initialization code. This is executed right after the jump
@@ -982,8 +1208,8 @@ init0	proc	near
 
 	Assume	DS:Nothing
 
-	mov	[es:i1Eoff],di
-	mov	[es:i1Eseg],es		; setup new location
+	mov	[i1Eoff],di
+	mov	[i1Eseg],es		; setup new location
 	mov	cx,11
 	rep	movsb
 	mov	byte ptr [es:di-7],36	; enable read/writing of 36 sectors/track
@@ -1039,7 +1265,10 @@ bios_r40:
 	pop	ax
 	pop	di
 not_compressed:
-%endif
+%endif	; compressed
+
+%endif	; lDOS flavour init0
+
 	mov	si,cs
 	mov	ds,si			; DS -> local data segment
 	cmp	dl,0ffh			; booting from ROM?
@@ -1052,13 +1281,13 @@ not_compressed:
 ;	contains the current location of the BDOS and CX the memory Size.
 ;	Bx is the current code segment
 
-	mov	[cs:rcode_seg],dx		; rom segment of bios
-	mov	[cs:current_dos],ax		; current location of the BDOS
-	mov	[cs:mem_size],cx		; total memory size
-	mov	[cs:init_drv],bl		; initial drive
-	mov	[cs:comspec_drv],bh		;
-	mov	byte [cs:init_buf],3		; assume default # of buffers
-	mov	word [cs:init_flags],3	
+	mov	[rcode_seg],dx		; rom segment of bios
+	mov	[current_dos],ax		; current location of the BDOS
+	mov	[mem_size],cx		; total memory size
+	mov	[init_drv],bl		; initial drive
+	mov	[comspec_drv],bh		;
+	mov	byte [init_buf],3		; assume default # of buffers
+	mov	word [init_flags],3	
 	jmp	bios_exit
 	
 rom_boot:				; BIOS is copied from ROM:
@@ -1066,25 +1295,25 @@ rom_boot:				; BIOS is copied from ROM:
 					;	AX = segment address of DRBDOS
 					;	BH = COMSPEC drive
 					;	BL = INIT_DRV
-	mov	[cs:rcode_seg],di		;	DI = BIOS ROM SEG
-	mov	[cs:current_dos],ax		; current location of the BDOS
-	mov	[cs:init_drv],bl		; initial drive C:
-	mov	[cs:comspec_drv],bh		; commspec drive C:
-	mov	word [cs:init_flags],3		; it is a ROM system, use comspec drive
+	mov	[rcode_seg],di		;	DI = BIOS ROM SEG
+	mov	[current_dos],ax		; current location of the BDOS
+	mov	[init_drv],bl		; initial drive C:
+	mov	[comspec_drv],bh		; commspec drive C:
+	mov	word [init_flags],3		; it is a ROM system, use comspec drive
 	jmps	rom_boot10		; common code
 
 disk_boot:
-	mov	[cs:rcode_seg],cs
+	mov	[rcode_seg],cs
 	sub	ax,ax
-	mov	[cs:current_dos],ax		; current BDOS location to disk load
+	mov	[current_dos],ax		; current BDOS location to disk load
 	xchg	ax,dx			; AL = boot drive
-	mov	[cs:init_runit],al		; save the ROS unit
-	mov	[cs:init_int13_unit],al	; save the ROS unit
+	mov	[init_runit],al		; save the ROS unit
+	mov	[init_int13_unit],al	; save the ROS unit
 	cmp	al,80h			; test the boot drive
 	 jb	floppy_boot		; skip if floppy boot
 	sub	al,80h-2		; it's a hard drive
 floppy_boot:
-	mov	[cs:init_drv],al		; set boot drive
+	mov	[init_drv],al		; set boot drive
 
 rom_boot10:
 	pushx	<ds, es>		; save registers
@@ -1109,10 +1338,14 @@ SaveVectors:
 	movsw				; save this vector
 	loop	SaveVectors		; go and do another
 
+%if SVARDOS
+	test	byte [kernflg],DEBUG_FLG
+	jz	debugger_disabled
+%endif
 	clc
-	int 3
+	int 	3
 	jc debugger_detected
-
+debugger_disabled:
 	mov	word [i0off],offset Int0Trap
 	mov	[i0seg],cs		; now grab int0 vector
 	mov	word [i1off],offset Int1Trap
@@ -1130,10 +1363,17 @@ debugger_detected:
 
 	Assume	DS:CGROUP, ES:CGROUP
 
+%if SVARDOS
+	mov	si,offset kernel_ver_msg
+	call	output_msg
+	mov	si,offset repository_msg
+	call	output_msg
+%else
 	mov	si,offset drdosprojects_msg
 	call	output_msg
 	mov	si,offset starting_dos_msg
 	call	output_msg
+%endif
 
 	mov	ah,EXT_MEMORY
 	int	SYSTEM_INT		; find out how much extended memory
@@ -1202,16 +1442,20 @@ resume_exit:
 	mov	word ptr [device_root+0],bx
 	mov	word ptr [device_root+2],ds
 
-init1:
+@@next_fixup:
 	cmp	word ptr [bx],0FFFFh	; last driver in BIOS?
-	 je	init3
+	 je	@@fixup_done
 	mov	[2 + bx],ds		; fix up segments in driver chain
 	mov	bx,[bx]
-	jmps	init1
-init3:
+	jmp	short @@next_fixup
+@@fixup_done:
 	jmp	biosinit		; jump to BIOS code
 
+%if SVARDOS
+init1	endp
+%else
 init0	endp
+%endif
 
 	public	output_msg
 output_msg:
@@ -1273,7 +1517,11 @@ output_hex40	db	20h,NUL		; end of string
 
 ICODE	ends
 
-section INITDATA public class=INITDATA
+section INITDATA public align=16 class=INITDATA
+
+%if SVARDOS
+	extrn	part_off:word
+%endif
 
 ; This is a zero terminated list of locations to be fixed up with the
 ; segment of the relocated BIOS RCODE
@@ -1290,6 +1538,13 @@ bios_fixup_tbl	dw	offset MemFixup
 		dw	offset RdiskFixup
 %endif
 		dw	0
+
+%if SVARDOS
+%include "svarver.mac"
+
+kernel_ver_msg	db KERNEL_VER_STR, 0
+repository_msg	db REPOSITORY_STR, 0
+%else
 
 %ifdef LDOS
 	drdosprojects_msg	db	CR, LF
@@ -1308,6 +1563,7 @@ starting_dos_msg	db	CR, LF, "Starting "
 shortversion equ 1
 			%include "version.mac"
 			db	CR, LF, NUL
+%endif
 
 INITDATA	ends
 
@@ -1331,7 +1587,7 @@ rcode_header	dw	0
 
 	Public	DataSegment
 
-DataSegment	dw	0070h		; segment address of low data/code
+DataSegment	dw	BIO_SEG		; segment address of low data/code
 
 ; Called to vector to appropriate sub-function in device driver
 ; The Function table address immediately follows the near call, so we can index
