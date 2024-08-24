@@ -16,6 +16,18 @@ echo Error: Compress DRDOS variable not set
 goto failed
 :gooddcomp
 
+if (%svardos%)==(0) goto :goodsvardos
+if (%svardos%)==(1) goto :goodsvardos
+echo Error: SvarDOS variable not set
+goto failed
+:goodsvardos
+
+if (%svardossinglefile%)==(0) goto :goodsvardossinglefile
+if (%svardossinglefile%)==(1) goto :goodsvardossinglefile
+echo Error: SvarDOS singlefile variable not set
+goto failed
+:goodsvardossinglefile
+
 REM Define local Caldera tools
 SET LOCTOOLS=..\LTOOLS
 
@@ -32,7 +44,7 @@ nasm -s -P nasm.mac -f obj initmsgs.nas -l bin/initmsgs.lst -o bin/initmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj biosmsgs.nas -l bin/biosmsgs.lst -o bin/biosmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -DSVARDOS=0 -DLDOS=1 -DSHORTVERSION=1 -DCOMPRESSED=%compressdrbio% -t -s -I ../lmacros/ -P nasm.mac -P nasmorg.mac -f obj init.nas -l bin/init.lst -o bin/init.obj
+nasm -DSVARDOS=%svardos% -DSINGLEFILE=%svardossinglefile% -DLDOS=1 -DSHORTVERSION=1 -DCOMPRESSED=%compressdrbio% -t -s -I ../lmacros/ -P nasm.mac -P nasmorg.mac -f obj init.nas -l bin/init.lst -o bin/init.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj clock.nas -l bin/clock.lst -o bin/clock.obj
 IF ERRORLEVEL 1 GOTO FAILED
@@ -48,9 +60,9 @@ nasm -s -P nasm.mac -f obj stacks.nas -l bin/stacks.lst -o bin/stacks.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj nlsfunc.nas -l bin/nlsfunc.lst -o bin/nlsfunc.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -t -s -P nasm.mac -f obj bdosldr.nas -l bin/bdosldr.lst -o bin/bdosldr.obj
+nasm -DSVARDOS=%svardos% -DSINGLEFILE=%svardossinglefile% -t -s -P nasm.mac -f obj bdosldr.nas -l bin/bdosldr.lst -o bin/bdosldr.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -Dcompressdrdos=%compressdrdos% -t -s -P nasm.mac -f obj biosinit.nas -l bin/biosinit.lst -o bin/biosinit.obj
+nasm -DSVARDOS=%svardos% -DSINGLEFILE=%svardossinglefile% -Dcompressdrdos=%compressdrdos% -t -s -P nasm.mac -f obj biosinit.nas -l bin/biosinit.lst -o bin/biosinit.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj config.nas -l bin/config.lst -o bin/config.obj
 IF ERRORLEVEL 1 GOTO FAILED
@@ -64,13 +76,15 @@ REM ***************************************************
 warplink @wlbios.lnk
 IF ERRORLEVEL 1 GOTO FAILED
 echo.
-:: x2b2 .\bin\bios.exe .\bin\drbio.sys
-x2b2 .\bin\bios.exe .\bin\drbio.bin
+x2b2 .\bin\bios.exe .\bin\drbio.tmp
 IF ERRORLEVEL 1 GOTO FAILED
 del .\bin\bios.exe
+%LOCTOOLS%\round .\bin\drbio.tmp .\bin\drbio.bin 16
+IF ERRORLEVEL 1 GOTO FAILED
+del .\bin\drbio.tmp
 
 if (%compressdrbio%)==(0) goto exit
-:: %LOCTOOLS%\compbios .\bin\drbio.sys .\bin\drbio.sys
+if (%svardos%)==(1) if (%svardossinglefile%)==(1) goto exit
 %LOCTOOLS%\compbios .\bin\drbio.bin .\bin\drbio.bin
 IF ERRORLEVEL 1 GOTO FAILED
 goto exit

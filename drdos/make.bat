@@ -10,6 +10,18 @@ echo Error: Compress DRDOS variable not set
 goto failed
 :gooddcomp
 
+if (%svardos%)==(0) goto :goodsvardos
+if (%svardos%)==(1) goto :goodsvardos
+echo Error: SvarDOS variable not set
+goto failed
+:goodsvardos
+
+if (%svardossinglefile%)==(0) goto :goodsvardossinglefile
+if (%svardossinglefile%)==(1) goto :goodsvardossinglefile
+echo Error: SvarDOS singlefile variable not set
+goto failed
+:goodsvardossinglefile
+
 REM Define local Caldera tools
 SET LOCTOOLS=..\LTOOLS
 
