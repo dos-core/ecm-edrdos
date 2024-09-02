@@ -1145,11 +1145,20 @@ bpbs		dw	offset bpb360	; 0: 320/360 Kb 5.25" floppy
 		dw	offset bpb1440	; 8: Other
 		dw	offset bpb2880	; 9: 2.88 Mb 3.5" floppy
 
+%if SVARDOS eq 0
+checkdebugger:	db 0
+%endif
+
 init1	proc	near
 
 %if SVARDOS eq 0
 ; 	DRBIO initialization code. This is executed right after the jump
 ; 	at the beginning of the CODE segment.
+
+		; Get lCFG items to use later.
+	mov es, cx
+	mov cl, byte [es:di + LCFG_CheckDebugger]
+	mov byte [cs:checkdebugger], cl
 
 ;
 ; We now uncompress to > (7C00h (ie. boot stack) - 700h (ie. base of code)
@@ -1340,12 +1349,25 @@ SaveVectors:
 	movsw				; save this vector
 	loop	SaveVectors		; go and do another
 
+debugger_check:
 %if SVARDOS
 	test	byte [es:kernflg],DEBUG_FLG
 	jz	debugger_disabled
-%endif
 	clc
-	int 	3
+%else
+	mov al, byte [cs:checkdebugger]
+	test al, LCFG_DBG_CHECK
+	jnz .check
+	mov byte [cs:.patch], 90h	; do not check
+	jmp @F				; (flush queue for the SMC)
+@@:
+.check:
+	test al, LCFG_DBG_ASSUME	; (NC)
+	jz .runint3			; if to assume off --> (NC)
+	stc				; assume on (CY)
+.runint3:
+%endif
+.patch:	int3				; SMC: patched to NOP if not to run int3
 	jc debugger_detected
 debugger_disabled:
 	mov	word [i0off],offset Int0Trap

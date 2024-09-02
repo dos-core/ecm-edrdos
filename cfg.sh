@@ -56,3 +56,4 @@
 [ -z "$use_build_bootable" ] && use_build_bootable=1
 [ -z "$use_build_compress_only" ] && use_build_compress_only=0
 [ -z "$use_build_inicomp_only" ] && use_build_inicomp_only=0
+use_build_lcfg=1
