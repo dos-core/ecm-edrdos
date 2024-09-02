@@ -244,15 +244,56 @@ con_drvr	dw	offset aux_drvr, 0	; link to next device driver
 		db	'COLOUR'
 col_mode	db	0,7,0
 
-aux_drvr	dw	offset prn_drvr, 0		; link to next device driver
+	%imacro dump_aux_prn_drvr 0
+		dw	offset prn_drvr, 0		; link to next device driver
 		dw	DA_CHARDEV
 		dw	offset strat, offset IntCOM1
 		db	'AUX     '
 
-prn_drvr	dw	offset clock_drvr, 0	; link to next device driver
+		dw	offset clock_drvr, 0	; link to next device driver
 		dw	DA_CHARDEV
 		dw	offset strat, offset IntLPT1
 		db	'PRN     '
+	%endmacro
+aux_drvr: equ $
+prn_drvr: equ $ + 18
+
+%if SVARDOS
+aux_prn_drvr_destination:
+
+	%imacro lcfgoption 3+.nolist
+	_fill %1, 0, lcfg
+%%start:
+	%2
+	%3
+%%end:
+%assign %%index %%start - lcfg
+%rep %%end - %%start
+%assign LCFGINUSE LCFGINUSE | (1 << %%index)
+ %assign %%index %%index + 1
+%endrep
+	%endmacro
+%assign LCFGINUSE 0
+
+	align 4, db 0
+lcfg:
+.:		jmp strict short .end
+lcfgoption 2,,	db "lCFG"
+lcfgoption 6,,	db "00"
+lcfgoption 8,,	dq .inuse
+
+%include "../tmp/edrdosl.mac"
+
+lcfgoption 32,,
+.end:
+.size: equ .end - .
+.inuse equ LCFGINUSE
+
+	_fill 18 * 2, 0, aux_prn_drvr_destination
+aux_prn_drvr_size equ $ - aux_prn_drvr_destination
+%else
+	dump_aux_prn_drvr
+%endif
 
 clock_drvr	dw	disk_drvr, 0		; link to next device driver
 		dw	DA_CHARDEV+DA_ISCLK
@@ -1134,6 +1175,7 @@ section ICODE public align=2 class=ICODE			; reusable initialization code
 
 	Assume	CS:CGROUP, DS:CGROUP, ES:CGROUP, SS:Nothing
 
+	align 2, db 0
 bpbs		dw	offset bpb360	; 0: 320/360 Kb 5.25" floppy
 		dw	offset bpb1200	; 1: 1.2 Mb 5.25" floppy
 		dw	offset bpb720	; 2: 720 Kb 3.5" floppy
@@ -1145,11 +1187,38 @@ bpbs		dw	offset bpb360	; 0: 320/360 Kb 5.25" floppy
 		dw	offset bpb1440	; 8: Other
 		dw	offset bpb2880	; 9: 2.88 Mb 3.5" floppy
 
-%if SVARDOS eq 0
-checkdebugger:	db 0
+%if SVARDOS
+aux_prn_drvr_source:
+.:
+	dump_aux_prn_drvr
+ %if $ - . != aux_prn_drvr_size
+  %error Unexpected layout
+ %endif
 %endif
 
+checkdebugger:	db 0
+
 init1	proc	near
+
+%if SVARDOS		; source is in compressed part, so copy it here
+	push cx
+	push di
+
+		; Get lCFG items to use later.
+	mov cl, byte [lcfg.checkdebugger]
+	mov byte [cs:checkdebugger], cl
+	push cs
+	pop es
+	mov di, aux_prn_drvr_destination
+	push cs
+	pop ds
+	mov si, aux_prn_drvr_source
+	mov cx, words(aux_prn_drvr_size)
+	rep movsw
+
+	pop di
+	pop cx
+%endif
 
 %if SVARDOS eq 0
 ; 	DRBIO initialization code. This is executed right after the jump
@@ -1350,7 +1419,7 @@ SaveVectors:
 	loop	SaveVectors		; go and do another
 
 debugger_check:
-%if SVARDOS
+%if SVARDOS && 0
 	test	byte [es:kernflg],DEBUG_FLG
 	jz	debugger_disabled
 	clc
