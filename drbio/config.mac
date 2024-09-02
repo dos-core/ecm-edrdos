@@ -35,7 +35,7 @@
 		; For SvarDOS kernel flavours
 COMPRESSED_FLG	equ	1
 SINGLEFILE_FLG	equ	2
-DEBUG_FLG	equ	4
+DEBUG_FLG	equ	4		; (obsolete, no longer used)
 TEMP_RELOC_SEG	equ	2000h		; used on initial BIO relocation
 
 		; For lDOS lCFG block

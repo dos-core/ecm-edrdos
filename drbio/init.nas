@@ -210,11 +210,15 @@ compstart	dw	offset COMPRESS_FROM_HERE wrt CGROUP
 ; kernel flags:
 ;   bit 0: set if assembled for compression
 ;   bit 1: set if assembled for single-file kernel
+;   bit 7: set after kernel was processed by COMPBIOS and COMPKERN
+
 ;   bit 2: if set, gives debugger a chance to intercept by calling INT 3
 ;	   CAUTION: breaks original IBM-PC compatibility if not run under
 ;	            debugger
-;   bit 7: set after kernel was processed by COMPBIOS and COMPKERN 
-kernflg		db	DEBUG_FLG + (SINGLEFILE << 1) + COMPRESSED
+; As of the lCFG block use in 2024 September this debugger check flag
+;  is no longer used from the kernel flags. Use lDOS patchini/patchdeb
+;  to modify the check debugger byte in the lCFG block instead.
+kernflg		db	(SINGLEFILE << 1) + COMPRESSED
 %else
 init0 equ init1
 
