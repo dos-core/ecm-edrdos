@@ -42,6 +42,8 @@ TEMP_RELOC_SEG	equ	2000h		; used on initial BIO relocation
 LCFG_CheckDebugger	equ 20
 LCFG_DBG_CHECK		equ 1		; flag: check debugger present, run int3
 LCFG_DBG_ASSUME		equ 2		; flag: default to assume debugger present
+LCFG_DBG_ONLY_VALID	equ 4
+LCFG_DBG_ONLY_IISP	equ 8
 ; For the FreeDOS kernel the CONFIG block CheckDebugger value is
 ;  as yet used as an ordinal: < 1, == 1, or > 1. However, we use
 ;  ours here as 8 independent flags that can be set individually.

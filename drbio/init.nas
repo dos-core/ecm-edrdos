@@ -1429,8 +1429,26 @@ debugger_check:
 	clc
 %else
 	mov al, byte [cs:checkdebugger]
+	test al, LCFG_DBG_ONLY_VALID
+	jz @F
+		; ds => IVT
+	cmp word [i3off], -1
+	je .nocheck
+	cmp word [i3seg], 0
+	je .nocheck
+@@:
+	test al, LCFG_DBG_ONLY_IISP
+	jz @F
+		; ds => IVT
+	les bx, [i3off]			; es:bx -> int 3 handler
+	cmp bx, -18			; valid ? (could tear word access ?)
+	ja .nocheck			; no, cannot be a valid IISP header -->
+	cmp word [es:bx + 6], "KB"	; signature present ?
+	jne .nocheck			; no -->
+@@:
 	test al, LCFG_DBG_CHECK
 	jnz .check
+.nocheck:
 	mov byte [cs:.patch], 90h	; do not check
 	jmp @F				; (flush queue for the SMC)
 @@:
