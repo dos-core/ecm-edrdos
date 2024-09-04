@@ -446,8 +446,13 @@ func33:
 	cmp	al, 0FFh		; is it function 33FFh ?
 	 jne	f33_XX			; no, jump -->
 	call	f33_FF			; yes
-	%include "version.mac"
-	db	0
+%if SVARDOS
+ %include "svarver.mac"
+	db KERNEL_VER_STR
+%else
+ %include "version.mac"
+%endif
+	db 0
 
 f33_FF:	pop	word [reg_AX + bp]		; dx:ax - hidden DOS string
 	mov	[reg_DX + bp], cs

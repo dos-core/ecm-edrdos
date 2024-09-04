@@ -28,6 +28,7 @@ SET LOCTOOLS=..\LTOOLS
 IF NOT EXIST BIN\*.* MD BIN
 
 copy ..\version.inc . /y
+copy ..\svarver.mac . /y
 
 nasm -s -P nasm.mac -P nasmorg.mac -f obj header.nas -l bin/header.lst -o bin/header.obj
 IF ERRORLEVEL 1 GOTO FAILED
@@ -92,7 +93,7 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj network.nas -l bin/network.lst -o bin/network.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-nasm -s -P nasm.mac -f obj misc.nas -l bin/misc.lst -o bin/misc.obj
+nasm -DSVARDOS=%svardos% -s -P nasm.mac -f obj misc.nas -l bin/misc.lst -o bin/misc.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 nasm -s -P nasm.mac -f obj process.nas -l bin/process.lst -o bin/process.obj
