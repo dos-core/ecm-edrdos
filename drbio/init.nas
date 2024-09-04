@@ -1657,7 +1657,13 @@ kernel_ver_msg	db KERNEL_VER_STR, 0
 repository_msg	db REPOSITORY_STR, 0
 %else
 
-%ifdef LDOS
+%ifndef LDOS
+ %assign LDOS 0
+%elifempty LDOS
+ %assign LDOS 1
+%endif
+
+%if LDOS
 	drdosprojects_msg	db	CR, LF
 db "lDOS Enhanced DR-DOS kernel fork               https://hg.pushbx.org/ecm/edrdos"
 				db CR, LF, NUL
@@ -1665,7 +1671,7 @@ db "lDOS Enhanced DR-DOS kernel fork               https://hg.pushbx.org/ecm/edr
 ;Enhanced DR-DOS continuation                  https://github.com/svardos/edrdos
 ;The DR-DOS/OpenDOS Enhancement Project              http://www.drdosprojects.de
 ;12345678901234567890123456789012345678901234567890123456789012345678901234567890
-%elifdef SVARDOS
+%elif SVARDOS
 	drdosprojects_msg	db	CR, LF, "Enhanced DR-DOS continuation                  https://github.com/svardos/edrdos", CR, LF, NUL
 %else
 	drdosprojects_msg	db	CR, LF, "The DR-DOS/OpenDOS Enhancement Project              http://www.drdosprojects.de", CR, LF, NUL
