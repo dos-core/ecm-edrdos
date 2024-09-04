@@ -1,6 +1,6 @@
 @echo off
 if exist ovr.bat ovr.bat
-call c:\autowat.bat
+if exist c:\autowat.bat call c:\autowat.bat
 set compressdrbio=0
 set compressdrdos=1
 set svardos=0
