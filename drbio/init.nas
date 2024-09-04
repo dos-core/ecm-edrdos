@@ -1671,6 +1671,7 @@ db "lDOS Enhanced DR-DOS kernel fork               https://hg.pushbx.org/ecm/edr
 	drdosprojects_msg	db	CR, LF, "The DR-DOS/OpenDOS Enhancement Project              http://www.drdosprojects.de", CR, LF, NUL
 %endif
 starting_dos_msg	db	CR, LF, "Starting "
+%define SHORTVERSION 1
 shortversion equ 1
 			%include "version.mac"
 			db	CR, LF, NUL

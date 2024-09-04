@@ -44,7 +44,15 @@ nasm -s -P nasm.mac -f obj initmsgs.nas -l bin/initmsgs.lst -o bin/initmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj biosmsgs.nas -l bin/biosmsgs.lst -o bin/biosmsgs.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -DSVARDOS=%svardos% -DSINGLEFILE=%svardossinglefile% -DLDOS=1 -DSHORTVERSION=1 -DCOMPRESSED=%compressdrbio% -t -s -I ../lmacros/ -P nasm.mac -P nasmorg.mac -f obj init.nas -l bin/init.lst -o bin/init.obj
+
+echo. > drbiocmd.mac
+echo.%%define SVARDOS %svardos% >> drbiocmd.mac
+echo.%%define SINGLEFILE %svardossinglefile% >> drbiocmd.mac
+echo.%%define LDOS 1 >> drbiocmd.mac
+echo.%%define COMPRESSED %compressdrbio% >> drbiocmd.mac
+echo.%%define compressdrdos %compressdrdos% >> drbiocmd.mac
+
+nasm -P drbiocmd.mac -t -s -I ../lmacros/ -P nasm.mac -P nasmorg.mac -f obj init.nas -l bin/init.lst -o bin/init.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj clock.nas -l bin/clock.lst -o bin/clock.obj
 IF ERRORLEVEL 1 GOTO FAILED
@@ -60,9 +68,9 @@ nasm -s -P nasm.mac -f obj stacks.nas -l bin/stacks.lst -o bin/stacks.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj nlsfunc.nas -l bin/nlsfunc.lst -o bin/nlsfunc.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -DSVARDOS=%svardos% -DSINGLEFILE=%svardossinglefile% -t -s -P nasm.mac -f obj bdosldr.nas -l bin/bdosldr.lst -o bin/bdosldr.obj
+nasm -P drbiocmd.mac -t -s -P nasm.mac -f obj bdosldr.nas -l bin/bdosldr.lst -o bin/bdosldr.obj
 IF ERRORLEVEL 1 GOTO FAILED
-nasm -DSVARDOS=%svardos% -DSINGLEFILE=%svardossinglefile% -Dcompressdrdos=%compressdrdos% -t -s -P nasm.mac -f obj biosinit.nas -l bin/biosinit.lst -o bin/biosinit.obj
+nasm -P drbiocmd.mac -t -s -P nasm.mac -f obj biosinit.nas -l bin/biosinit.lst -o bin/biosinit.obj
 IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj config.nas -l bin/config.lst -o bin/config.obj
 IF ERRORLEVEL 1 GOTO FAILED

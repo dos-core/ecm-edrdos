@@ -98,7 +98,15 @@ IF ERRORLEVEL 1 GOTO FAILED
 nasm -s -P nasm.mac -f obj process.nas -l bin/process.lst -o bin/process.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
-nasm -DDELWATCH -DKANJI -DPASSWORD -DJOIN -DUNDELETE -DSHORTVERSION -s -P nasm.mac -f obj fdos.nas -l bin/fdos.lst -o bin/fdos.obj
+echo. > fdoscmd.mac
+echo.%%define DELWATCH >> fdoscmd.mac
+echo.%%define KANJI >> fdoscmd.mac
+echo.%%define PASSWORD >> fdoscmd.mac
+echo.%%define JOIN >> fdoscmd.mac
+echo.%%define UNDELETE >> fdoscmd.mac
+echo.%%define SHORTVERSION >> fdoscmd.mac
+
+nasm -P fdoscmd.mac -s -P nasm.mac -f obj fdos.nas -l bin/fdos.lst -o bin/fdos.obj
 IF ERRORLEVEL 1 GOTO FAILED
 
 nasm -s -P nasm.mac -f obj dosgrps.nas -l bin/dosgrps.lst -o bin/dosgrps.obj
