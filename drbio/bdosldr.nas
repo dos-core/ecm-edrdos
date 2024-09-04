@@ -76,9 +76,8 @@ ASSUME CS:CGROUP,DS:CGROUP
 VER_MUSTBE	equ	1072h
 
 %if SVARDOS eq 0
- %ifndef SINGLEFILE
-  SINGLEFILE equ 1
- %endif
+ %undef SINGLEFILE
+ SINGLEFILE equ 1
 %endif
 
 
