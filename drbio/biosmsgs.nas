@@ -23,7 +23,9 @@ _disk_msgB	db	": and", CR, LF, "   strike any key when ready", CR, LF, LF, NUL
 	public	_div_by_zero_msg
 	public	div_by_zero_msg
 div_by_zero_msg	label	byte
-_div_by_zero_msg	db	CR, LF, "Divide Error", CR, LF, NUL
+_div_by_zero_msg	db	CR, LF, "Divide Error at "
+	public div_by_zero_length
+div_by_zero_length equ $ - div_by_zero_msg
 
 RCODE	ends
 

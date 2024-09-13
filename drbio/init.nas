@@ -1806,23 +1806,78 @@ OutputBS20:
 OutputBS endp
 
 
+	extern div_by_zero_length
+
+i0_disp_ax_hex:
+	xchg al, ah
+	call i0_disp_al_hex
+	xchg al, ah
+
+i0_disp_al_hex:
+	mov cl, 4
+	ror al, cl
+	call i0_disp_al_nybble_hex
+	ror al, cl
+i0_disp_al_nybble_hex:
+	push ax
+	and al, 15
+	add al, '0'
+	cmp al, '9'
+	jbe .dec
+	add al, 'A' - ('9' + 1)
+.dec:
+	call i0_disp_al
+	pop ax
+	retn
+
+i0_disp_ax:
+	push ax
+	call i0_disp_al
+	pop ax
+	xchg al, ah
+
+i0_disp_al:
+	xchg ax, dx
+	mov ah, MS_C_WRITE
+	int DOS_INT
+	retn
+
+
 Int0Handler proc far
 ;----------
 	cld
+	mov bp, sp
 	push	cs
 	pop	ds
-	mov	si,offset div_by_zero_msg	; DS:SI points at ASCIZ message
+	mov	dx,offset div_by_zero_msg	; DS:SI points at ASCIZ message
 	mov	bx,STDERR		; to STDERR - where else ?
-	mov	cx,1			; write one at a time
-int0_loop:
-	mov	dx,si			; DS:DX points at a char
-	lodsb				; lets look at it first
-	test	al,al			; end of string ?
-	 je	int0_exit
+	mov	cx, div_by_zero_length		; write one at a time
 	mov	ah,MS_X_WRITE		; write out the error
 	int	DOS_INT
-	 jnc	int0_loop		; if it went OK do another
-int0_exit:
+
+	mov ax, [bp + 2]
+	call i0_disp_ax_hex
+	mov al, ':'
+	call i0_disp_al
+
+	mov ax, [bp]
+	call i0_disp_ax_hex
+	mov ax, "->"
+	call i0_disp_ax
+
+	lds si, [bp]
+	mov bx, 16
+.loop:
+	mov al, ' '
+	call i0_disp_al
+	lodsb
+	call i0_disp_al_hex
+	dec bx
+	jnz .loop
+
+	mov ax, 13 | (10 << 8)
+	call i0_disp_ax
+
 	mov	ax,MS_X_EXIT*256+1	; time to leave - say we got an error
 	int	DOS_INT			; go for it!
 
