@@ -1831,15 +1831,25 @@ i0_disp_al_nybble_hex:
 	retn
 
 i0_disp_ax:
-	push ax
 	call i0_disp_al
-	pop ax
 	xchg al, ah
 
+		; INP:	bx = STDERR
+		;	al = text byte
+		; CHG:	dx
 i0_disp_al:
-	xchg ax, dx
-	mov ah, MS_C_WRITE
+	push cx
+	push ds
+	push ax
+	 push ss
+	 pop ds
+	mov cx, 1
+	mov dx, sp
+	mov ah, MS_X_WRITE
 	int DOS_INT
+	pop ax
+	pop ds
+	pop cx
 	retn
 
 
@@ -1866,13 +1876,13 @@ Int0Handler proc far
 	call i0_disp_ax
 
 	lds si, [bp]
-	mov bx, 16
+	mov di, 16
 .loop:
 	mov al, ' '
 	call i0_disp_al
 	lodsb
 	call i0_disp_al_hex
-	dec bx
+	dec di
 	jnz .loop
 
 	mov ax, 13 | (10 << 8)
