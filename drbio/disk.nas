@@ -1201,6 +1201,8 @@ setrw5:
 P_STRUC.LBABLOCK equ LBABLOCK	; NASM port label
 	mov	word ptr [P_STRUC.LBABLOCK + bp],ax	; Logical Block Address of start sector
 	mov	word ptr [P_STRUC.LBABLOCK + bp+2],dx
+	test	word [es:UDSC.FLAGS + di],UDF_LBA ; drive accessed via LBA?
+	 jnz	setrw6			; if LBA then skip calulating CHS value
 	push	ax			; AX/DX = 32 bit starting record address
 	push	dx			; save starting record
 	mov	ax,[es:di+UDSC.UDSCBPB+BPB.SPT]
@@ -1218,7 +1220,7 @@ P_STRUC.SECTOR equ SECTOR	; NASM port label
 	mov	[P_STRUC.SECTOR + bp],dl	; DX = sector #, AX = head #
 P_STRUC.HEAD equ HEAD	; NASM port label
 	mov	[P_STRUC.HEAD + bp],al	; save physical sector/head for later
-
+setrw6:
 	clc				; tell them we like the parameters
 	ret				; we've figured out starting address
 
