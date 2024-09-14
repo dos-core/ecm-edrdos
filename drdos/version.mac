@@ -2,6 +2,7 @@
 	%endmacro
 
 %ifndef SHORTVERSION
+	%undef shortversion
 %define if comment
 %define ifdef comment
 %define else comment
@@ -12,6 +13,7 @@
 %undef else
 %undef endif
 %else
+	%define shortversion 1
 	%macro if 1.nolist
 %define db comment
 	%endmacro
