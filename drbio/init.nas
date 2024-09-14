@@ -1857,6 +1857,10 @@ Int0Handler proc far
 ;----------
 	cld
 	mov bp, sp
+	push ax
+	push bx
+	push cx
+	push dx
 	push	cs
 	pop	ds
 	mov	dx,offset div_by_zero_msg	; DS:SI points at ASCIZ message
@@ -1888,10 +1892,36 @@ Int0Handler proc far
 	mov ax, 13 | (10 << 8)
 	call i0_disp_ax
 
+	mov si, i0_table
+.loop_table:
+	mov al, ' '
+	call i0_disp_al
+	cs lodsw
+	call i0_disp_ax
+	mov al, '='
+	call i0_disp_al
+	cs lodsb
+	cbw
+	xchg di, ax
+	mov ax, [bp + di]
+	call i0_disp_ax_hex
+	cmp si, i0_table.end
+	jb .loop_table
+
+	mov ax, 13 | (10 << 8)
+	call i0_disp_ax
+
 	mov	ax,MS_X_EXIT*256+1	; time to leave - say we got an error
 	int	DOS_INT			; go for it!
 
 Int0Handler endp
+
+i0_table:
+	db "AX", -2
+	db "BX", -4
+	db "CX", -6
+	db "DX", -8
+.end:
 
 RCODE		ends
 
