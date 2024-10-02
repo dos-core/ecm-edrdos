@@ -1978,6 +1978,12 @@ div64:					; 64-bit division
 ;	AX,CX,DX,BP,SI
 	mov	bp,sp			; base address of temporary variables
 	xor	ax,ax			; clear work registers
+
+	cmp word [bp + 2 + 18], ax
+	jne .need64
+	cmp word [bp + 2 + 16], ax
+	je div32
+.need64:
 	xor	dx,dx
 	xor	si,si
 	mov	cx,64			; 64 bits
