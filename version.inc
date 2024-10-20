@@ -1,5 +1,5 @@
 
-	db 'Enhanced DR-DOS 7.01.08 WIP (2024 September)'
+	db 'Enhanced DR-DOS 7.01.08 WIP (2024 October)'
 ifdef shortversion
 else
 	db ' based on Caldera OpenDOS 7.01'
