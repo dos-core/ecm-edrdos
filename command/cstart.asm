@@ -3713,7 +3713,7 @@ try_next:
 	mov	ax,es:16h[bx]		; get parent PSP seg in ax
 	cmp	ax,cx			; are they the same ?
 	je	got_org_psp		; yes - found COMMAND.COM PSP
-	cmp	ax,0			; on MS-DOS parent PSP seg=0
+	test	ax,ax			; on MS-DOS parent PSP seg=0
 	je	null_org_psp
 	mov	bx,ax			; else make this current seg and
 	jmp	try_next		; try again
