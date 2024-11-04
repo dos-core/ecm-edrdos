@@ -1504,7 +1504,8 @@ def_data_vecs_loop:
 ;	movsw				; copy service routine offset
 	mov	byte ptr [es:bx],0eah	; jmp far
 	mov	ax,[cs:si]
-	add	si,2
+	inc	si
+	inc	si
 	mov	[es:1 + bx],ax
 	mov	ax,ds			; finally fixup the segment too
 ;	stosw

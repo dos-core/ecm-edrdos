@@ -300,7 +300,7 @@ login_drive20:
 	mov	word [fattype],0			; assume 12 bit FAT
 
 	mov	al,[BT_nfats]		; compute FAT size
-	mov	ah,0			; AX = # of FAT copies (usually 2)
+	xor	ah,ah			; AX = # of FAT copies (usually 2)
 	mul	word [BT_fat_size]		; AX/DX = size of FAT in sectors
 
 	add	ax,[BT_reserved_sectors]	; add in bootstrap sectors
@@ -330,7 +330,7 @@ dev_small:				; AX/DX = disk size in sectors
 	sbb	dx,bp
 					; now convert this to clusters
 	mov	bl,[BT_sctr_per_cluster]
-	mov	bh,0			; BX = sectors per clusters
+	xor	bh,bh			; BX = sectors per clusters
 	div	bx			; AX = # of data clusters
 	inc	ax
 	inc	ax			; cluster 0,1 are reserved
@@ -493,7 +493,7 @@ rd_file3:				; BP:CX = next chain, multi cluster read
 	mov	dx,[cluster_count]	; length of chain in clusters
 	call	rd_cluster		; read DX clusters
 	mov	al,[BT_sctr_per_cluster]
-	mov	ah,0			; AX = sectors per cluster
+	xor	ah,ah			; AX = sectors per cluster
 	mul	word [cluster_count]		; AX = sectors in chain to read
 	mul	word [BT_bytes_per_sector]	; AX = bytes in chain to read
 	add	[dta_off],ax
@@ -607,7 +607,7 @@ rd_cluster:
 	push 	es
 
 	mov	al,[BT_sctr_per_cluster]
-	mov	ah,0			; AX = sectors per cluster
+	xor	ah,ah			; AX = sectors per cluster
 	mul	dx			; AX = sectors in all clusters
 	cmp	ax,[dosfile_size]		; is this longer than actual file size?
 	 jbe	rd_cluster10		; no
@@ -639,7 +639,7 @@ rd_cluster10:
 	xor	ax,ax
 	push	ax
 	mov	al,[BT_nfats]		; compute FAT size
-	mov	ah,0			; AX = # of FAT copies (usually 2)
+	xor	ah,ah			; AX = # of FAT copies (usually 2)
 	push	ax
 	push	word [nfatsecs+2]
 	push	word [nfatsecs]
@@ -802,7 +802,7 @@ clus2sec:
 	xor	ax,ax
 	push	ax
 	mov	al,[BT_nfats]		; compute FAT size
-	mov	ah,0			; AX = # of FAT copies (usually 2)
+	xor	ah,ah			; AX = # of FAT copies (usually 2)
 	push	ax
 	push	word [nfatsecs+2]
 	push	word [nfatsecs]

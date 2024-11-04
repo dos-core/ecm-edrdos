@@ -154,8 +154,9 @@ DEVHDR.NAM equ NAM	; NASM port label
 	mov	cx,8/2
 	rep	movsw
 	mov	al,' '
-	mov	cl,3			; space the file extension
-	rep	stosb
+	stosb               ; space the file extension
+	stosb
+	stosb
 	pop	ds
 	
 	pop 	dx
@@ -433,7 +434,7 @@ con_dev_loop:
 	call	read_line		; read edited line
 	pop	bp
 	mov	bl,[fdos_buf+1]		; # byte we have read
-	mov	bh,0			; BX = # of characters read
+	xor	bh,bh			; BX = # of characters read
 	mov	word ptr [fdos_buf+2 + bx],0A0Dh; append carriage return/line feed
 	mov	byte [fdos_buf],0		; start reading at beginning
 	lea	si,[fdos_buf+3 + bx]	; Echo the LF character to the 
@@ -508,7 +509,7 @@ frstdev1:				; scan off trailing spaces
 	dec	di
 	loop	frstdev1
 frstdev2:
-	mov	al,0
+	xor	al,al
 	stosb				; add a trailing NUL
 	ret
 

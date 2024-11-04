@@ -101,7 +101,7 @@ dd_outioctl:
 	pop	ds
 	xchg	ax,si			; save data in SI
 	mov	ah,3			; read cursor position/type
-	mov	bh,0			;  for page zero
+	xor	bh,bh			;  for page zero
 	int	VIDEO_INT
 	and	ch,0c0h			; make cursor start line = 0
 	mov	al,cl			; AL = bottom line of cursor
@@ -126,7 +126,7 @@ dd_error:	; used for all unsupported driver functions
 
 
 poll_c1:
-	mov	ah,0			; eat the next character
+	xor	ah,ah			; eat the next character
 	int	KEYBOARD_INT		; take it out of ROS buffer
 					;    and check again
 poll_char:
@@ -154,7 +154,7 @@ char_read:
 ;---------
 	cmp	byte [local_flag],TRUE		; do we have local character?
 	 je	rdchr3			; handle that specially
-	mov	ah,0
+	xor	ah,ah
 	int	KEYBOARD_INT		; read character from keyboard
 	test	ax,ax			; test if we got Ctrl-Brk
 	 jz	char_read		; retry in that case

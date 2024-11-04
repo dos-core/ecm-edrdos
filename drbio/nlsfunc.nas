@@ -79,8 +79,7 @@ nls_hook:
 	int	DOS_INT			; read and save old INT 2F vector
 	mov	[cs:old_int2f_off],bx
 	mov	[cs:old_int2f_seg],es
-	mov	ah,MS_S_SETINT
-	mov	al,2fh
+	mov	ax,(MS_S_SETINT * 256) + 2fh
 cgroup equ CGROUP	; NASM port equate
 	mov	dx,offset int2f_handler wrt cgroup	; install our own INT 2F handler
 	int	DOS_INT
@@ -114,7 +113,7 @@ int2f_handler:
 	jmp	far [cs:old_int2f]	; no, pass it on
 
 int2f_handler10:
-	cmp	al,0		; installation check ?
+	test	al,al		; installation check ?
 	 jne	int2f_handler20
 	mov	al,0ffh		; we are already installed
 	iret
@@ -330,7 +329,7 @@ f65x_30:
 	xor	cx,cx			; Seek within country.sys
 	mov	bx,[cs:c_handle]
 	push	bp
-	mov	bp,0			; seek from begining
+	xor	bp,bp			; seek from begining
 	mov	ax,1228h
 	int	2fh
 	pop	bp
