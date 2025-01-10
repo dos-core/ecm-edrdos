@@ -105,6 +105,7 @@ PCMODE_DATA	ends
 section BDOS_DATA public align=2 class=DATA
 
 	extrn lfn_search_redir:byte
+	extrn dosfat:word
 
 BDOS_DATA	ends
 
@@ -1103,21 +1104,38 @@ redir_getdpb:
 	mov	ax,I2F_SPACE
 	call	int2f_ldt		; get the info
 	 jnc	redir_getdpb10		; if we get an error then make CLMSK=FE
-    mov al,0ffh        
-redir_getdpb10:        
-	mov	si,offset sec_pathname	; let's re-use this as a temp DPB
+	mov al, 0ffh
+redir_getdpb10:
+	mov	di,offset sec_pathname	; let's re-use this as a temp DPB
+	push cx
+	push ax
+	push di
+	 push ds
+	 pop es
+	mov cx, DDSC_LEN
+	xor ax, ax			; = 0
+	rep stosb			; fill temporary DPB
+	pop di
+	mov	si,[2 + bp]		; si -> parameter block
+	mov	word [4 + si], di
+	mov	[6 + si], ds		; point to my dummy DPB
+	mov	[8 + si], ax		; zero adjust value
+	dec ax				; = -1
+%if FAT16 != 0FFFFh
+ %error Unexpected value
+%endif
+	mov word [dosfat], ax		; say FAT16
+	mov byte [di + DDSC_NFATRECS], al
+	mov byte [di + DDSC_DIRENT], al	; say not FAT32 (must be NZ)
+	pop ax
 	dec	al			; make cluster mask
-	mov	[DDSC_CLMSK + si],al	; and stuff into DPB
-	mov	[DDSC_FREE + si],dx
-	mov	[DDSC_SECSIZE + si],cx
+	mov	[di + DDSC_CLMSK],al	; and stuff into DPB
+	mov	[di + DDSC_FREE],dx
+	pop word [di + DDSC_SECSIZE]
 	inc	bx			; inc number of clusters
-	mov	[DDSC_NCLSTRS + si],bx
+	mov	[di + DDSC_NCLSTRS],bx
 	mov	al,[err_drv]		; also fill in drive number
-	mov	[DDSC_UNIT + si],al
-	mov	si,[2 + bp]		; DI -> parameter block
-	mov	word [4 + si],offset sec_pathname
-	mov	[6 + si],ds		; point to my dummy DPB
-	mov	word ptr [8 + si],0	; zero adjust value
+	mov	[di + DDSC_UNIT],al
 	mov	bx,0ffh			; return 0xFF (ie. bad drive)
 	ret
 
