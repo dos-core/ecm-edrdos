@@ -2158,6 +2158,8 @@ rw_media:
 	mov	dx,word ptr [es:di+UDSC.UDSCBPB+BPB.HIDDEN+2]
 	mov	word ptr [P_STRUC.LBABLOCK + bp],ax	; Logical Block Address of start sector
 	mov	word ptr [P_STRUC.LBABLOCK+2 + bp],dx
+	test	word [es:UDSC.FLAGS + di],UDF_LBA ; drive accessed via LBA?
+	 jnz	rw_media04		; if LBA then skip calulating CHS value
 	div	cx			; AX = cylinder #, DX = head/sec offset
 	mov	[P_STRUC.CYL + bp],ax		; save physical cylinder number
 	xor	ax,ax			; make remainder 32 bit so
@@ -2165,14 +2167,15 @@ rw_media:
 	div	word [es:di+UDSC.UDSCBPB+BPB.SPT]	; divide by sectors per track
 	mov	[P_STRUC.SECTOR + bp],dl		; DX = sector #, AX = head #
 	mov	[P_STRUC.HEAD + bp],al		; save physical sector/head for later
-	call	rw_loop			; read the boot sector
+rw_media04:
+	call	rw_loop			; read / write the boot sector
 	 jc	rw_media20
 	cmp	byte [local_buffer+BPB_SECTOR_OFFSET+BPB.FATID],0F0h
 	 jb	rw_media10
 	cmp	word [local_buffer+BPB_SECTOR_OFFSET+BPB.DIRMAX],0	; FAT32 drive?
 	 jne	rw_media05		; no
 	mov	si,offset local_buffer+UDSC_BPB_LENGTH+BPB_SECTOR_OFFSET+2
-	jmps	rw_media07
+	jmp	rw_media07
 rw_media05:
 	mov	si,offset local_buffer+OLD_UDSC_BPB_LENGTH+BPB_SECTOR_OFFSET+2
 rw_media07:
