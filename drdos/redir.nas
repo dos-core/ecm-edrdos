@@ -105,7 +105,6 @@ PCMODE_DATA	ends
 section BDOS_DATA public align=2 class=DATA
 
 	extrn lfn_search_redir:byte
-	extrn dosfat:word
 
 BDOS_DATA	ends
 
@@ -1121,10 +1120,6 @@ redir_getdpb10:
 	mov	[6 + si], ds		; point to my dummy DPB
 	mov	[8 + si], ax		; zero adjust value
 	dec ax				; = -1
-%if FAT16 != 0FFFFh
- %error Unexpected value
-%endif
-	mov word [dosfat], ax		; say FAT16
 	mov byte [di + DDSC_NFATRECS], al
 	mov byte [di + DDSC_DIRENT], al	; say not FAT32 (must be NZ)
 	pop ax
