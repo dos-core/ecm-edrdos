@@ -456,7 +456,7 @@ f36_OK:
 	call	return_CX		; in bytes
 
 	mov	dx,[es:DDSC_NCLSTRS + bx]	; Convert the last cluster no
-	cmp	word [dosfat],FAT32		; FAT32 file system?
+	cmp	word [es:DDSC_NFATRECS + bx], 0	; FAT32 file system?
 	 jne	f36_OK20		; no, then use the 16-bit value
 	mov	dx,word ptr [es:DDSC_BCLSTRS + bx]	; Convert the last cluster no
 	cmp	word ptr [es:DDSC_BCLSTRS+2 + bx],0	; more than fits into 16-bit register?
