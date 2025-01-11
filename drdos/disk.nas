@@ -470,8 +470,6 @@ f36_OK20:
 	xor	dx,dx
 	cmp	word [es:DDSC_NFATRECS + bx],0	; could this be a FAT32 drive?
 	 jne	f36_OK25		; nah, it must be FAT12/16
-	cmp	byte [es:DDSC_MEDIA + bx],8fh	; or is it a CD-ROM drive?
-	 je	f36_OK25		; apparently it is one, so handle it like FAT12/16
 	mov	cx,word ptr [es:DDSC_BFREE + bx]	; get number of free clusters (32-bit)
 	mov	dx,word ptr [es:DDSC_BFREE+2 + bx]
 f36_OK25:
