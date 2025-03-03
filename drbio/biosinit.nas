@@ -572,12 +572,17 @@ load_e10:
 	; relocate config environment to segment 60 if kernel is not in the way
 	call	copy_config_env_to_seg60
 %endif
-	mov	ax,(MS_X_EXEC * 256)+0	; Exec the Command Processor
+	push es
+	les bx, [drdos_ptr]
+	mov ax, [es:bx + DRDOS_ENVSEG]	; get config env for shell
+	pop es
 	mov	bx,offset exec_env	; Get the Parameter Block Address
+	mov word [bx], ax
 	mov	dx,offset shell		; and the Command Processor
 	mov	[exec_clseg],ds
 	mov	[exec_fcb1seg],ds
 	mov	[exec_fcb2seg],ds
+	mov	ax,(MS_X_EXEC * 256)+0	; Exec the Command Processor
 	int	DOS_INT			; Go for it
 
 shell_error:
