@@ -1569,6 +1569,7 @@ pcmode_init2:
 
 ;	add	ds:vxdName,dl		; fixup drive letter
 	mov	word ptr [buf_ptr+2],ds
+	mov	dx, word ptr [file_ptr+2]	; get old DOS DS
 	mov	word ptr [file_ptr+2],ds
 	mov	word ptr [fcb_ptr+2],ds
 	mov	ax,word ptr [fcb_ptr]
@@ -1601,7 +1602,12 @@ stubs_loop2:
 	mov	di,offset share_stub	; fixup the SHARE entries
 	mov	cx,NUM_SHARE_STUB_ENTRIES
 share_loop2:
-	add	di,2			; skip the offset
+	scasw				; skip the offset (di += 2)
+	cmp dx, word [es:di]		; still points into old DOS DS ?
+	je .replace			; yes -->
+	scasw				; skip this segment entry (di += 2)
+	db 0A8h				; test al, imm8 (skip stosw)
+.replace:
 	stosw				; fixup segment
 	loop	share_loop2
 ;	mov	cx,0
