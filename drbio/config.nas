@@ -1196,7 +1196,7 @@ setup_drives:
 	les	bx,[func52_ptr]		; ES:BX -> base of DOS variables
 	mov	[es:F52_PHYDRV + bx],al	; set # of Physical drives installed
 ;	mov	es:F52_LASTDRV[bx],al	; set # of Logical drives installed
-	mov	byte [es:F52_LASTDRV + bx],26	; set # of Logical drives installed
+	mov	byte [es:F52_LASTDRV + bx],32	; set # of Logical drives installed
 	pop	bx
 	pop 	es
 	ret
@@ -1486,7 +1486,7 @@ resdev_seg	dw	-1
 abs_unit	dw	0		; absolute unit #
 rel_unit	dw	0		; relative unit #
 
-blkdev_table	db	BLKDEV_LENGTH*26 dup (0); save block device driver addr. here
+blkdev_table	db	BLKDEV_LENGTH*32 dup (0); save block device driver addr. here
 
 ;
 ;	Variable for the FUNC_DEVICE and DEV_INIT sub routines

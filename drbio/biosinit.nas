@@ -781,9 +781,9 @@ config_end10:
 	xchg	ax,cx
 	mov	al,LDT_LEN
 	mov	ah,[es:F52_LASTDRV + bx]
-	cmp	ah,26
+	cmp	ah,32
 	 jbe	config_end20
-	mov	ah,26
+	mov	ah,32
 config_end20:
 	mul	ah
 	xchg	ax,cx

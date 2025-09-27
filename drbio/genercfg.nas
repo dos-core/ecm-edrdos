@@ -1027,9 +1027,9 @@ lastdrv_error:
 f_lastdrive10:
 	lodsb				; Get the Option Character 
 	call	toupper			; and convert to Upper Case
-	sub	al, 'A'			; al should be between 0..25
+	sub	al, 'A'			; al should be between 0..31
 	jc	lastdrv_error
-	cmp	al, 'Z'-'A'
+	cmp	al, '`'-'A'
 	ja	lastdrv_error
 	inc	al			; al = number of drives in system
 f_lastdrive20:
@@ -1269,7 +1269,7 @@ func_drivparm:	; DRIVPARM = /d:nn [/c] [/f:ff] [h:hh] [/n] [/s:ss] [/t:tt]
 	mov	word [drivp_trk],80		; assume 80 tracks
 
 	mov	bl,[drivp_drv]		; get drive to set up
-	cmp	bl,'Z'-'A'
+	cmp	bl,'`'-'A'
 	 ja	drivparm_error
 	inc	bl
 	mov	byte [ioctl_pb],0		; return defaults
@@ -1337,7 +1337,7 @@ drivparm5:
 
 drivparm_done:				; now set drive parameters
 	mov	bl,[drivp_drv]
-	cmp	bl,'Z'-'A'
+	cmp	bl,'`'-'A'
 	 ja	drivparm_error
 
 	mov	byte [ioctl_func],00000100b	; normal track layout assumed,

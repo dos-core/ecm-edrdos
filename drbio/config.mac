@@ -65,7 +65,7 @@ INIT_BUFFERS_SIZE equ	NUM_BUFFS*SIZEOF_BUFFS
 					; reserve space for init disk buffers
 TEMP_LDT	equ	INIT_BUFFERS+INIT_BUFFERS_SIZE
 					; space for temp LDT's at CONFIG time
-TEMP_LDT_SIZE	equ	 ((26*58h)/16)*16+20h
+TEMP_LDT_SIZE	equ	 ((32*58h)/16)*16+20h
 
 DYNAMIC_DATA_END equ	TEMP_LDT+TEMP_LDT_SIZE
 
