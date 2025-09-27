@@ -490,11 +490,14 @@ build_remote_path:
 	cmp	ah,':'			;  drive specified
 	 jne	build_remote_path10	; we want to find "d:\\" format too
 	mov	bx,ED_DRIVE		; assume "invalid drive" error
-	and	al,~ ('a'-'A')		; cheap upper case
+	cmp al, 'a'
+	jb .nottocaps
+	sub al, 20h
+.nottocaps:
 	sub	al,'A'
 	 jb	build_remote_path30	; return "invalid drive" if error
 	cmp	al,[ss:last_drv]		; check if > 'Z'
-	 ja	build_remote_path30	; return "invalid drive" if error
+	 jae	build_remote_path30	; return "invalid drive" if error
 	xchg	ax,dx			; DL = ASCIIZ supplied drive
 	lodsw				; get possible '\\'
 	jmp	build_remote_path15
