@@ -1476,8 +1476,10 @@ select_logical_drv05:
 	test	al,LFLG_NETWRKD/100h	; skip if networked drive
 	 jnz	select_logical_drv30
 	mov	al,[es:LDT_NAME + bx]	; get the drive from the ascii name
-	and	al,1fh			;  as the drive may require rebuilding
 	dec	ax			; make it zero based
+	and	al,1fh			;  as the drive may require rebuilding
+		; lDOS: prior two instructions swapped for LASTDRIVE=32
+		;  support (drive `: may be used here).
 	push 	es
 	push 	bx
 	call	select_physical_drv	; select the physical root

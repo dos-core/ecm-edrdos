@@ -768,7 +768,11 @@ get_filename:
 	add	al,'A'
 get_filename10:
 	stosb				; put in the drive
+	dec al
 	and	al,1fh			; convert from ASCII to 1 based
+	inc ax
+		; lDOS: prior dec and inc instructions added for
+		;  LASTDRIVE=32 support (drive `: may be used here).
 	xchg	ax,dx			; keep in DL for ms_x_curdir
 	mov	ax,':'+256*'\'		; make it "d:\"
 	stosw

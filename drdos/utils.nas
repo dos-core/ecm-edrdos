@@ -102,8 +102,10 @@ logical2physical:
 	test	word [es:LDT_FLAGS + bx],LFLG_SUBST
 	 jz	logical2physical10	; as long as we aren't SUBST'd it OK
 	mov	al,[es:LDT_NAME + bx]	; get the drive from the ascii name
-	and	al,1fh			;  as the drive may require rebuilding
 	dec	ax			; make it zero based
+	and	al,1fh			;  as the drive may require rebuilding
+		; lDOS: prior two instructions swapped for LASTDRIVE=32
+		;  support (drive `: may be used here).
 logical2physical10:
 	ret
 

@@ -311,8 +311,10 @@ get_pb2_ddsc:
 	test	ah,LFLG_JOINED/256
 	 jnz	bad_drive		; reject JOIN'd drives
 	mov	al,[es:LDT_NAME + bx]	; get physical drive from LDT
-	and	al,1Fh			; convert to 1 based drive
 	dec	ax			; make that zero based
+	and	al,1Fh			; convert to 1 based drive
+		; lDOS: prior two instructions swapped for LASTDRIVE=32
+		;  support (drive `: may be used here).
 get_pb2_ddsc10:
 	call	get_ddsc		; ES:BX -> DDSC_
 	 jc	bad_drive		;  or does it?

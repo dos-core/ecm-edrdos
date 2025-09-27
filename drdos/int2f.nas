@@ -709,8 +709,10 @@ i2f_121F:
 	mov	cx,LDT_FLAGS-3
 	rep	stosb			; zero rest of name and flags
 ;	lea	di,LDT_FLAGS
-	and	dl,1fh			; convert from ASCII
 	dec	dx			; into zero based drive number
+	and	dl,1fh			; convert from ASCII
+		; lDOS: prior two instructions swapped for LASTDRIVE=32
+		;  support (drive `: may be used here).
 	cmp	dl,[phys_drv]		; valid physical drive ?
 	 jae	i2f_121F_10		; mark it as such
 	mov	ax,LFLG_PHYSICAL
