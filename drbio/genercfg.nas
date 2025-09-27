@@ -545,8 +545,10 @@ load_new_dblspace:
 	mov	es,ax
 	push	ds
 	call	init_static_request	; initialise remaining fields
-    mov ax,[cs:preload_ver]   
+    mov ax,[cs:preload_ver]
+	jc .skip
 	call	far [preload_entry]
+.skip:
 	pop	ds
 	 jc	preload_exit		; INIT function fails if CARRY set
 	or	ax,ax			;   or AX != 0

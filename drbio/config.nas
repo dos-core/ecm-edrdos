@@ -570,6 +570,8 @@ init_static_request:
 	sub	al,[preload_drv]		; (not including preloaded devices)
 	mov	[RH0_DRIVE + bx],al	 	; will be allocated as NEXT_DRV
 ;;;	mov	es:DEVHDR.NEXTSEG[di],0	; force seg to zero (386max 4.05)
+	cmp al, 32			; CY if valid
+	cmc				; NC if valid
 	ret
 
 dev_init:
@@ -589,7 +591,6 @@ dev_init:
 	mov	[interrupt_off],ax
 	mov	[interrupt_seg],es
 	call	init_static_request
-
 	push 	ds
 	push 	es			; Save Segment registers
 	push 	bx
@@ -599,6 +600,19 @@ dev_init:
 	pop 	es			; ES -> Points at the Data Segment
 	mov	ds,[strategy_seg]		; DS == Device Drive Segment
  	mov	si,di			; DS:SI -> device driver header
+	jnc .notskip			; CF from init_static_request
+	test word [si + DEVHDR.ATTRIB], DA_CHARDEV
+	jnz .notskip	; ignore init_static_request CY for character device
+	mov byte [es:bx + RH0_NUNITS], 0
+	push cs
+	pop ds
+	push dx
+	push ax
+	call block_device.toomanymsg
+	pop ax
+	pop dx
+	jmp .skip
+.notskip:
 	push	ds
 	push	es
  	call	far [cs:strategy_far]		; Call Device Strategy Routine
@@ -607,6 +621,7 @@ dev_init:
 	mov	ax,[DEVHDR.INTERRUPT + si]	; Set up the INTERRUPT Entry Point
 	mov	[es:interrupt_off],ax
 	call	far [cs:interrupt_far]		; Call Device Interrupt Routine
+.skip:
 	pop 	di
 	pop 	si
 	pop 	bx			; recover the pointers
@@ -648,7 +663,16 @@ char_d20:
 	public	block_device
 block_device:
 	mov	al,BLKDEV_LENGTH	; bytes per block device table entry
-	mul	byte [num_blkdev]	;   * # of block devices installed
+	mov ah, [num_blkdev]
+	cmp ah, 32
+	jb .enough
+.toomanymsg:
+	mov dx, too_many_block_msg
+	mov	ah,MS_C_WRITESTR
+	int	DOS_INT
+	retn
+.enough:
+	mul ah				;   * # of block devices installed
 	add	ax,offset blkdev_table	; AX -> block dev init result table
 	xchg	ax,si			; pointer to next block device struct
 	mov	[devoff],di

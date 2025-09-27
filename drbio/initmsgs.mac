@@ -28,6 +28,8 @@
 	extrn	bootpart_not_found_msg : byte
 	extrn	_dos_msg	: byte
 	extrn	dos_msg		: byte
+	extrn	_too_many_block_msg : byte
+	extrn	too_many_block_msg : byte
 	extrn	_no_char	: byte
 	extrn	no_char		: byte
 	extrn	_yes_char	: byte

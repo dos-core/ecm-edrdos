@@ -82,6 +82,11 @@ _bootpart_not_found_msg	db	CR, LF, "warning: can't find boot partition", CR, LF,
 	public	dos_msg
 dos_msg	label	byte
 _dos_msg	db	CR, LF, "panic: can't load DRDOS.SYS, giving up$", NUL
+	public	_too_many_block_msg
+	public	too_many_block_msg
+too_many_block_msg	label	byte
+_too_many_block_msg
+		db	CR, LF, "panic: too many block devices, skipping", CR, LF, 36, NUL
 	public	_f5key_msg
 	public	f5key_msg
 f5key_msg	label	byte
